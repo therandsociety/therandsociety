@@ -84,6 +84,25 @@ a{color:var(--navy)}
       return list.length;
     }
     var ns = events(D.society, 'society'), na = events(D.analyst || [], 'analyst');
+    // reviewer lists: each row names analyst keys; {cycle} becomes each member's pitch cycle
+    var akeys = {}; (D.analyst || []).forEach(function (e) { if (e && e.key) akeys[e.key] = true; });
+    Object.keys(D.reviewQueues || {}).forEach(function (r) {
+      var q = D.reviewQueues[r];
+      if (!ids[r]) errs.push('<code>reviewQueues</code> names <code>' + esc(r) + '</code>, which is not a member id.');
+      if (!Array.isArray(q)) { errs.push('<code>reviewQueues.' + esc(r) + '</code> must be a list.'); return; }
+      q.forEach(function (row, i) {
+        var at = 'reviewQueues.' + esc(r) + ' row ' + (i + 1);
+        if (!row || !row.what) errs.push(at + ' has no <code>what</code>.');
+        ['arrives', 'due', 'doneOn'].forEach(function (k) {
+          if (!row || (k !== 'doneOn' && !row[k])) { if (k !== 'doneOn') errs.push(at + ' has no <code>' + k + '</code>.'); return; }
+          if (!row[k]) return;
+          Object.keys(D.cycles || { A: 1 }).forEach(function (c) {
+            var key = String(row[k]).replace('{cycle}', c);
+            if (!akeys[key]) errs.push(at + ': <code>' + k + '</code> points to <code>' + esc(key) + '</code>, which is not an analyst key.');
+          });
+        });
+      });
+    });
     return { errs: errs, warns: warns, ns: ns, na: na, nm: (D.members || []).length };
   }
   function run() {

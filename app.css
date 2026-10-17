@@ -490,3 +490,69 @@ button.ch-row:hover{background:var(--card-2)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+/* ---------- Phase 0: compact header, sync status, search, review queue ---------- */
+/* After the first open of the day (SAST) the header slims down so the top card is in view straight away. */
+.compact-head .mast-inner{gap:30px;padding-block:calc(16px + var(--safe-top)) 84px}
+.compact-head .hero{gap:8px}
+.compact-head .hero h1{font-size:clamp(32px,2vw + 18px,42px)}
+.compact-head .hero p{font-size:15px}
+@media (max-width:759px){
+  .compact-head .mast-photo{height:100%}
+  .compact-head .mast-photo::after{background:linear-gradient(180deg,rgba(11,26,48,.7) 0%,rgba(15,35,64,.42) 45%,rgba(15,35,64,.92) 88%,var(--navy) 100%)}
+  .compact-head .mast-inner{gap:22px;padding-block:calc(10px + var(--safe-top)) 56px}
+  .compact-head .hero{gap:4px}
+  .compact-head .hero h1{font-size:30px}
+  .compact-head .hero p{display:none}
+}
+
+/* how fresh the dates are */
+.sync{display:flex;align-items:center;gap:10px;margin:0 24px;padding:10px 0 14px;font-size:12.5px;color:var(--muted)}
+.sync i{width:7px;height:7px;flex:none;border-radius:50%;background:var(--ok-dot)}
+.sync.stale i{background:var(--silver-2);box-shadow:inset 0 0 0 1.5px var(--past)}
+.sync span{flex:1;min-width:0}
+.sync button{flex:none;min-height:44px;padding:0 14px;margin:-12px -10px -12px 0;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--slate)}
+.sync button:hover{background:var(--card-2)}
+.sync button[disabled]{color:var(--muted)}
+@media (max-width:759px){.sync{margin:0 16px}}
+
+/* search */
+.icon-btn{width:40px;height:40px;flex:none;display:inline-flex;align-items:center;justify-content:center;margin:-8px 0 -8px -8px;border-radius:50%;color:var(--slate)}
+.agenda .card-head .seg{margin-left:auto}
+@media (max-width:759px){
+  .agenda .card-head .icon-btn{margin:-8px -8px -8px auto}
+  .agenda .card-head .seg{order:3;flex:1 0 100%;margin-left:0}
+  .agenda .card-head{padding-bottom:12px;row-gap:10px}
+  .agenda .card-head .seg button{flex:1;text-align:center;justify-content:center}
+}
+.icon-btn:hover{background:var(--card-2);color:var(--navy)}
+.search-head{display:flex;align-items:center;gap:10px;padding:12px 8px 10px 20px;border-bottom:1px solid var(--line-2);color:var(--slate)}
+.search-head input{flex:1;min-width:0;height:44px;border:0;background:transparent;font:inherit;font-size:17px;color:var(--ink);outline:none;-webkit-appearance:none;appearance:none}
+.search-head input::placeholder{color:var(--past)}
+.search-head input::-webkit-search-cancel-button{display:none}
+.search-body{padding-top:10px}
+.search-hint{margin:6px 0;font-size:14px;color:var(--muted)}
+.search-hint button{padding:0;font:inherit;color:var(--slate);text-decoration:underline;text-underline-offset:3px}
+.results{list-style:none;margin:0 -12px;padding:0}
+.res{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:56px;padding:8px 12px;border-radius:8px;text-align:left}
+.res:hover,.res:focus-visible{background:var(--card-2)}
+.res-d{font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap}
+.res-t{display:flex;flex-direction:column;min-width:0}
+.res-t b{font-weight:500;line-height:1.35;color:var(--ink)}
+.res-t small{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* reviewer queue: what other Members are waiting on */
+.queue{padding-bottom:10px}
+.q-list{list-style:none;margin:10px 0 0;padding:0 12px}
+.q-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-top:1px solid var(--line-2)}
+.q-list li:first-child{border-top:0}
+.q-t{display:flex;flex-direction:column;min-width:0}
+.q-t b{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--slate)}
+.q-t span{font-weight:500;line-height:1.35;color:var(--ink)}
+.q-t small{font-size:12.5px;color:var(--muted)}
+.q-list li.done .q-t span{color:var(--muted)}
+.q-more{margin:2px 24px 6px;font-size:12.5px;color:var(--muted)}
+@media (max-width:759px){.q-list{padding:0 4px}}
+
+/* a past deadline from before the member started marking: neutral */
+.ps.past{background:var(--silver)}

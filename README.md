@@ -47,6 +47,26 @@ Members can mark their own deadlines as submitted (only they see that). When a p
 
 `accepted` turns it green ("Accepted"). `revise` shows "Revision needed" in orange until you change it to `accepted`. Analyst deadlines live in the `analyst` list; for example, accepted sector briefs go on the `a-brief` item.
 
+### Reviewer lists ("Waiting on you")
+
+The Head of Research and Portfolio Manager see a **Waiting on you** card listing the work other Members will send them for review. It appears a fortnight before the work arrives and drops off once its review date has passed or the work is accepted. The rows come from `reviewQueues`, keyed by the reviewer's role id:
+
+```json
+"reviewQueues": {
+  "pm": [ { "what": "thesis candidate", "arrives": "a-brief", "due": "a-cand", "doneOn": "a-cand", "dueLabel": "Pre-clear by" } ]
+}
+```
+
+| Field | What it does |
+|---|---|
+| `what` | Shown after the Member's sector, such as "TMT thesis candidate". |
+| `arrives` | The analyst key for the day the work can first come in. |
+| `due` | The analyst key for the day the review is due. |
+| `doneOn` | The analyst key whose `status` marks it accepted (defaults to `arrives`). |
+| `dueLabel` | The wording before the date, such as "Accept by". |
+
+Write `{cycle}` inside a key (`a-thesis{cycle}`) and each Member's own pitch cycle is filled in. Recording `"accepted"` for a Member on the `doneOn` item turns their row green.
+
 ### Telling members about a change
 
 You don't need to: when a date, end date or time changes, each member sees a short "Dates changed since your last visit" note the next time they open the app, listing what moved. To add a message of your own, add a block like this near the top of the file, and change the `id` each time you post a new one:
@@ -70,6 +90,10 @@ On the day of a meeting the app counts down to 17:00, shows "Live now" during it
 ### Previewing another day
 
 Add `?asof=2027-02-10` to the address to see the dashboard as it will look on that date, and `&now=16:45` to preview a time of day. Members never see this unless they type it.
+
+### Opening and updating
+
+The full launch screen plays on the first open of each day; after that the app opens in about a second with a slimmer header. After you publish a change to the app itself, open copies show **A new version is ready · Refresh**. Under the term plan, members see when the dates were last checked, or that they are offline and seeing the saved copy, with a **Refresh** button. Press `/` on a computer (or tap the magnifier beside "Term plan") to search dates, meetings and rules.
 
 ## Role links
 

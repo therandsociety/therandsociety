@@ -241,6 +241,33 @@
       ]
     }
   ],
+  "reviewQueues": {
+    "hor": [
+      {
+        "what": "sector brief and watchlist",
+        "arrives": "a-brief",
+        "due": "a-cand",
+        "dueLabel": "Accept by",
+        "doneOn": "a-brief"
+      },
+      {
+        "what": "thesis and model",
+        "arrives": "a-thesis{cycle}",
+        "due": "a-fb{cycle}",
+        "dueLabel": "Comments by",
+        "doneOn": "a-thesis{cycle}"
+      }
+    ],
+    "pm": [
+      {
+        "what": "thesis candidate",
+        "arrives": "a-brief",
+        "due": "a-cand",
+        "dueLabel": "Pre-clear by",
+        "doneOn": "a-cand"
+      }
+    ]
+  },
   "society": [
     {
       "key": "apend",

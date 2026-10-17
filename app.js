@@ -4,19 +4,19 @@
   'use strict';
   var root = document.getElementById('app');
   // Launch screen: index.html shows the logo and name until the dashboard is ready. The first open in a session holds it
-  // for at least 1.7 s from page start (so the logo, name and loading line finish), a reload in the same session for 0.9 s;
+  // for at least 1.7 s from page start (so the logo, name and loading line finish); later opens that day take about 0.6 s;
   // then it opens into the dashboard, whose own entrance plays as the screen clears.
   function hideSplash(now) {
     var el = document.getElementById('splash');
     if (!el || el.getAttribute('data-out')) return;
     el.setAttribute('data-out', '1');
-    var de = document.documentElement, quick = de.classList.contains('splash-quick');
+    var de = document.documentElement, quick = de.classList.contains('splash-quick');  // set by index.html after the first open of the day
     var t = window.performance && performance.now ? performance.now() : 0;
     setTimeout(function () {
       el.classList.add('out');
-      setTimeout(function () { de.classList.remove('splashing'); }, now ? 0 : 250);
-      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 950);
-    }, now ? 0 : Math.max(0, (quick ? 900 : 1700) - t));
+      setTimeout(function () { de.classList.remove('splashing'); }, now ? 0 : quick ? 120 : 250);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, quick ? 620 : 950);
+    }, now ? 0 : Math.max(0, (quick ? 600 : 1700) - t));
   }
   function fail(msg) { document.documentElement.classList.remove('splashing'); hideSplash(true); root.innerHTML = '<div class="boot">' + msg + '</div>'; }
   if (!window.preact || !window.preactHooks || !window.htm) { fail('The dashboard could not load. Check your connection, then reload the page.'); return; }
@@ -77,15 +77,24 @@
   }
 
   // ---------- data ----------
+  // Resolves to { raw, source }: 'network' (fresh), 'cache' (the saved copy, because offline or the server was slow) or 'bundled' (preview).
   function loadData() {
-    if (window.TRS_DATA) return Promise.resolve(window.TRS_DATA);
+    if (window.TRS_DATA) return Promise.resolve({ raw: window.TRS_DATA, source: 'bundled' });
     function fromCache(err) {
       if (!window.caches) throw err;
-      return caches.match('data.json').then(function (r) { if (!r) throw err; return r.json(); });
+      return caches.match('data.json').then(function (r) { if (!r) throw err; return r.json().then(function (raw) { return { raw: raw, source: 'cache' }; }); });
     }
     return fetch('data.json', { cache: 'no-cache' })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var src = r.headers.get('x-trs-source') === 'cache' ? 'cache' : 'network';
+        return r.json().then(function (raw) { return { raw: raw, source: src }; });
+      })
       .catch(fromCache);
+  }
+  function clockSAST(ms) {
+    try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms)); }
+    catch (e) { var d = new Date(ms + 2 * 3600000); return ('0' + d.getUTCHours()).slice(-2) + ':' + ('0' + d.getUTCMinutes()).slice(-2); }
   }
 
   function prepare(raw) {
@@ -118,7 +127,7 @@
     return {
       term: term, members: raw.members, society: list(raw.society, 'Society'), analyst: list(raw.analyst, 'analyst'),
       analystMeetings: raw.analystMeetings || {}, analystScorecard: raw.analystScorecard || [], rules: raw.rules || {},
-      cycles: cycles, updated: parseDay(raw.updated), order: order,
+      cycles: cycles, updated: parseDay(raw.updated), order: order, reviewQueues: raw.reviewQueues || {},
       notice: raw.notice && raw.notice.id && raw.notice.text ? raw.notice : null,
       teams: (raw.site && /^https:\/\//.test(raw.site.teams || '') && raw.site.teams) || '',
       siteUrl: (raw.site && raw.site.url) || ''
@@ -214,12 +223,12 @@
   //   far  (8+ days)  navy as usual        week (3-7 days) soft orange      soon (0-2 days) solid orange
   //   sub  you marked it submitted (this phone)    ok  the Society recorded it accepted    rev  revision needed
   //   gap  the date passed and it wasn't marked
-  function bandOf(it) {
+  function bandOf(it, since) {
     if (it.part !== 'lead' || it.type !== 'deadline') return '';
     if (it.status === 'accepted') return 'ok';
     if (it.submitted) return 'sub';
     if (it.status === 'revise') return 'rev';
-    if (it.past) return 'gap';
+    if (it.past) return since && it.ms >= since ? 'gap' : 'past';
     return it.n <= 2 ? 'soon' : it.n <= 7 ? 'week' : 'far';
   }
   function isDone(it) { return it.band === 'ok' || it.band === 'sub'; }
@@ -230,24 +239,69 @@
       case 'rev': return { text: 'Revision needed', tone: 'u-week' };
       case 'soon': return { text: it.current ? 'Due today' : it.n === 1 ? 'Due tomorrow' : 'Due in ' + it.n + ' days', tone: 'u-soon' };
       case 'week': return { text: 'Due in ' + it.n + ' days', tone: 'u-week' };
-      case 'gap': return { text: 'Passed', tone: 'quiet' };
+      case 'gap': return { text: it.closed ? it.soon : 'Not marked', tone: 'quiet' };
+      case 'past': return { text: it.closed ? it.soon : 'Passed', tone: 'quiet' };
       default: return { text: it.label, tone: it.tone };
     }
   }
-  function mark(P, m, items, done) {
-    items.forEach(function (it) { it.submitted = !!done[m.id + ':' + it.key]; it.band = bandOf(it); it.tag = stateTag(it); });
+  // Bug fix: after 17:00 on its day a deadline is closed, and after 18:30 a meeting has ended, so neither stays "today".
+  function closeOut(items, now) {
+    items.forEach(function (it) {
+      if (!it.current || it.range) return;
+      var end = it.type === 'meeting' ? atSAST(it.ms, '18:30') : (it.type === 'deadline' && it.time ? atSAST(it.ms, it.time) : 0);
+      if (end && now >= end) { it.past = true; it.current = false; it.closed = true; it.soon = it.type === 'meeting' ? 'Ended' : 'Closed at ' + it.time; }
+    });
     return items;
+  }
+  // "since": the day this member first marked something on this phone. Unmarked past deadlines only count from then,
+  // so members who never use ticks aren't nagged.
+  function mark(P, m, items, done, since) {
+    items.forEach(function (it) { it.submitted = !!done[m.id + ':' + it.key]; it.band = bandOf(it, since); it.tag = stateTag(it); });
+    return items;
+  }
+
+  // What reviewers owe other Members, from data.reviewQueues: shown from a fortnight before work arrives until it is due.
+  function reviewQueue(P, m, asOf) {
+    var cfg = (P.reviewQueues || {})[m.id];
+    if (!cfg || !cfg.length) return null;
+    var byKey = {};
+    P.analyst.forEach(function (e) { byKey[e.key] = e; });
+    var rows = [];
+    P.members.forEach(function (x) {
+      if (x.id === m.id) return;
+      cfg.forEach(function (q) {
+        var c = x.cycle || 'A', a = byKey[String(q.arrives).replace('{cycle}', c)], d = byKey[String(q.due).replace('{cycle}', c)];
+        if (!a || !d) return;
+        var dn = byKey[String(q.doneOn || q.arrives).replace('{cycle}', c)], accepted = !!(dn && dn.status && dn.status[x.id] === 'accepted');
+        if (d.ms < asOf || a.ms - asOf > 14 * DAY) return;
+        var n = Math.round((d.ms - asOf) / DAY), open = a.ms <= asOf;
+        rows.push({ id: x.id + q.arrives, who: x.roleShort || x.role, what: x.sector + ' ' + q.what, due: d.ms, accepted: !!accepted,
+          when: open ? (q.dueLabel || 'Due') + ' ' + wk(d.ms).slice(0, 3) + ' ' + dShort(d.ms) : 'From ' + wk(a.ms).slice(0, 3) + ' ' + dShort(a.ms) + ' · ' + (q.dueLabel || 'Due').replace(/^./, function (c) { return c.toLowerCase(); }) + ' ' + dShort(d.ms),
+          tag: accepted ? { text: 'Accepted', tone: 'ok' } : !open ? { text: 'Coming', tone: 'quiet' } : n <= 2 ? { text: n <= 0 ? 'Due today' : n === 1 ? 'Due tomorrow' : 'Due in ' + n + ' days', tone: 'u-soon' } : n <= 7 ? { text: 'Due in ' + n + ' days', tone: 'u-week' } : { text: 'Open', tone: 'when' } });
+      });
+    });
+    rows.sort(function (a, b) { return a.due - b.due; });
+    return rows.length ? { rows: rows, open: rows.filter(function (r) { return !r.accepted && r.tag.text !== 'Coming'; }).length } : null;
+  }
+  // Every rule, from both views, for search.
+  function allRules(P, m, phase) {
+    var out = [];
+    (P.rules.shared || []).forEach(function (r) { out.push({ id: r.id, title: r.title, body: String(r.body || '').replace(/\{time\}/g, DEFAULT_TIME || '17:00'), lens: '' }); });
+    (P.rules.analyst || []).forEach(function (r) { out.push({ id: r.id, title: r.title, body: r.body, lens: 'analyst' }); });
+    if (m.safeguard) out.push({ id: 'safe', title: m.safeguard.title, body: m.safeguard.body, lens: 'society' });
+    return out;
   }
 
   function buildModel(P, st) {
     var asOf = st.asOf, T = P.term;
     var mi = clamp(st.mi || 0, 0, P.members.length - 1), m = P.members[mi], lens = st.lens === 'analyst' ? 'analyst' : 'society';
     var phase = asOf < T.start ? 'pre' : asOf <= T.protectedEnd ? 'protected' : (asOf >= T.recessStart && asOf <= T.recessEnd) ? 'recess' : asOf > T.close ? 'closed' : 'open';
-    var done = st.done || {};
-    var all = mark(P, m, lensItems(P, m, lens).map(function (it) { return decorate(it, asOf); }), done);
+    var done = st.done || {}, since = (st.since || {})[m.id] || 0, now = st.now || Date.now();
+    var all = mark(P, m, closeOut(lensItems(P, m, lens).map(function (it) { return decorate(it, asOf); }), now), done, since);
     var shown = st.all ? all : all.filter(function (it) { return it.isKey; });
-    var pastItems = shown.filter(function (it) { return it.past; });
-    var listed = st.showPast ? shown : shown.filter(function (it) { return !it.past; });
+    // Something that closed earlier today stays in the list (dimmed, "Closed at 17:00") until midnight.
+    var pastItems = shown.filter(function (it) { return it.past && !it.closed; });
+    var listed = st.showPast ? shown : shown.filter(function (it) { return !it.past || it.closed; });
     var groups = [];
     listed.forEach(function (it) {
       var g = groups[groups.length - 1];
@@ -256,7 +310,7 @@
     });
     var upIdx = 0, months = st.months || {};
     groups.forEach(function (g) {
-      var up = g.items.some(function (it) { return !it.past; });
+      var up = g.items.some(function (it) { return !it.past || it.closed; });
       var def = up ? upIdx++ < 2 : true;
       g.open = months[g.k] != null ? months[g.k] : def;
       var due = g.items.filter(function (it) { return it.part === 'lead' && it.type === 'deadline'; }).length;
@@ -286,14 +340,14 @@
     var weekSummary = weekBits.length ? weekBits.join(' · ') : 'Nothing scheduled';
     // the other role: its next deadline, and how many fall within a week
     var otherLens = lens === 'society' ? 'analyst' : 'society';
-    var oAll = mark(P, m, lensItems(P, m, otherLens).map(function (it) { return decorate(it, asOf); }), done);
+    var oAll = mark(P, m, closeOut(lensItems(P, m, otherLens).map(function (it) { return decorate(it, asOf); }), now), done, since);
     var oDue = oAll.filter(function (it) { return it.part === 'lead' && it.type === 'deadline' && !it.past && !isDone(it); });
     var oWeek = oDue.filter(function (it) { return it.n <= 7; });
     var other = { lens: otherLens, label: otherLens === 'analyst' ? 'As a ' + m.sector + ' analyst' : 'As ' + (m.roleShort || m.role),
       next: oDue[0] || null, week: oWeek.length, urgent: oWeek.some(function (it) { return it.n <= 2; }), all: oAll };
     // progress across this view's own deadlines
     var own = all.filter(function (it) { return it.part === 'lead' && it.type === 'deadline'; });
-    var segOf = { ok: 'ok', sub: 'sub', rev: 'rev', gap: 'gap', soon: 'soon', week: 'week', far: 'todo' };
+    var segOf = { ok: 'ok', sub: 'sub', rev: 'rev', gap: 'gap', past: 'past', soon: 'soon', week: 'week', far: 'todo' };
     var nDone = own.filter(isDone).length, nWeek = own.filter(function (it) { return it.band === 'soon' || it.band === 'week'; }).length;
     var nRev = own.filter(function (it) { return it.band === 'rev'; }).length, nGap = own.filter(function (it) { return it.band === 'gap'; }).length;
     var capBits = [nDone + ' of ' + own.length + ' submitted'];
@@ -369,6 +423,7 @@
     var t = D(asOf);
     return {
       m: m, mi: mi, lens: lens, phase: phase, hero: hero, phaseTag: phaseTag, all: all, shown: shown, groups: groups, pastCount: pastItems.length,
+      queue: lens === 'society' ? reviewQueue(P, m, asOf) : null, searchRules: allRules(P, m, phase),
       progress: progress, nextKey: firstUp ? firstUp.key : null, next: next,
       nextLive: live(next, st.now), teams: P.teams,
       today: all.filter(function (it) { return it.current && it !== next && !it.range && (it.type === 'meeting' || (it.part === 'lead' && it.type === 'deadline' && !isDone(it))); })
@@ -416,7 +471,7 @@
     }, []);
     function onKey(ev) {
       if (ev.key !== 'Tab' || !ref.current) return;
-      var f = ref.current.querySelectorAll('button:not([disabled]), a[href]');
+      var f = ref.current.querySelectorAll('input, button:not([disabled]), a[href]');
       if (!f.length) return;
       var a = f[0], z = f[f.length - 1];
       if (ev.shiftKey && document.activeElement === a) { ev.preventDefault(); z.focus(); }
@@ -633,6 +688,7 @@
     return html`<section class="card agenda" aria-labelledby="ag-h">
       <div class="card-head">
         <h2 id="ag-h" class="card-title">Term plan</h2>
+        <button class="icon-btn search-btn" onClick=${A.openSearch} aria-label="Search dates, meetings and rules" title="Search (/)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
         <div class="seg" role="group" aria-label="Dates to show">
           <button aria-pressed=${st.all ? 'false' : 'true'} onClick=${function () { A.setAll(false); }}>Key dates</button>
           <button aria-pressed=${st.all ? 'true' : 'false'} onClick=${function () { A.setAll(true); }}>Everything</button>
@@ -656,6 +712,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
         <span>Get reminders in your calendar</span><${Arrow} />
       </button>
+      ${p.sync ? html`<div class=${'sync ' + p.sync.state} aria-live="polite"><i aria-hidden="true"></i><span>${p.sync.text}</span><button onClick=${A.refresh} disabled=${p.sync.busy}>${p.sync.busy ? 'Checking…' : 'Refresh'}</button></div>` : null}
     </section>`;
   }
 
@@ -681,7 +738,54 @@
           <ul>${M.score.map(function (r, i) { return html`<li key=${i}><span>${r.name}</span><span class="tnum">${r.when}</span></li>`; })}</ul>
         </section>`;
     if (p.part === 'panels') return top;
-    return html`<div class="side">${top}<${Rules} M=${M} A=${A} st=${st} /></div>`;
+    return html`<div class="side"><${Queue} M=${M} />${top}<${Rules} M=${M} A=${A} st=${st} /></div>`;
+  }
+
+  function Queue(p) {
+    var Q = p.M.queue;
+    if (!Q) return null;
+    return html`<section class="card queue" aria-labelledby="q-h">
+      <div class="card-head"><h2 id="q-h" class="card-k">Waiting on you</h2><span class="count tnum">${Q.open ? Q.open + ' open' : 'Coming up'}</span></div>
+      <ul class="q-list">${Q.rows.slice(0, 5).map(function (r) {
+        return html`<li key=${r.id} class=${r.accepted ? 'done' : ''}><span class="q-t"><b>${r.who}</b><span>${r.what}</span><small class="tnum">${r.when}</small></span><${Tag} text=${r.tag.text} tone=${r.tag.tone} /></li>`;
+      })}</ul>
+      ${Q.rows.length > 5 ? html`<p class="q-more">and ${Q.rows.length - 5} more</p>` : null}
+    </section>`;
+  }
+
+  function SearchSheet(p) {
+    var s = useState(''), q = s[0], setQ = s[1], M = p.M;
+    var seen = {}, pool = [];
+    M.all.concat(M.other.all).forEach(function (it) {
+      if (seen[it.key]) return; seen[it.key] = 1;
+      var lens = M.all.indexOf(it) >= 0 ? M.lens : M.other.lens;
+      pool.push({ kind: 'item', it: it, lens: it.type === 'meeting' ? '' : lens, hay: (it.title + ' ' + it.detail + ' ' + it.whenLong + ' ' + (it.label || '') + ' ' + (lens === 'analyst' ? 'analyst ' + M.m.sector : 'society ' + M.m.role)).toLowerCase() });
+    });
+    M.searchRules.forEach(function (r) { pool.push({ kind: 'rule', r: r, lens: r.lens, hay: ('rule ' + r.title + ' ' + r.body).toLowerCase() }); });
+    // Each word must start a word ("IC" finds "Formal IC 3", not "Academic"). Title matches first; within them, what's coming
+    // (soonest first), then what has passed (latest first).
+    var words = q.toLowerCase().split(/\s+/).filter(Boolean).map(function (w) { return new RegExp('(^|[^a-z0-9])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); });
+    function title(x) { return (x.kind === 'rule' ? x.r.title : x.it.title).toLowerCase(); }
+    var hits = words.length ? pool.filter(function (x) { return words.every(function (w) { return w.test(x.hay); }); })
+      .map(function (x) { x.th = words.every(function (w) { return w.test(title(x)); }) ? 0 : 1; x.gone = x.kind === 'item' && x.it.past && !x.it.closed ? 1 : 0; x.ms = x.kind === 'rule' ? 9e15 : x.it.ms; return x; })
+      .sort(function (a, b) { return a.th - b.th || a.gone - b.gone || (a.gone ? b.ms - a.ms : a.ms - b.ms); }).slice(0, 25) : [];
+    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Search">
+      <div class="search-head">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input id="search-q" data-autofocus type="search" placeholder="Search dates, meetings and rules" value=${q} onInput=${function (e) { setQ(e.currentTarget.value); }} autocomplete="off" enterkeyhint="search" aria-label="Search" />
+        <${CloseBtn} onClose=${p.onClose} />
+      </div>
+      <div class="sheet-body search-body">
+        ${!words.length ? html`<p class="search-hint">Try <button onClick=${function () { setQ('pitch'); }}>pitch</button>, <button onClick=${function () { setQ('minutes'); }}>minutes</button>, <button onClick=${function () { setQ('IC 3'); }}>IC 3</button> or <button onClick=${function () { setQ('February'); }}>February</button>.</p>`
+          : !hits.length ? html`<p class="search-hint">Nothing matches “${q}”.</p>`
+          : html`<ul class="results">${hits.map(function (x, i) {
+            if (x.kind === 'rule') return html`<li key=${'r' + i}><button class="res" onClick=${function () { p.openRule(x.r); }}><span class="res-d">Rule</span><span class="res-t"><b>${x.r.title}</b><small>${x.r.body}</small></span></button></li>`;
+            var it = x.it, when = it.past && !it.closed ? 'Passed' : it.soon, tg = it.tag || { text: it.label, tone: it.tone };
+            var where = x.lens && x.lens !== M.lens ? (x.lens === 'analyst' ? 'Analyst' : M.m.roleShort || 'Society role') + ' · ' : '';
+            return html`<li key=${it.key}><button class="res" onClick=${function () { p.openAny(it.key); }}><span class="res-d tnum">${dShort(it.ms)}</span><span class="res-t"><b>${it.title}</b><small>${where}${when}</small></span>${tg.text && tg.text !== when ? html`<${Tag} text=${tg.text} tone=${tg.tone} />` : html`<span></span>`}</button></li>`;
+          })}</ul>`}
+      </div>
+    </${Sheet}>`;
   }
 
   function Rules(p) {
@@ -754,7 +858,18 @@
     return out;
   }
 
+  function revealBoard() {
+    setTimeout(function () {
+      var b = document.querySelector('.board'); if (!b) return;
+      var dock = document.querySelector('.lens-dock'), off = (dock ? dock.getBoundingClientRect().height + 16 : 16) + 8;
+      var top = b.getBoundingClientRect().top + window.scrollY - off;
+      if (window.scrollY > top + 4) { try { window.scrollTo({ top: Math.max(0, top), behavior: reducedMotion() ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, Math.max(0, top)); } }
+    }, 40);
+  }
+  function reducedMotion() { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
+
   // Your own "submitted" ticks: saved on this phone only, keyed by member and date.
+  function readSince() { try { return JSON.parse(read('trs-mark-since') || '{}') || {}; } catch (e) { return {}; } }
   function readDone() { try { return JSON.parse(read('trs-done') || '{}') || {}; } catch (e) { return {}; } }
 
   var phoneQuery = window.matchMedia ? window.matchMedia('(max-width: 759px)') : null;
@@ -769,28 +884,31 @@
   function App() {
     var s = useState(function () {
       return { P: null, err: null, mi: 0, lens: read('trs-lens') === 'analyst' ? 'analyst' : 'society', all: false, showPast: false, sheet: null, open: {}, months: {},
-        asOf: todaySAST(), now: nowMs(todaySAST()), phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null };
+        asOf: todaySAST(), now: nowMs(todaySAST()), since: readSince(), source: '', syncBusy: false, updateReady: false, phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null };
     });
     var st = s[0], setSt = s[1];
     function set(patch) { setSt(function (prev) { return Object.assign({}, prev, typeof patch === 'function' ? patch(prev) : patch); }); }
-    var loadedAt = useRef(0), toastT = useRef(0);
+    var loadedAt = useRef(0), toastT = useRef(0), loadRef = useRef(null), sheetRef = useRef(null), ignorePop = useRef(false);
 
     function load(first) {
-      loadData().then(function (raw) {
-        var P = prepare(raw);
+      return loadData().then(function (res) {
+        var P = prepare(res.raw);
         loadedAt.current = Date.now();
+        if (res.source === 'network') store('trs-checked', String(Date.now()));
         set(function (prev) {
-          if (!first) return { P: P, mi: clamp(prev.mi, 0, P.members.length - 1) };
+          if (!first) return { P: P, mi: clamp(prev.mi, 0, P.members.length - 1), source: res.source, syncBusy: false };
           var hsh = fromHash(P), saved = storedMember(P);
           var mi = hsh.mi != null ? hsh.mi : saved != null ? saved : 0;
           if (hsh.mi != null) store('trs-member', P.members[mi].id);
           if (hsh.lens) store('trs-lens', hsh.lens);
-          return { P: P, err: null, mi: mi, lens: hsh.lens || prev.lens, sheet: hsh.mi == null && saved == null ? { kind: 'member' } : null };
+          return { P: P, err: null, mi: mi, lens: hsh.lens || prev.lens, source: res.source, sheet: hsh.mi == null && saved == null ? { kind: 'member' } : null };
         });
       }).catch(function (e) {
         if (first) { hideSplash(true); set({ err: e && e.message ? e.message : 'unknown error' }); }
+        else set({ syncBusy: false, source: 'cache' });
       });
     }
+    loadRef.current = load;
 
     useEffect(function () {
       load(true);
@@ -817,19 +935,38 @@
         });
       }
       window.addEventListener('hashchange', onHash);
-      function onKey(ev) { if (ev.key === 'Escape') set({ sheet: null }); }
+      function onKey(ev) {
+        if (ev.key === 'Escape') set({ sheet: null });
+        var tag = (ev.target && ev.target.tagName) || '';
+        if (ev.key === '/' && !sheetRef.current && !/INPUT|TEXTAREA|SELECT/.test(tag)) { ev.preventDefault(); set({ sheet: { kind: 'search' } }); }
+      }
+      // Bug fix: the phone's back gesture closes an open panel instead of leaving the app.
+      function onPop() { if (ignorePop.current) { ignorePop.current = false; return; } if (sheetRef.current) set({ sheet: null }); }
+      window.addEventListener('popstate', onPop);
+      function onOnline() { if (loadRef.current) loadRef.current(false); else set({}); }
+      window.addEventListener('online', onOnline); window.addEventListener('offline', onOnline);
+      function onUpdate() { set({ updateReady: true }); }
+      window.addEventListener('trs-update', onUpdate);
       window.addEventListener('keydown', onKey);
       function onInstall(v) { set({ canInstall: v }); }
       installListeners.push(onInstall);
       if (installEvt) onInstall(true);
       return function () {
         clearInterval(clock); document.removeEventListener('visibilitychange', onVis);
-        window.removeEventListener('hashchange', onHash); window.removeEventListener('keydown', onKey);
+        window.removeEventListener('hashchange', onHash); window.removeEventListener('keydown', onKey); window.removeEventListener('popstate', onPop);
+        window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOnline); window.removeEventListener('trs-update', onUpdate);
         installListeners = installListeners.filter(function (f) { return f !== onInstall; });
       };
     }, []);
 
     useEffect(function () { if (st.P) hideSplash(false); }, [!!st.P]);
+
+    // Each open panel gets one history entry, so Back closes it; closing it any other way removes that entry again.
+    useEffect(function () {
+      var was = sheetRef.current; sheetRef.current = st.sheet;
+      if (!was && st.sheet) { try { history.pushState({ trsSheet: 1 }, ''); } catch (e) { /* not allowed here */ } }
+      else if (was && !st.sheet) { try { if (history.state && history.state.trsSheet) { ignorePop.current = true; history.back(); } } catch (e) { /* not allowed here */ } }
+    }, [!!st.sheet]);
 
     // Compare what this member could see last time with now; first visit for a member just records it.
     useEffect(function () {
@@ -847,14 +984,25 @@
     if (st.err) return html`<div class="boot">The dates could not load (${st.err}). Check your connection, then reload the page.</div>`;
     if (!st.P) return html`<div class="boot">Loading the members’ dashboard…</div>`;
 
+    var checked = parseInt(read('trs-checked'), 10) || 0, offline = typeof navigator.onLine === 'boolean' && !navigator.onLine;
+    var sync = !st.source || st.source === 'bundled' ? null : st.source === 'network' && !offline
+      ? { state: 'ok', text: 'Dates up to date · checked ' + clockSAST(checked || Date.now()), busy: st.syncBusy }
+      : { state: 'stale', text: (offline ? 'Offline' : 'Couldn’t reach the server') + ' · showing dates saved ' + (checked ? (Math.round((st.asOf - parseDay(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date(checked)))) / DAY) ? dShort(checked + 2 * 3600000 - (checked + 2 * 3600000) % DAY) + ' ' : '') + clockSAST(checked) : 'earlier'), busy: st.syncBusy };
     var calBase = window.TRS_CAL_BASE || (st.P.siteUrl && !window.TRS_PWA ? st.P.siteUrl.replace(/\/?$/, '/') + 'cal/' : new URL('cal/', location.href).href);
 
     var P = st.P, M = buildModel(P, st);
     var list = M.groups.reduce(function (a, g) { return a.concat(g.items); }, []);
     var A = {
       openMembers: function () { set({ sheet: { kind: 'member' } }); },
-      pick: function (i) { store('trs-member', P.members[i].id); clearRoleHash(P); set({ mi: i, sheet: null, showPast: false }); },
-      setLens: function (l) { store('trs-lens', l); clearRoleHash(P); set({ lens: l, sheet: null, showPast: false }); },
+      pick: function (i) { store('trs-member', P.members[i].id); clearRoleHash(P); set({ mi: i, sheet: null, showPast: false }); revealBoard(); },
+      setLens: function (l) { store('trs-lens', l); clearRoleHash(P); set({ lens: l, sheet: null, showPast: false }); revealBoard(); },
+      openSearch: function () { set({ sheet: { kind: 'search' } }); },
+      openRule: function (r) {
+        var o = Object.assign({}, st.open); o[r.id] = true;
+        set({ sheet: null, open: o, lens: r.lens || st.lens });
+        setTimeout(function () { var el = document.getElementById('rule-' + r.id) || document.querySelector('.rules'); if (el) el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' }); }, 120);
+      },
+      refresh: function () { if (!loadRef.current || window.TRS_DATA) return; set({ syncBusy: true }); loadRef.current(false); },
       setAll: function (v) { set({ all: v }); },
       togglePast: function () { set(function (prev) { return { showPast: !prev.showPast }; }); },
       toggleMonth: function (k, v) { set(function (prev) { var o = Object.assign({}, prev.months); o[k] = v; return { months: o }; }); },
@@ -862,6 +1010,7 @@
       openItem: function (k) { set({ sheet: { kind: 'item', key: k } }); },
       toggleDone: function (k, title) {
         var id = M.m.id + ':' + k, on = !st.done[id];
+        if (on && !st.since[M.m.id]) { var sn = Object.assign({}, st.since); sn[M.m.id] = st.asOf; store('trs-mark-since', JSON.stringify(sn)); set({ since: sn }); }
         var o = Object.assign({}, st.done);
         if (on) o[id] = Date.now(); else delete o[id];
         store('trs-done', JSON.stringify(o));
@@ -893,7 +1042,9 @@
     };
 
     var sheet = null;
-    if (st.sheet && st.sheet.kind === 'cal') {
+    if (st.sheet && st.sheet.kind === 'search') {
+      sheet = html`<${SearchSheet} key="search" phone=${st.phone} M=${M} onClose=${A.close} openAny=${A.openAny} openRule=${A.openRule} />`;
+    } else if (st.sheet && st.sheet.kind === 'cal') {
       sheet = html`<${CalSheet} key="cal" phone=${st.phone} m=${M.m} calBase=${calBase} android=${/Android/i.test(navigator.userAgent || '')} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'member') {
       sheet = html`<${MemberSheet} key="member" phone=${st.phone} members=${P.members} mi=${M.mi} pick=${A.pick} onClose=${A.close} />`;
@@ -915,17 +1066,19 @@
         <${NextCard} M=${M} A=${A} />
         ${st.phone ? [
           st.showInstall && (st.canInstall || isIOS()) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
-          html`<${Agenda} key="ag" M=${M} A=${A} st=${st} />`,
+          html`<${Queue} key="q" M=${M} />`,
+          html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`,
           html`<${Side} key="sp" part="panels" M=${M} A=${A} st=${st} />`,
           html`<${TermCard} key="tc" M=${M} A=${A} />`,
           html`<${Side} key="ru" part="rules" M=${M} A=${A} st=${st} />`
         ] : [
           html`<${TermCard} key="tc" M=${M} A=${A} />`,
-          html`<${Agenda} key="ag" M=${M} A=${A} st=${st} />`,
+          html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`,
           html`<${Side} key="sd" M=${M} A=${A} st=${st} />`
         ]}
       </main>
       <${Footer} M=${M} A=${A} st=${st} />
+      ${st.updateReady && !st.toast ? html`<div class="toast" role="status"><span><b>A new version is ready</b></span><button onClick=${function () { location.reload(); }}>Refresh</button></div>` : null}
       ${st.toast ? html`<div class="toast" role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span><button onClick=${A.undo}>Undo</button></div>` : null}
       ${sheet}
     </div>`;
