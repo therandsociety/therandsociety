@@ -55,6 +55,12 @@ a{color:var(--navy)}
     if (D.notice && (!D.notice.id || !D.notice.text)) errs.push('<code>notice</code> needs both an <code>id</code> and a <code>text</code>.');
     if (D.site && D.site.url && !/^https:\/\//.test(D.site.url)) errs.push('<code>site.url</code> must start with https://');
     if (D.site && D.site.teams && !/^https:\/\//.test(D.site.teams)) errs.push('<code>site.teams</code> must be a full https:// Teams link.');
+    Object.keys(D.photos || {}).forEach(function (k) {
+      var v = D.photos[k], src = typeof v === 'string' ? v : v && v.src, okp = /^img\/[\w.\-\/]+\.(webp|jpe?g|png|avif)$/i;
+      if (['plan', 'meetings', 'role', 'guide'].indexOf(k) < 0) warns.push('<code>photos.' + esc(k) + '</code> is not a section (use plan, meetings, role or guide).');
+      if (!okp.test(src || '')) errs.push('<code>photos.' + esc(k) + '</code> must point to a picture in the img folder, such as <code>img/plan.webp</code>.');
+      if (v && v.phone && !okp.test(v.phone)) errs.push('<code>photos.' + esc(k) + '.phone</code> must point to a picture in the img folder.');
+    });
     function events(list, name) {
       if (!Array.isArray(list)) { errs.push('<code>' + name + '</code> must be a list.'); return 0; }
       list.forEach(function (e, i) {

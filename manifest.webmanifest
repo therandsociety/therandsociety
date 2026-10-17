@@ -10,6 +10,41 @@
   "background_color": "#0F2340",
   "theme_color": "#0F2340",
   "lang": "en-ZA",
+  "shortcuts": [
+    {
+      "name": "Term plan",
+      "short_name": "Plan",
+      "url": "./#plan",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Meetings",
+      "short_name": "Meetings",
+      "url": "./#meetings",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Guide",
+      "short_name": "Guide",
+      "url": "./#guide",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "icons/icon-192.png",

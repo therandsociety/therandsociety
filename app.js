@@ -21,7 +21,7 @@
   function fail(msg) { document.documentElement.classList.remove('splashing'); hideSplash(true); root.innerHTML = '<div class="boot">' + msg + '</div>'; }
   if (!window.preact || !window.preactHooks || !window.htm) { fail('The dashboard could not load. Check your connection, then reload the page.'); return; }
   var h = preact.h, render = preact.render;
-  var useState = preactHooks.useState, useEffect = preactHooks.useEffect, useRef = preactHooks.useRef;
+  var useState = preactHooks.useState, useEffect = preactHooks.useEffect, useRef = preactHooks.useRef, useLayoutEffect = preactHooks.useLayoutEffect || preactHooks.useEffect;
   var html = htm.bind(h);
   var PWA = !!window.TRS_PWA;
 
@@ -46,7 +46,10 @@
     var q = null;
     try { q = /[?&]now=([01]\d|2[0-3]):([0-5]\d)/.exec(location.search); } catch (e) { /* no query */ }
     if (!q && window.TRS_NOW) q = /^(\d{2}):(\d{2})$/.exec(String(window.TRS_NOW));
-    return q ? asOf + ((+q[1] - 2) * 60 + +q[2]) * 60000 : Date.now();
+    if (q) return asOf + ((+q[1] - 2) * 60 + +q[2]) * 60000;
+    // previewing another day (?asof) without a time: keep today's time of day on that day, so nothing reads as already over
+    var t = Date.now(), sod = (t + 2 * 3600000) % DAY;
+    return asOf + sod - 2 * 3600000;
   }
   function atSAST(dayMs, hhmm) { var t = String(hhmm || '00:00').split(':'); return dayMs + ((+t[0] - 2) * 60 + +t[1]) * 60000; }
   function span(ms) { var mins = Math.max(1, Math.round(ms / 60000)), h = Math.floor(mins / 60), m = mins % 60; return h ? h + ' h' + (m ? ' ' + m + ' min' : '') : m + ' min'; }
@@ -97,6 +100,19 @@
     catch (e) { var d = new Date(ms + 2 * 3600000); return ('0' + d.getUTCHours()).slice(-2) + ':' + ('0' + d.getUTCMinutes()).slice(-2); }
   }
 
+  // Optional background photos for the Plan, Meetings, Role and Guide headers (data.json "photos"). Only files in img/ are
+  // used, so they stay on the Society's site and are saved for offline use the first time they are shown.
+  function sectionPhotos(src) {
+    var out = {}, ok = /^img\/[\w.\-\/]+\.(webp|jpe?g|png|avif)$/i;
+    Object.keys(src || {}).forEach(function (k) {
+      var v = src[k], id = k === 'meetings' ? 'meet' : k;
+      if (typeof v === 'string') v = { src: v };
+      if (!v || !ok.test(v.src || '') || ['plan', 'meet', 'role', 'guide'].indexOf(id) < 0) return;
+      out[id] = { d: v.src, p: ok.test(v.phone || '') ? v.phone : v.src, dp: v.position || '50% 50%', pp: v.phonePosition || v.position || '50% 50%' };
+    });
+    return out;
+  }
+
   function prepare(raw) {
     if (!raw || !Array.isArray(raw.members) || !raw.members.length || !Array.isArray(raw.society)) throw new Error('The dates file has no members or Society dates.');
     var T = raw.term || {}, term = { name: T.name || 'H1', source: T.source || '', defaultTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(T.defaultTime || '') ? T.defaultTime : '' };
@@ -127,7 +143,7 @@
     return {
       term: term, members: raw.members, society: list(raw.society, 'Society'), analyst: list(raw.analyst, 'analyst'),
       analystMeetings: raw.analystMeetings || {}, analystScorecard: raw.analystScorecard || [], rules: raw.rules || {},
-      cycles: cycles, updated: parseDay(raw.updated), order: order, reviewQueues: raw.reviewQueues || {},
+      cycles: cycles, updated: parseDay(raw.updated), order: order, reviewQueues: raw.reviewQueues || {}, photos: sectionPhotos(raw.photos),
       notice: raw.notice && raw.notice.id && raw.notice.text ? raw.notice : null,
       teams: (raw.site && /^https:\/\//.test(raw.site.teams || '') && raw.site.teams) || '',
       siteUrl: (raw.site && raw.site.url) || ''
@@ -322,7 +338,8 @@
     });
     var firstUp = shown.filter(function (it) { return !it.past; })[0];
     var mine = all.filter(function (it) { return it.part === 'lead' && !it.past && !isDone(it); });
-    var next = mine[0] || all.filter(function (it) { return !it.past && it.isKey; })[0] || null;
+    // Meetings have their own card, so the top card is about work: the next deadline you lead.
+    var next = mine.filter(function (it) { return it.type !== 'meeting'; })[0] || all.filter(function (it) { return !it.past && it.isKey && it.type !== 'meeting'; })[0] || null;
     var nextLabel = !next ? '' : next.type === 'meeting' ? 'Your next meeting' : (next.part === 'lead' && next.type === 'deadline') ? 'Your next deadline' : 'Next for you';
     // seven days from today: what lands on each day in this view
     var week = [], wDue = 0, wMeet = 0, seen = {};
@@ -416,18 +433,55 @@
       if (r.id === 'ap') { c.chip = phase === 'protected' ? 'In force' : phase === 'pre' ? 'From ' + dShort(T.start) : 'Ended ' + dShort(T.protectedEnd); c.tone = phase === 'protected' ? 'lead' : 'quiet'; }
       return c;
     });
-    var rules = lens === 'society'
-      ? shared.concat(m.safeguard ? [{ id: 'safe', title: m.safeguard.title, body: nbsp(m.safeguard.body), chip: 'Your role', tone: 'support' }] : [])
-      : (P.rules.analyst || []).map(function (r) { return { id: r.id, title: r.title, body: nbsp(r.body), chip: r.chip || '', tone: 'quiet' }; }).concat(shared);
+    var rulesAll = [
+      { id: 'society', title: 'Every Member', items: shared.concat(m.safeguard ? [{ id: 'safe', title: m.safeguard.title, body: nbsp(m.safeguard.body), chip: 'Your role', tone: 'support' }] : []) },
+      { id: 'analyst', title: 'Analysts', items: (P.rules.analyst || []).map(function (r) { return { id: r.id, title: r.title, body: nbsp(r.body), chip: r.chip || '', tone: 'quiet' }; }) }
+    ];
+
+    // Meetings: each Society meeting with this member's part in both roles, and the run-up and follow-up the rules set
+    // (agenda by Friday 17:00, pre-reads by Saturday 17:00, minutes by Tuesday 17:00).
+    var socAll = lens === 'society' ? all : oAll, anaBy = {};
+    (lens === 'analyst' ? all : oAll).forEach(function (it) { if (it.type === 'meeting') anaBy[it.key] = it; });
+    var meetings = socAll.filter(function (it) { return it.type === 'meeting'; }).map(function (it) {
+      var a = anaBy[it.key], start = atSAST(it.ms, '17:00'), end = atSAST(it.ms, '18:30'), parts = [];
+      if (it.part) parts.push({ text: it.label, tone: it.tone });
+      if (a && a.part) parts.push({ text: a.label, tone: a.tone });
+      var minutesMine = parts.some(function (x) { return /minute/i.test(x.text); });
+      var chain = D(it.ms).getUTCDay() !== 0 ? [] : [
+        { k: 'Agenda', day: it.ms - 2 * DAY, at: atSAST(it.ms - 2 * DAY, '17:00') },
+        { k: 'Pre-reads', day: it.ms - DAY, at: atSAST(it.ms - DAY, '17:00') },
+        { k: 'Meeting', day: it.ms, at: end, meet: true },
+        { k: 'Minutes', day: it.ms + 2 * DAY, at: atSAST(it.ms + 2 * DAY, '17:00'), mine: minutesMine }
+      ];
+      var nextSet = false;
+      chain.forEach(function (c) {
+        c.short = wk(c.day).slice(0, 3) + ' ' + D(c.day).getUTCDate();
+        c.when = wk(c.day).slice(0, 3) + ' ' + dShort(c.day) + (c.meet ? ', 17:00 to 18:30' : ', 17:00');
+        c.state = now >= c.at ? 'done' : c.meet && now >= start ? 'live' : nextSet ? 'todo' : 'next';
+        if (c.state !== 'done') nextSet = true;
+      });
+      return { key: it.key, it: it, ms: it.ms, title: it.title, kind: it.ic ? 'Investment Committee' : /^learning/i.test(it.title) ? 'Learning session' : 'Meeting',
+        parts: parts, detail: it.detail, aDetail: a && a.detail && a.detail !== it.detail ? a.detail : '', live: live(it, now),
+        ended: now >= end, chain: chain, minutesAt: chain.length ? chain[3].at : 0, link: it.link || P.teams };
+    });
+    var nextMeet = meetings.filter(function (x) { return !x.ended; })[0] || null;
+    var minutesDue = meetings.filter(function (x) { return x.ended && x.minutesAt && now < x.minutesAt; }).pop() || null;
+    var badges = {
+      today: all.concat(oAll).some(function (it) { return it.band === 'soon'; }) ? 'due' : '',
+      meet: nextMeet && nextMeet.live && nextMeet.live.text === 'Live now' ? 'live' : nextMeet && nextMeet.it.current ? 'today' : ''
+    };
+    var phaseName = { pre: 'Before the term', protected: 'Academic Priority', open: asOf < T.recessStart ? 'Foundation' : 'Research and pitches', recess: 'Year-end recess', closed: 'H1 closed' }[phase];
 
     var t = D(asOf);
     return {
       m: m, mi: mi, lens: lens, phase: phase, hero: hero, phaseTag: phaseTag, all: all, shown: shown, groups: groups, pastCount: pastItems.length,
       queue: lens === 'society' ? reviewQueue(P, m, asOf) : null, searchRules: allRules(P, m, phase),
       progress: progress, nextKey: firstUp ? firstUp.key : null, next: next,
+      meetings: meetings, nextMeet: nextMeet, photos: P.photos || {}, minutesDue: minutesDue, badges: badges, rulesAll: rulesAll,
+      planLine: phase === 'closed' ? 'The term closed on ' + dMonth(T.close) + '.' : phaseName + ' · ' + stat3.v + ' ' + stat3.l,
       nextLive: live(next, st.now), teams: P.teams,
-      today: all.filter(function (it) { return it.current && it !== next && !it.range && (it.type === 'meeting' || (it.part === 'lead' && it.type === 'deadline' && !isDone(it))); })
-        .map(function (it) { return { it: it, live: live(it, st.now) }; }).filter(function (x) { return x.live; }), nextLabel: nextLabel, week: week, weekSummary: weekSummary, other: other, tl: tl, stats: stats, cycle: cycle, path: path, score: score, rules: rules,
+      today: all.filter(function (it) { return it.current && it !== next && !it.range && it.part === 'lead' && it.type === 'deadline' && !isDone(it); })
+        .map(function (it) { return { it: it, live: live(it, st.now) }; }).filter(function (x) { return x.live; }), nextLabel: nextLabel, week: week, weekSummary: weekSummary, other: other, tl: tl, stats: stats, cycle: cycle, path: path, score: score,
       todayLong: wk(asOf) + ' ' + dMonth(asOf) + ' ' + t.getUTCFullYear() + ' · SAST',
       todayShort: wk(asOf).slice(0, 3) + ' ' + dShort(asOf),
       term: T, updated: isNaN(P.updated) ? '' : dMonth(P.updated) + ' ' + D(P.updated).getUTCFullYear()
@@ -550,7 +604,7 @@
           </div>
         </div>
         <div class="hero">
-          <span class="eyebrow">${phone ? M.todayShort + ' · ' : ''}Term ${M.term.name}</span>
+          ${phone ? html`<span class="eyebrow">${M.todayShort}</span>` : null}
           <h1>${M.hero.h}</h1>
           <p>${M.hero.p}</p>
           ${phone ? null : html`<div style="margin-top:14px"><${LensSwitch} M=${M} A=${A} /></div>`}
@@ -687,7 +741,7 @@
     }
     return html`<section class="card agenda" aria-labelledby="ag-h">
       <div class="card-head">
-        <h2 id="ag-h" class="card-title">Term plan</h2>
+        <h2 id="ag-h" class="card-title">${M.lens === 'analyst' ? M.m.sector + ' analyst' : M.m.roleShort || M.m.role}</h2>
         <button class="icon-btn search-btn" onClick=${A.openSearch} aria-label="Search dates, meetings and rules" title="Search (/)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
         <div class="seg" role="group" aria-label="Dates to show">
           <button aria-pressed=${st.all ? 'false' : 'true'} onClick=${function () { A.setAll(false); }}>Key dates</button>
@@ -714,31 +768,6 @@
       </button>
       ${p.sync ? html`<div class=${'sync ' + p.sync.state} aria-live="polite"><i aria-hidden="true"></i><span>${p.sync.text}</span><button onClick=${A.refresh} disabled=${p.sync.busy}>${p.sync.busy ? 'Checking…' : 'Refresh'}</button></div>` : null}
     </section>`;
-  }
-
-  function Side(p) {
-    var M = p.M, A = p.A, st = p.st, m = M.m;
-    if (p.part === 'rules') return html`<${Rules} M=${M} A=${A} st=${st} />`;
-    var top = M.lens === 'society'
-      ? html`<section class="panel-navy on-navy" aria-labelledby="role-h">
-          <span class="card-k">${m.role}</span>
-          <h2 id="role-h">${m.focus}</h2>
-          <p>${m.focusLine}</p>
-          <ul class="own">${(m.owns || []).map(function (o, i) { return html`<li key=${i}><span>${o.name}</span><span class="tnum">${nbsp(o.when)}</span></li>`; })}</ul>
-        </section>`
-      : html`<section class="panel-navy on-navy" aria-labelledby="cov-h">
-          <span class="card-k">${m.sector} analyst</span>
-          <h2 id="cov-h">${m.sectorLine}</h2>
-          <p class="cover">${m.coverage}</p>
-          <span class="card-k" style="margin-top:10px">Thesis path · ${M.cycle.name}</span>
-          <ol class="path">${M.path.map(function (s, i) { return html`<li key=${i} class=${s.state}><span class="pd" aria-hidden="true"></span><span class="pl">${s.label}</span><span class="pw tnum">${s.when}</span></li>`; })}</ol>
-        </section>
-        <section class="card score" aria-labelledby="sc-h">
-          <div class="card-head"><h2 id="sc-h" class="card-title">Analyst scorecard</h2></div>
-          <ul>${M.score.map(function (r, i) { return html`<li key=${i}><span>${r.name}</span><span class="tnum">${r.when}</span></li>`; })}</ul>
-        </section>`;
-    if (p.part === 'panels') return top;
-    return html`<div class="side"><${Queue} M=${M} />${top}<${Rules} M=${M} A=${A} st=${st} /></div>`;
   }
 
   function Queue(p) {
@@ -788,30 +817,263 @@
     </${Sheet}>`;
   }
 
-  function Rules(p) {
+  // ---------- navigation: bottom bar on phones, sidebar on computers ----------
+  var TABS = [
+    { id: 'today', label: 'Today', hash: 'today' },
+    { id: 'plan', label: 'Plan', hash: 'plan' },
+    { id: 'meet', label: 'Meetings', hash: 'meetings' },
+    { id: 'role', label: 'Role', hash: 'role' },
+    { id: 'guide', label: 'Guide', hash: 'guide' }
+  ];
+  var BADGE_TEXT = { due: ' (due within two days)', live: ' (meeting on now)', today: ' (meeting today)', news: ' (dates changed)' };
+  function tabFromHash() {
+    var h = (location.hash || '').replace('#', '').toLowerCase(), t = null;
+    TABS.forEach(function (x) { if (x.hash === h || x.id === h) t = x.id; });
+    return t;
+  }
+  // Section icons: drawn on one 24px grid with a 1.6 line. Inactive is outline only; the active section adds a soft fill.
+  var F = { fill: 'currentColor', 'fill-opacity': '.2', stroke: 'none' };
+  var ICONS = {
+    today: {
+      f: html`<path ...${F} d="M4.5 10.4 11.2 4.8a1.25 1.25 0 0 1 1.6 0l6.7 5.6v8.4a1.7 1.7 0 0 1-1.7 1.7H6.2a1.7 1.7 0 0 1-1.7-1.7z"></path>`,
+      o: html`<path d="M4.5 10.4 11.2 4.8a1.25 1.25 0 0 1 1.6 0l6.7 5.6v8.4a1.7 1.7 0 0 1-1.7 1.7H6.2a1.7 1.7 0 0 1-1.7-1.7z"></path><path d="M10 20.5v-4.6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4.6"></path>`
+    },
+    plan: {
+      f: html`<path ...${F} d="M3.5 8a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v2h-17z"></path>`,
+      o: html`<rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3.5v3M16 3.5v3"></path><g fill="currentColor" stroke="none"><circle cx="8" cy="13.6" r=".95"></circle><circle cx="12" cy="13.6" r=".95"></circle><circle cx="16" cy="13.6" r=".95"></circle><circle cx="8" cy="17" r=".95"></circle><circle cx="12" cy="17" r=".95"></circle></g>`
+    },
+    meet: {
+      f: html`<circle ...${F} cx="9" cy="8.6" r="3.1"></circle><path ...${F} d="M3.6 19.5c.4-3.2 2.6-5.2 5.4-5.2s5 2 5.4 5.2z"></path>`,
+      o: html`<circle cx="9" cy="8.6" r="3.1"></circle><path d="M3.6 19.5c.4-3.2 2.6-5.2 5.4-5.2s5 2 5.4 5.2"></path><path d="M15.3 5.7a3 3 0 0 1 0 5.8M17.3 14.6c1.8.6 2.9 2.2 3.2 4.9"></path>`
+    },
+    role: {
+      f: html`<rect ...${F} x="3.5" y="7.5" width="17" height="12.5" rx="2.5"></rect>`,
+      o: html`<rect x="3.5" y="7.5" width="17" height="12.5" rx="2.5"></rect><path d="M9 7.5V6.2a1.7 1.7 0 0 1 1.7-1.7h2.6A1.7 1.7 0 0 1 15 6.2v1.3"></path><path d="M3.5 12.3c5.6 2.1 11.4 2.1 17 0M12 12.9v1.8"></path>`
+    },
+    guide: {
+      f: html`<circle ...${F} cx="12" cy="12" r="8.5"></circle><path fill="currentColor" stroke="none" d="M15.2 8.8 13.4 13.4 8.8 15.2 10.6 10.6z"></path>`,
+      o: html`<circle cx="12" cy="12" r="8.5"></circle><path d="M15.2 8.8 13.4 13.4 8.8 15.2 10.6 10.6z"></path>`
+    }
+  };
+  var GLYPHS = {
+    search: html`<circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>`,
+    bell: html`<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>`,
+    phone: html`<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"></rect><path d="M10.5 18.5h3"></path>`,
+    person: html`<circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-3.6 3.5-5.6 7-5.6s6.2 2 7 5.6"></path>`,
+    file: html`<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path>`
+  };
+  function Ico(p) {
+    var I = ICONS[p.n];
+    return html`<svg class="ico" width=${p.s || 22} height=${p.s || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=${p.w || 1.6} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I ? [p.on ? I.f : null, I.o] : GLYPHS[p.n]}</svg>`;
+  }
+  function Badge(p) { return p.b ? html`<i class=${'badge ' + p.b} aria-hidden="true"></i>` : null; }
+
+  function Rail(p) {
+    var M = p.M, A = p.A;
+    return html`<nav class="rail on-navy" aria-label="Sections">
+      <div class="rail-brand"><${Logo} size=${40} /><span class="brand-word">THE RAND SOCIETY</span></div>
+      <button class="rail-search" onClick=${A.openSearch} aria-label="Search dates, meetings and rules" title="Search (/)"><${Ico} n="search" s=${18} w=${2} /><span>Search</span><kbd>/</kbd></button>
+      <ul class="rail-nav">${TABS.map(function (t) {
+        var b = M.badges[t.id];
+        return html`<li key=${t.id}><button class="rail-item" aria-current=${p.tab === t.id ? 'page' : null} onClick=${function () { A.goTab(t.id); }}>
+          <span class="rail-ic"><${Ico} n=${t.id} on=${p.tab === t.id} /><${Badge} b=${b} /></span><span class="rail-l">${t.label}${b ? html`<span class="vh">${BADGE_TEXT[b]}</span>` : null}</span>
+        </button></li>`;
+      })}</ul>
+      <div class="rail-foot">
+        <button class="rail-me" onClick=${A.openMembers} aria-haspopup="dialog" aria-label=${'Change role. Showing ' + M.m.role}>
+          <span class="me-ic" aria-hidden="true"><${Ico} n="person" s=${18} /></span>
+          <span class="me-txt"><b>${M.m.roleShort || M.m.role}</b><small>${M.m.sector} analyst</small></span>
+          <span class="me-short">${M.m.pick || M.m.roleShort}</span>
+          <${Chev} />
+        </button>
+      </div>
+    </nav>`;
+  }
+  function TabBar(p) {
+    var M = p.M, A = p.A;
+    return html`<nav class="tabbar" aria-label="Sections">${TABS.map(function (t) {
+      var b = M.badges[t.id];
+      return html`<button key=${t.id} class="tab" aria-current=${p.tab === t.id ? 'page' : null} onClick=${function () { A.goTab(t.id); }}>
+        <span class="tab-ic"><${Ico} n=${t.id} s=${24} on=${p.tab === t.id} /><${Badge} b=${b} /></span><span class="tab-l">${t.label}${b ? html`<span class="vh">${BADGE_TEXT[b]}</span>` : null}</span>
+      </button>`;
+    })}</nav>`;
+  }
+  // The navy band at the top of Plan, Meetings, Role and Guide (Today keeps the photo masthead).
+  function SectionPhoto(p) {
+    var x = p.x, ref = useRef(null), src = p.phone ? x.p : x.d;
+    useEffect(function () { var el = ref.current; if (el && el.complete && el.naturalWidth) el.classList.add('in'); });
+    return html`<div class="mast-photo" aria-hidden="true"><img key=${src} ref=${ref} src=${src} alt="" decoding="async"
+      onLoad=${function (ev) { ev.currentTarget.classList.add('in'); }} onError=${function (ev) { var w = ev.currentTarget.parentNode; if (w) w.style.display = 'none'; }}
+      style=${'object-position:' + (p.phone ? x.pp : x.dp) + ';filter:saturate(.65) contrast(1.04)'} /></div>`;
+  }
+  function PageHead(p) {
+    var M = p.M, A = p.A, st = p.st, ph = M.photos[p.tab];
+    return html`<header class=${'mast page-head on-navy' + (p.lens ? '' : ' no-dock') + (ph ? ' has-photo' : '')}>
+      ${ph ? html`<${SectionPhoto} key=${p.tab} x=${ph} phone=${st.phone} />` : null}
+      <div class="mast-inner">
+        ${st.phone ? null : html`<div class="topbar"><span class="today tnum">${M.todayLong}</span></div>`}
+        <div class="hero">
+          <span class="eyebrow">${p.eyebrow}</span>
+          <h1>${p.title}</h1>
+          ${p.text ? html`<p>${p.text}</p>` : null}
+          ${p.lens && !st.phone ? html`<div style="margin-top:14px"><${LensSwitch} M=${M} A=${A} /></div>` : null}
+        </div>
+      </div>
+    </header>`;
+  }
+
+  // ---------- meetings ----------
+  // Agenda → pre-reads → meeting → minutes, as a tracker: across the card on Today, down the page on Meetings.
+  function Chain(p) {
+    var said = { done: ', done', next: ', next', live: ', on now', todo: '' };
+    return html`<ol class=${'chain' + (p.full ? ' full' : '')} aria-label="Before and after the meeting">${p.chain.map(function (c) {
+      return html`<li key=${c.k} class=${'c-' + c.state + (c.mine ? ' c-mine' : '')}>
+        <span class="c-dot" aria-hidden="true"></span>
+        <span class="c-k">${c.k}${c.mine ? html`<em> · you</em>` : null}<span class="vh">${said[c.state]}</span></span>
+        <span class="c-w tnum">${p.full ? c.when : c.short}</span>
+      </li>`;
+    })}</ol>`;
+  }
+  function chipFor(x) { return x.live || { text: x.it.soon, tone: x.it.current ? 'now' : 'when' }; }
+  function Parts(p) { return p.parts.length ? html`<span class="nm-tags">${p.parts.map(function (x, i) { return html`<${Tag} key=${i} text=${x.text} tone=${x.tone} />`; })}</span>` : null; }
+  function JoinRow(p) {
+    var x = p.x, L = x.live;
+    if (!x.link || !L || !L.join) return null;
+    return html`<div class="mh-join"><a class="join" href=${x.link} target="_blank" rel="noopener"><${TeamsIcon} />Join on Teams</a><span>${L.text === 'Live now' ? 'The meeting is on' : 'Opens 30 minutes before'}</span></div>`;
+  }
+  function NextMeet(p) {
+    var M = p.M, A = p.A, x = M.nextMeet;
+    if (!x) return null;
+    var it = x.it, chip = chipFor(x);
+    return html`<section class="card nmeet" aria-labelledby="nm-h">
+      <div class="card-head"><h2 id="nm-h" class="card-k">Next meeting</h2><span class="live-chip" aria-live="polite"><${Tag} text=${chip.text} tone=${chip.tone} /></span></div>
+      <button class="nm-main" onClick=${function () { A.openAny(it.key); }}>
+        <span class="datebox slate tnum" aria-hidden="true"><span class="d">${it.day}</span><span class="m">${it.mon}</span></span>
+        <span class="nm-text"><span class="nm-kind">${x.kind}</span><span class="nm-title">${x.title}</span><span class="nm-meta tnum">${it.wk} ${dShort(it.ms)} · 17:00 to 18:30 · Teams</span><${Parts} parts=${x.parts} /></span>
+      </button>
+      <${JoinRow} x=${x} />
+      ${x.chain.length ? html`<${Chain} chain=${x.chain} />` : null}
+      <button class="nm-all" onClick=${function () { A.goTab('meet'); }}><span>All meetings</span><${Arrow} /></button>
+    </section>`;
+  }
+  function MeetHero(p) {
+    var M = p.M, x = M.nextMeet;
+    if (!x) return html`<section class="card mhero"><div class="card-head"><h2 class="card-k">Next meeting</h2></div><p class="next-empty">No meetings are left this term.</p></section>`;
+    var it = x.it, chip = chipFor(x);
+    return html`<section class="card mhero" aria-labelledby="mh-h">
+      <div class="card-head"><span class="card-k">Next meeting</span><span class="live-chip" aria-live="polite"><${Tag} text=${chip.text} tone=${chip.tone} /></span></div>
+      <div class="mh-body">
+        <span class="nm-kind">${x.kind}</span>
+        <h2 id="mh-h" class="mh-title">${x.title}</h2>
+        <p class="mh-when tnum">${wk(it.ms)} ${dMonth(it.ms)} · 17:00 to 18:30 · Teams</p>
+        <${Parts} parts=${x.parts} />
+      </div>
+      <${JoinRow} x=${x} />
+      ${x.chain.length ? html`<${Chain} chain=${x.chain} full=${true} />` : null}
+      <div class="mh-sec"><h3>The meeting</h3><p>${x.detail}</p></div>
+      ${x.aDetail ? html`<div class="mh-sec"><h3>As an analyst</h3><p>${x.aDetail}</p></div>` : null}
+      ${it.people.length ? html`<dl class="who mh-who">${it.people.map(function (w) { return html`<div key=${w.k}><dt>${w.k}</dt><dd>${w.v}</dd></div>`; })}</dl>` : null}
+    </section>`;
+  }
+  function MeetList(p) {
+    var M = p.M, A = p.A, st = p.st;
+    // a meeting whose minutes are still due stays in view until they are
+    var due = M.minutesDue ? M.minutesDue.key : '';
+    var up = M.meetings.filter(function (x) { return !x.ended || x.key === due; }), past = M.meetings.filter(function (x) { return x.ended && x.key !== due; });
+    var rows = (st.showPastMeet ? past : []).concat(up);
+    return html`<section class="card mlist" aria-labelledby="ml-h">
+      <div class="card-head"><h2 id="ml-h" class="card-title">This term</h2><span class="count tnum">${M.meetings.filter(function (x) { return !x.ended; }).length ? M.meetings.filter(function (x) { return !x.ended; }).length + ' to go' : 'All held'}</span></div>
+      ${past.length ? html`<button class="past-btn" onClick=${A.togglePastMeet} aria-expanded=${st.showPastMeet ? 'true' : 'false'}><${Chev} open=${st.showPastMeet} />${st.showPastMeet ? 'Hide earlier meetings' : 'Show ' + past.length + ' earlier ' + plural(past.length, 'meeting')}</button>` : null}
+      <ol class="rows">${rows.map(function (x, ri) {
+        var it = x.it, isNext = M.nextMeet && x.key === M.nextMeet.key, mins = M.minutesDue && M.minutesDue.key === x.key;
+        var line = mins ? 'Minutes due ' + x.chain[3].when : x.kind;
+        return html`<li key=${x.key} style=${'--i:' + Math.min(ri, 8)}><button class=${'row' + (x.ended ? ' past' : '') + (isNext ? ' is-next' : '')} onClick=${function () { A.openAny(x.key); }}>
+          <span class="dd tnum"><b>${it.day}</b><small>${it.mon}</small></span>
+          <span class="tx"><span class="tt">${x.title}</span><span class="sub tnum">${line}${st.phone && x.parts.length ? html` · <b class=${'part ' + x.parts[0].tone}>${x.parts.map(function (q) { return q.text; }).join(', ')}</b>` : null}</span></span>
+          <span class="tags">${st.phone ? null : x.parts.map(function (q, qi) { return html`<${Tag} key=${qi} text=${q.text} tone=${q.tone} />`; })}</span>
+        </button></li>`;
+      })}</ol>
+    </section>`;
+  }
+  function MeetHow(p) {
+    var r = p.M.rulesAll[0].items.filter(function (x) { return x.id === 'meet'; })[0];
+    return r ? html`<section class="card rcard" aria-labelledby="mw-h"><span class="card-k">How meetings run</span><h2 id="mw-h">${r.title}</h2><p>${r.body}</p></section>` : null;
+  }
+
+  // ---------- role ----------
+  function TermProgress(p) {
+    var M = p.M, A = p.A;
+    if (!M.progress) return null;
+    return html`<section class="card rcard" aria-labelledby="tp-h">
+      <span class="card-k" id="tp-h">Your deadlines this term</span>
+      <div class="prog" role="img" aria-label=${M.progress.cap} style="padding:4px 0 0">
+        <div class="prog-bar">${M.progress.segs.map(function (g, gi) { return html`<i key=${g.key} class=${'ps ' + g.s} title=${g.title} style=${'--i:' + gi}></i>`; })}</div>
+        <div class="prog-cap tnum" aria-hidden="true">${M.progress.cap}</div>
+      </div>
+      <button class="r-link" onClick=${function () { A.goTab('plan'); }}><span>Open the plan</span><${Arrow} /></button>
+    </section>`;
+  }
+  function roleCards(M, A) {
+    var m = M.m;
+    if (M.lens === 'society') return {
+      a: [html`<section key="own" class="panel-navy on-navy" aria-label="What you own">
+        <span class="card-k">What you own</span>
+        <ul class="own">${(m.owns || []).map(function (o, i) { return html`<li key=${i}><span>${o.name}</span><span class="tnum">${nbsp(o.when)}</span></li>`; })}</ul>
+      </section>`],
+      b: [m.safeguard ? html`<section key="sg" class="card rcard" aria-labelledby="sg-h"><span class="card-k">Safeguard</span><h2 id="sg-h">${m.safeguard.title}</h2><p>${nbsp(m.safeguard.body)}</p></section>` : null,
+        html`<${TermProgress} key="tp" M=${M} A=${A} />`]
+    };
+    return {
+      a: [html`<section key="path" class="panel-navy on-navy" aria-label=${'Thesis path, ' + M.cycle.name}>
+        <span class="card-k">Thesis path · ${M.cycle.name}</span>
+        <ol class="path">${M.path.map(function (x, i) { return html`<li key=${i} class=${x.state}><span class="pd" aria-hidden="true"></span><span class="pl">${x.label}</span><span class="pw tnum">${x.when}</span></li>`; })}</ol>
+      </section>`],
+      b: [m.coverage ? html`<section key="cov" class="card rcard" aria-labelledby="cv-h"><h2 id="cv-h" class="card-k">Coverage</h2><p>${m.coverage}</p></section>` : null,
+        html`<section key="sc" class="card score" aria-labelledby="sc-h">
+          <div class="card-head"><h2 id="sc-h" class="card-title">Analyst scorecard</h2></div>
+          <ul>${M.score.map(function (r, i) { return html`<li key=${i}><span>${r.name}</span><span class="tnum">${r.when}</span></li>`; })}</ul>
+        </section>`,
+        html`<${TermProgress} key="tp" M=${M} A=${A} />`]
+    };
+  }
+
+  // ---------- guide ----------
+  function GuideRules(p) {
     var M = p.M, A = p.A, st = p.st;
     return html`<section class="card rules" aria-labelledby="ru-h">
-        <div class="card-head" style="padding-bottom:8px"><h2 id="ru-h" class="card-title">Rules</h2></div>
-        ${M.rules.map(function (r) {
+      <div class="card-head" style="padding-bottom:2px"><h2 id="ru-h" class="card-title">Rules</h2></div>
+      ${M.rulesAll.map(function (g) {
+        return g.items.length ? html`<div key=${g.id} class="rule-g"><h3 class="rule-group">${g.title}</h3>${g.items.map(function (r) {
           var open = !!st.open[r.id];
           return html`<div key=${r.id} class="rule"><button class="rule-btn" aria-expanded=${open ? 'true' : 'false'} aria-controls=${'rule-' + r.id} onClick=${function () { A.toggleRule(r.id); }}>
             <span>${r.title}</span>${r.chip ? html`<${Tag} text=${r.chip} tone=${r.tone} />` : html`<span></span>`}<${Chev} open=${open} />
           </button>${open ? html`<p id=${'rule-' + r.id}>${r.body}</p>` : null}</div>`;
-        })}
-      </section>`;
+        })}</div>` : null;
+      })}
+    </section>`;
+  }
+  function GuideList(p) {
+    var M = p.M, A = p.A, st = p.st, sync = p.sync;
+    var inst = standalone() ? null : st.canInstall ? { v: 'One tap opens it full screen, even offline', go: A.install } : isIOS() ? { v: 'Tap Share, then Add to Home Screen' } : null;
+    function row(k, ic, label, value, go) {
+      var inner = [html`<span key="i" class="g-ic" aria-hidden="true"><${Ico} n=${ic} s=${20} /></span>`, html`<span key="t" class="g-t"><b>${label}</b><small>${value}</small></span>`, go ? html`<${Arrow} key="a" />` : html`<span key="a"></span>`];
+      return html`<li key=${k}>${go ? html`<button class="grow" onClick=${go}>${inner}</button>` : html`<div class="grow">${inner}</div>`}</li>`;
+    }
+    return html`<section class="card glist-card" aria-labelledby="gl-h">
+      <div class="card-head"><h2 id="gl-h" class="card-k">Your app</h2></div>
+      <ul class="glist">
+        ${row('me', 'person', 'Your role', M.m.role + ' · ' + M.m.sector + ' analyst', A.openMembers)}
+        ${row('cal', 'bell', 'Calendar reminders', 'Apple, Google, Outlook or Huawei', A.openCal)}
+        ${row('sr', 'search', 'Search', 'Any date, meeting or rule', A.openSearch)}
+        ${inst ? row('in', 'phone', 'Install the app', inst.v, inst.go) : null}
+        ${row('src', 'file', 'Where the dates come from', M.term.source + (M.updated ? '. Updated ' + M.updated + '.' : '.'), null)}
+      </ul>
+      ${sync ? html`<div class=${'sync ' + sync.state} aria-live="polite"><i aria-hidden="true"></i><span>${sync.text}</span><button onClick=${A.refresh} disabled=${sync.busy}>${sync.busy ? 'Checking…' : 'Refresh'}</button></div>` : null}
+    </section>`;
   }
 
-  function Footer(p) {
-    var M = p.M, A = p.A, st = p.st;
-    return html`<footer class="foot on-navy"><div class="foot-inner">
-      <div class="brand"><${Logo} size=${34} /><span class="brand-word">THE RAND SOCIETY</span></div>
-      <div class="foot-meta">
-        <b>Members only. Not for external circulation.</b>
-        <span>Dates: ${M.term.source}. Times are SAST.</span>
-        ${M.updated ? html`<span>Updated ${M.updated}.</span>` : null}
-      </div>
-      ${st.canInstall ? html`<button class="install" onClick=${A.install}>Install the app</button>` : null}
-    </div></footer>`;
+  function Footer() {
+    return html`<footer class="foot-slim"><span>Members only. Not for external circulation.</span></footer>`;
   }
 
   // ---------- persistence and routing ----------
@@ -884,11 +1146,12 @@
   function App() {
     var s = useState(function () {
       return { P: null, err: null, mi: 0, lens: read('trs-lens') === 'analyst' ? 'analyst' : 'society', all: false, showPast: false, sheet: null, open: {}, months: {},
-        asOf: todaySAST(), now: nowMs(todaySAST()), since: readSince(), source: '', syncBusy: false, updateReady: false, phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null };
+        tab: tabFromHash() || 'today', showPastMeet: false, asOf: todaySAST(), now: nowMs(todaySAST()), since: readSince(), source: '', syncBusy: false, updateReady: false, phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null };
     });
     var st = s[0], setSt = s[1];
     function set(patch) { setSt(function (prev) { return Object.assign({}, prev, typeof patch === 'function' ? patch(prev) : patch); }); }
     var loadedAt = useRef(0), toastT = useRef(0), loadRef = useRef(null), sheetRef = useRef(null), ignorePop = useRef(false);
+    var tabRef = useRef(st.tab), scrolls = useRef({}), animRef = useRef('from-l'), aRef = useRef(null);
 
     function load(first) {
       return loadData().then(function (res) {
@@ -912,6 +1175,8 @@
 
     useEffect(function () {
       load(true);
+      // Opened on a tab link (#plan, #meetings, #role, #guide): Today sits underneath, so Back still lands there.
+      if (tabRef.current !== 'today') { try { history.replaceState(null, '', location.pathname + location.search); history.pushState({ trsTab: tabRef.current }, ''); } catch (e) { /* not allowed here */ } }
       // the install card appears from the second visit, for members who haven't installed the app, and can be put off for a month
       if (PWA && !standalone()) {
         var visits = (parseInt(read('trs-visits'), 10) || 0) + 1; store('trs-visits', String(visits));
@@ -925,6 +1190,8 @@
       function onMq() { set({ phone: isPhone() }); }
       if (phoneQuery) { if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', onMq); else if (phoneQuery.addListener) phoneQuery.addListener(onMq); }
       function onHash() {
+        var t = tabFromHash();
+        if (t) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* not allowed here */ } if (aRef.current) aRef.current.goTab(t); return; }
         set(function (prev) {
           if (!prev.P) return {};
           var hsh = fromHash(prev.P);
@@ -941,7 +1208,13 @@
         if (ev.key === '/' && !sheetRef.current && !/INPUT|TEXTAREA|SELECT/.test(tag)) { ev.preventDefault(); set({ sheet: { kind: 'search' } }); }
       }
       // Bug fix: the phone's back gesture closes an open panel instead of leaving the app.
-      function onPop() { if (ignorePop.current) { ignorePop.current = false; return; } if (sheetRef.current) set({ sheet: null }); }
+      // Back closes an open panel first; otherwise it returns from another tab to Today, then leaves the app.
+      function onPop(ev) {
+        if (ignorePop.current) { ignorePop.current = false; return; }
+        if (sheetRef.current) { set({ sheet: null }); return; }
+        var t = (ev && ev.state && ev.state.trsTab) || 'today';
+        if (t !== tabRef.current) { scrolls.current[tabRef.current] = window.scrollY; animRef.current = 'tab-in'; tabRef.current = t; set({ tab: t }); }
+      }
       window.addEventListener('popstate', onPop);
       function onOnline() { if (loadRef.current) loadRef.current(false); else set({}); }
       window.addEventListener('online', onOnline); window.addEventListener('offline', onOnline);
@@ -964,9 +1237,12 @@
     // Each open panel gets one history entry, so Back closes it; closing it any other way removes that entry again.
     useEffect(function () {
       var was = sheetRef.current; sheetRef.current = st.sheet;
-      if (!was && st.sheet) { try { history.pushState({ trsSheet: 1 }, ''); } catch (e) { /* not allowed here */ } }
+      if (!was && st.sheet) { try { history.pushState(tabRef.current === 'today' ? { trsSheet: 1 } : { trsSheet: 1, trsTab: tabRef.current }, ''); } catch (e) { /* not allowed here */ } }
       else if (was && !st.sheet) { try { if (history.state && history.state.trsSheet) { ignorePop.current = true; history.back(); } } catch (e) { /* not allowed here */ } }
     }, [!!st.sheet]);
+
+    // Each tab keeps its own scroll position, as in a banking app.
+    useLayoutEffect(function () { tabRef.current = st.tab; window.scrollTo(0, scrolls.current[st.tab] || 0); }, [st.tab]);
 
     // Compare what this member could see last time with now; first visit for a member just records it.
     useEffect(function () {
@@ -994,13 +1270,35 @@
     var list = M.groups.reduce(function (a, g) { return a.concat(g.items); }, []);
     var A = {
       openMembers: function () { set({ sheet: { kind: 'member' } }); },
-      pick: function (i) { store('trs-member', P.members[i].id); clearRoleHash(P); set({ mi: i, sheet: null, showPast: false }); revealBoard(); },
-      setLens: function (l) { store('trs-lens', l); clearRoleHash(P); set({ lens: l, sheet: null, showPast: false }); revealBoard(); },
+      pick: function (i) { store('trs-member', P.members[i].id); clearRoleHash(P); animRef.current = 'from-l'; scrolls.current = {}; set({ mi: i, sheet: null, showPast: false }); revealBoard(); },
+      setLens: function (l) { store('trs-lens', l); clearRoleHash(P); animRef.current = l === 'analyst' ? 'from-r' : 'from-l'; scrolls.current = {}; set({ lens: l, sheet: null, showPast: false }); revealBoard(); },
+      goTab: function (t) {
+        // wait for a closing panel's history step to finish first
+        (function settle(n) {
+          if (ignorePop.current && n < 12) return setTimeout(function () { settle(n + 1); }, 30);
+          ignorePop.current = false;
+          var cur = tabRef.current;
+          if (t === cur) { try { window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); } return; }
+          scrolls.current[cur] = window.scrollY;
+          try {
+            var hs = history.state || {};
+            if (t === 'today') { if (hs.trsTab) { ignorePop.current = true; history.back(); } }
+            else if (hs.trsTab) history.replaceState({ trsTab: t }, '');
+            else history.pushState({ trsTab: t }, '');
+          } catch (e) { /* not allowed here */ }
+          animRef.current = 'tab-in'; tabRef.current = t;
+          set({ tab: t });
+        })(0);
+      },
+      togglePastMeet: function () { set(function (prev) { return { showPastMeet: !prev.showPastMeet }; }); },
       openSearch: function () { set({ sheet: { kind: 'search' } }); },
       openRule: function (r) {
         var o = Object.assign({}, st.open); o[r.id] = true;
-        set({ sheet: null, open: o, lens: r.lens || st.lens });
-        setTimeout(function () { var el = document.getElementById('rule-' + r.id) || document.querySelector('.rules'); if (el) el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' }); }, 120);
+        set({ sheet: null, open: o });
+        setTimeout(function () {
+          A.goTab('guide');
+          setTimeout(function () { var el = document.getElementById('rule-' + r.id) || document.querySelector('.rules'); if (el) el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' }); }, 260);
+        }, 60);
       },
       refresh: function () { if (!loadRef.current || window.TRS_DATA) return; set({ syncBusy: true }); loadRef.current(false); },
       setAll: function (v) { set({ all: v }); },
@@ -1041,6 +1339,7 @@
       }
     };
 
+    aRef.current = A;
     var sheet = null;
     if (st.sheet && st.sheet.kind === 'search') {
       sheet = html`<${SearchSheet} key="search" phone=${st.phone} M=${M} onClose=${A.close} openAny=${A.openAny} openRule=${A.openRule} />`;
@@ -1058,26 +1357,50 @@
       }
     }
 
-    return html`<div class="app">
-      <${Mast} M=${M} A=${A} st=${st} />
-      ${st.phone ? html`<div class="lens-dock"><${LensSwitch} M=${M} A=${A} /></div>` : null}
-      <main key=${M.m.id + M.lens} class=${'board fade ' + (M.lens === 'analyst' ? 'from-r' : 'from-l') + (st.phone ? ' stack' : '') + (st.changes && st.changes.member === M.m.id ? ' has-changes' : '')}>
-        ${st.changes && st.changes.member === M.m.id ? html`<${Changes} changes=${st.changes} A=${A} />` : null}
-        <${NextCard} M=${M} A=${A} />
-        ${st.phone ? [
-          st.showInstall && (st.canInstall || isIOS()) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
-          html`<${Queue} key="q" M=${M} />`,
-          html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`,
-          html`<${Side} key="sp" part="panels" M=${M} A=${A} st=${st} />`,
-          html`<${TermCard} key="tc" M=${M} A=${A} />`,
-          html`<${Side} key="ru" part="rules" M=${M} A=${A} st=${st} />`
-        ] : [
-          html`<${TermCard} key="tc" M=${M} A=${A} />`,
-          html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`,
-          html`<${Side} key="sd" M=${M} A=${A} st=${st} />`
-        ]}
+    var tab = st.tab, phone = st.phone, m = M.m;
+    var hasChanges = st.changes && st.changes.member === m.id;
+    if (hasChanges && !M.badges.today) M.badges.today = 'news';
+    function cols(a, b, extra) {
+      a = a.filter(Boolean); b = b.filter(Boolean);
+      if (phone) return (extra || []).concat(a, b);
+      return (extra || []).concat([html`<div key="ca" class="col">${a}</div>`, b.length ? html`<div key="cb" class=${'col' + (tab === 'plan' ? ' sticky' : '')}>${b}</div>` : null]);
+    }
+    var head, content, lensTab = tab === 'today' || tab === 'plan' || tab === 'role';
+    if (tab === 'plan') {
+      head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${'Term ' + M.term.name} title="Term plan" text=${M.planLine} lens=${true} />`;
+      content = phone ? [html`<${TermCard} key="tc" M=${M} A=${A} />`, html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`]
+        : cols([html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`], [html`<${TermCard} key="tc" M=${M} A=${A} />`]);
+    } else if (tab === 'meet') {
+      head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow="Sundays · 17:00 to 18:30 · Teams" title="Meetings" text="Three of the four Members make quorum." />`;
+      content = cols([html`<${MeetHero} key="mh" M=${M} />`], [html`<${MeetList} key="ml" M=${M} A=${A} st=${st} />`, html`<${MeetHow} key="mw" M=${M} />`]);
+    } else if (tab === 'role') {
+      var rc = roleCards(M, A);
+      head = M.lens === 'society'
+        ? html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${m.role} title=${m.focus} text=${m.focusLine} lens=${true} />`
+        : html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${'Analyst · ' + M.cycle.name} title=${m.sector} text=${m.sectorLine} lens=${true} />`;
+      content = cols(rc.a, rc.b);
+    } else if (tab === 'guide') {
+      head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow="Members only" title="Guide" text="Rules, reminders and how the app works." />`;
+      content = phone ? [html`<${GuideList} key="gl" M=${M} A=${A} st=${st} sync=${sync} />`, html`<${GuideRules} key="gr" M=${M} A=${A} st=${st} />`]
+        : cols([html`<${GuideRules} key="gr" M=${M} A=${A} st=${st} />`], [html`<${GuideList} key="gl" M=${M} A=${A} st=${st} sync=${sync} />`]);
+    } else {
+      head = html`<${Mast} M=${M} A=${A} st=${st} />`;
+      var changes = hasChanges ? html`<${Changes} key="ch" changes=${st.changes} A=${A} />` : null;
+      content = phone
+        ? [changes, html`<${NextCard} key="nx" M=${M} A=${A} />`, st.showInstall && (st.canInstall || isIOS()) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
+          html`<${Queue} key="q" M=${M} />`, html`<${NextMeet} key="nm" M=${M} A=${A} />`]
+        : cols([html`<${NextCard} key="nx" M=${M} A=${A} />`], [html`<${NextMeet} key="nm" M=${M} A=${A} />`, html`<${Queue} key="q" M=${M} />`], changes ? [html`<div key="chw" class="wide">${changes}</div>`] : []);
+    }
+
+    return html`<div class=${'app ' + (phone ? 'has-tabbar' : 'has-rail')}>
+      ${phone ? null : html`<${Rail} M=${M} A=${A} tab=${tab} />`}
+      ${head}
+      ${phone && lensTab ? html`<div class="lens-dock" role="region" aria-label="View"><${LensSwitch} M=${M} A=${A} /></div>` : null}
+      <main key=${tab + M.m.id + M.lens} class=${'board tabbed fade ' + animRef.current + ' t-' + tab + (phone ? ' stack' : '')}>
+        ${content}
       </main>
       <${Footer} M=${M} A=${A} st=${st} />
+      ${phone ? html`<${TabBar} M=${M} A=${A} tab=${tab} />` : null}
       ${st.updateReady && !st.toast ? html`<div class="toast" role="status"><span><b>A new version is ready</b></span><button onClick=${function () { location.reload(); }}>Refresh</button></div>` : null}
       ${st.toast ? html`<div class="toast" role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span><button onClick=${A.undo}>Undo</button></div>` : null}
       ${sheet}

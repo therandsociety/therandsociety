@@ -95,6 +95,35 @@ Add `?asof=2027-02-10` to the address to see the dashboard as it will look on th
 
 The full launch screen plays on the first open of each day; after that the app opens in about a second with a slimmer header. After you publish a change to the app itself, open copies show **A new version is ready · Refresh**. Under the term plan, members see when the dates were last checked, or that they are offline and seeing the saved copy, with a **Refresh** button. Press `/` on a computer (or tap the magnifier beside "Term plan") to search dates, meetings and rules.
 
+## Sections
+
+A bar along the bottom on phones, and a sidebar on computers, switches between five sections. Each keeps its own scroll position; tapping the current one returns to the top, and the phone's Back button returns to Today before it leaves the app.
+
+| Section | What it shows |
+|---|---|
+| **Today** | Your next deadline, the week ahead, the next meeting with its agenda, pre-reads and minutes dates, and "Waiting on you" for reviewers |
+| **Plan** | The term timeline and every date for the chosen role |
+| **Meetings** | The next meeting in full (who leads, what to prepare), and every IC and learning session this term |
+| **Role** | What the role owns and its safeguard, or the analyst's coverage, thesis path and scorecard |
+| **Guide** | Rules, calendar reminders, installing the app, and where the dates come from |
+
+Meetings come from the `meeting` items in `society` (with `analystMeetings` for the analyst notes). The agenda, pre-reads and minutes dates follow the meeting rule: Friday 17:00, Saturday 17:00 and Tuesday 17:00 around each Sunday meeting. An orange dot on Today means something you lead is due within two days; a dot on Meetings means a meeting is today.
+
+Link straight to a section with `/#plan`, `/#meetings`, `/#role` or `/#guide`. On Android and computers, pressing and holding the installed app's icon offers shortcuts to Plan, Meetings and Guide.
+
+### Header photos
+
+Plan, Meetings, Role and Guide open on a plain navy band. To give one a photo, as Today has, put the picture in the `img` folder and name it in `data.json`:
+
+```json
+"photos": {
+  "plan": "img/plan.webp",
+  "meetings": { "src": "img/meetings.webp", "phone": "img/meetings-phone.webp", "position": "50% 40%" }
+}
+```
+
+`phone` is an optional taller crop for phones; `position` moves the focal point (left-right, then top-bottom). Keep each picture under about 300 KB (WebP is best) so the app stays quick on mobile data. Each photo is downloaded only when that section is opened, then kept for offline use.
+
 ## Role links
 
 Each link opens straight to that role. Add `-analyst` to open the analyst view.
