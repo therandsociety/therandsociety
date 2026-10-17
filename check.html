@@ -54,6 +54,7 @@ a{color:var(--navy)}
     if (T.defaultTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(T.defaultTime)) errs.push('<code>term.defaultTime</code> must look like 17:00.');
     if (D.notice && (!D.notice.id || !D.notice.text)) errs.push('<code>notice</code> needs both an <code>id</code> and a <code>text</code>.');
     if (D.site && D.site.url && !/^https:\/\//.test(D.site.url)) errs.push('<code>site.url</code> must start with https://');
+    if (D.site && D.site.teams && !/^https:\/\//.test(D.site.teams)) errs.push('<code>site.teams</code> must be a full https:// Teams link.');
     function events(list, name) {
       if (!Array.isArray(list)) { errs.push('<code>' + name + '</code> must be a list.'); return 0; }
       list.forEach(function (e, i) {

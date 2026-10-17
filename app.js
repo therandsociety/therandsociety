@@ -41,6 +41,32 @@
   function plural(n, one, many) { return n === 1 ? one : (many || one + 's'); }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
+  // The current moment, for live countdowns on the day. ?now=HH:MM (with ?asof) previews a time of day.
+  function nowMs(asOf) {
+    var q = null;
+    try { q = /[?&]now=([01]\d|2[0-3]):([0-5]\d)/.exec(location.search); } catch (e) { /* no query */ }
+    if (!q && window.TRS_NOW) q = /^(\d{2}):(\d{2})$/.exec(String(window.TRS_NOW));
+    return q ? asOf + ((+q[1] - 2) * 60 + +q[2]) * 60000 : Date.now();
+  }
+  function atSAST(dayMs, hhmm) { var t = String(hhmm || '00:00').split(':'); return dayMs + ((+t[0] - 2) * 60 + +t[1]) * 60000; }
+  function span(ms) { var mins = Math.max(1, Math.round(ms / 60000)), h = Math.floor(mins / 60), m = mins % 60; return h ? h + ' h' + (m ? ' ' + m + ' min' : '') : m + ' min'; }
+  // Live state of something happening today: a countdown to a deadline, or where a meeting stands.
+  function live(it, now) {
+    if (!it || !it.current || it.range) return null;
+    if (it.type === 'meeting') {
+      var a = atSAST(it.ms, '17:00'), b = atSAST(it.ms, '18:30');
+      if (now < a) return { text: 'Starts in ' + span(a - now), tone: a - now <= 3600000 ? 'u-week' : 'when', join: a - now <= 30 * 60000 };
+      if (now < b) return { text: 'Live now', tone: 'now', join: true };
+      return { text: 'Ended', tone: 'quiet', join: false };
+    }
+    if (it.type === 'deadline' && it.time) {
+      var c = atSAST(it.ms, it.time);
+      if (now < c) return { text: span(c - now) + ' left', tone: c - now <= 2 * 3600000 ? 'u-soon' : 'u-week' };
+      return { text: 'Closed at ' + it.time, tone: 'quiet' };
+    }
+    return null;
+  }
+
   function todaySAST() {
     var s = null;
     try { var q = /[?&]asof=(\d{4}-\d{2}-\d{2})/.exec(location.search); if (q) s = q[1]; } catch (e) { /* no query */ }
@@ -94,6 +120,7 @@
       analystMeetings: raw.analystMeetings || {}, analystScorecard: raw.analystScorecard || [], rules: raw.rules || {},
       cycles: cycles, updated: parseDay(raw.updated), order: order,
       notice: raw.notice && raw.notice.id && raw.notice.text ? raw.notice : null,
+      teams: (raw.site && /^https:\/\//.test(raw.site.teams || '') && raw.site.teams) || '',
       siteUrl: (raw.site && raw.site.url) || ''
     };
   }
@@ -105,7 +132,7 @@
   function item(e, m, title, detail, part, label, tone, isKey) {
     return { key: e.key, ms: e.ms, endMs: e.endMs, range: e.range, type: e.type, time: e.time || '', ic: e.ic || 0,
       title: fill(title, m), detail: fill(detail, m), part: part, label: label, tone: tone, isKey: isKey, people: [],
-      timeSet: e.timeSet || '', status: (e.status && e.status[m.id]) || '' };
+      timeSet: e.timeSet || '', status: (e.status && e.status[m.id]) || '', link: /^https:\/\//.test(e.link || '') ? e.link : '' };
   }
   // Who leads and supports, in Society-role names, for the detail panel.
   function people(P, e, everyone) {
@@ -281,7 +308,7 @@
     if (phase === 'pre' || phase === 'protected') { hero.h = 'Studies first.'; hero.p = 'Academic Priority runs to ' + dMonth(T.protectedEnd) + '. Society work resumes on ' + dMonth(T.resume) + '.'; }
     else if (phase === 'recess') { hero.h = 'Year-end recess.'; hero.p = 'Urgent matters only until ' + dMonth(T.recessEnd) + '. Full production resumes on ' + dMonth(T.fullProduction) + '.'; }
     else if (phase === 'closed') { hero.h = 'H1 is closed.'; hero.p = 'The term closed on ' + dMonth(T.close) + ' ' + D(T.close).getUTCFullYear() + '.'; }
-    else { hero.h = 'The programme is open.'; hero.p = nextIC ? 'Next formal IC: ' + wk(nextIC.ms) + ' ' + dMonth(nextIC.ms) + ', 17:00.' : 'The controlled close is ' + dMonth(T.close) + '.'; }
+    else { hero.h = 'The programme is open.'; hero.p = nextIC ? (nextIC.ms === asOf ? 'Formal IC ' + nextIC.ic + ' is today at 17:00.' : 'Next formal IC: ' + wk(nextIC.ms) + ' ' + dMonth(nextIC.ms) + ', 17:00.') : 'The controlled close is ' + dMonth(T.close) + '.'; }
     var phaseTag = { pre: ['Starts ' + dShort(T.start), 'quiet'], protected: ['Academic Priority', 'lead'], open: ['Programme open', 'now'], recess: ['Year-end recess', 'support'], closed: ['H1 closed', 'quiet'] }[phase];
 
     // timeline
@@ -342,7 +369,10 @@
     var t = D(asOf);
     return {
       m: m, mi: mi, lens: lens, phase: phase, hero: hero, phaseTag: phaseTag, all: all, shown: shown, groups: groups, pastCount: pastItems.length,
-      progress: progress, nextKey: firstUp ? firstUp.key : null, next: next, nextLabel: nextLabel, week: week, weekSummary: weekSummary, other: other, tl: tl, stats: stats, cycle: cycle, path: path, score: score, rules: rules,
+      progress: progress, nextKey: firstUp ? firstUp.key : null, next: next,
+      nextLive: live(next, st.now), teams: P.teams,
+      today: all.filter(function (it) { return it.current && it !== next && !it.range && (it.type === 'meeting' || (it.part === 'lead' && it.type === 'deadline' && !isDone(it))); })
+        .map(function (it) { return { it: it, live: live(it, st.now) }; }).filter(function (x) { return x.live; }), nextLabel: nextLabel, week: week, weekSummary: weekSummary, other: other, tl: tl, stats: stats, cycle: cycle, path: path, score: score, rules: rules,
       todayLong: wk(asOf) + ' ' + dMonth(asOf) + ' ' + t.getUTCFullYear() + ' · SAST',
       todayShort: wk(asOf).slice(0, 3) + ' ' + dShort(asOf),
       term: T, updated: isNaN(P.updated) ? '' : dMonth(P.updated) + ' ' + D(P.updated).getUTCFullYear()
@@ -363,6 +393,7 @@
   }
   function Chev(p) { return html`<svg class=${'chev' + (p.open ? ' open' : '')} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>`; }
   function Arrow(p) { return html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${p.left ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6'}></path></svg>`; }
+  function TeamsIcon() { return html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="m16 10 5-3v10l-5-3"></path></svg>`; }
   function Tag(p) { return p.text ? html`<span class=${'tag ' + (p.tone || 'quiet')}>${p.text}</span>` : null; }
 
   // Only the member's own photo is downloaded (data costs money); it fades in once it has loaded.
@@ -476,14 +507,25 @@
   function NextCard(p) {
     var M = p.M, A = p.A, n = M.next, o = M.other;
     var chip = !n ? null : n.band === 'soon' ? 'u-soon' : n.band === 'week' || n.band === 'rev' ? 'u-week' : n.current ? 'now' : 'when';
+    var L = M.nextLive, chipText = L ? L.text : n && n.soon;
+    if (L) chip = L.tone;
+    function joinLink(it) { return it.link || M.teams; }
     var canMark = n && n.part === 'lead' && n.type === 'deadline' && n.band !== 'ok';
     return html`<section class=${'card next' + (n && n.band ? ' b-' + n.band : '')} aria-labelledby="next-h">
-      <div class="card-head"><h2 id="next-h" class="card-k">${M.nextLabel || 'Next for you'}</h2>${n ? html`<${Tag} text=${n.soon} tone=${chip} />` : null}</div>
+      <div class="card-head"><h2 id="next-h" class="card-k">${M.nextLabel || 'Next for you'}</h2>${n ? html`<span class="live-chip" aria-live="polite"><${Tag} text=${chipText} tone=${chip} /></span>` : null}</div>
       ${n ? html`<button key=${n.key} class="next-main" onClick=${function () { A.openItem(n.key); }}>
         <span class="datebox tnum" aria-hidden="true"><span class="d">${n.day}</span><span class="m">${n.mon}</span></span>
         <span class="next-text"><span class="next-title">${n.title}</span><span class="next-meta"><${Tag} text=${n.tag.text} tone=${n.tag.tone} /><span class="tnum">${n.whenShort}</span></span></span>
       </button>` : html`<p class="next-empty">Nothing else is dated for you in this view.</p>`}
+      ${n && L && L.join && joinLink(n) ? html`<div class="next-act"><a class="join" href=${joinLink(n)} target="_blank" rel="noopener"><${TeamsIcon} />Join on Teams</a><span>${L.text === 'Live now' ? 'The meeting is on' : 'Opens 30 minutes before'}</span></div>` : null}
       ${canMark ? html`<div class="next-act"><button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Mark as submitted</button><span>Only you see this</span></div>` : null}
+      ${M.today.length ? html`<ul class="today" aria-label="Also today">${M.today.map(function (x) {
+        var it = x.it, link = joinLink(it);
+        return html`<li key=${it.key}>
+          <button class="today-row" onClick=${function () { A.openItem(it.key); }}><span class="today-k">Today</span><span class="today-t">${it.title}</span><${Tag} text=${x.live.text} tone=${x.live.tone} /></button>
+          ${x.live.join && link ? html`<a class="join small" href=${link} target="_blank" rel="noopener" aria-label=${'Join ' + it.title + ' on Teams'}><${TeamsIcon} />Join</a>` : null}
+        </li>`;
+      })}</ul>` : null}
       <div class="wkstrip" role="group" aria-labelledby="wk-h">
         <div class="week-head"><span id="wk-h" class="then-k">This week</span><span class="week-sum tnum">${M.weekSummary}</span></div>
         <div class="week-days">${M.week.map(function (d, di) {
@@ -727,7 +769,7 @@
   function App() {
     var s = useState(function () {
       return { P: null, err: null, mi: 0, lens: read('trs-lens') === 'analyst' ? 'analyst' : 'society', all: false, showPast: false, sheet: null, open: {}, months: {},
-        asOf: todaySAST(), phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null };
+        asOf: todaySAST(), now: nowMs(todaySAST()), phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null };
     });
     var st = s[0], setSt = s[1];
     function set(patch) { setSt(function (prev) { return Object.assign({}, prev, typeof patch === 'function' ? patch(prev) : patch); }); }
@@ -758,8 +800,8 @@
         var later = parseInt(read('trs-install-later'), 10) || 0;
         if (visits >= 2 && Date.now() - later > 30 * DAY) set({ showInstall: true });
       }
-      function tick() { var now = todaySAST(); set(function (prev) { return prev.asOf === now ? {} : { asOf: now }; }); }
-      var clock = setInterval(tick, 5 * 60000);
+      function tick() { var day = todaySAST(); set(function (prev) { return { asOf: day, now: nowMs(day) }; }); }
+      var clock = setInterval(tick, 30000);
       function onVis() { if (document.visibilityState !== 'visible') return; tick(); if (!window.TRS_DATA && Date.now() - loadedAt.current > 30 * 60000) load(false); }
       document.addEventListener('visibilitychange', onVis);
       function onMq() { set({ phone: isPhone() }); }

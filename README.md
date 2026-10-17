@@ -63,9 +63,13 @@ Members can subscribe to their own calendar from the app ("Get reminders in your
 
 **Common mistakes:** every item in a list needs a comma after it except the last one; text goes inside straight double quotes `"like this"`; dates are always `YYYY-MM-DD`.
 
+### Teams links and today
+
+On the day of a meeting the app counts down to 17:00, shows "Live now" during it, and offers a **Join on Teams** button from 30 minutes before. Put your standing Teams meeting link in `site.teams`, or give a single meeting its own link with a `link` field on that meeting. With no link, everything works except the button. On a deadline day the top card counts down to the cut-off ("3 h 20 min left").
+
 ### Previewing another day
 
-Add `?asof=2027-02-10` to the address to see the dashboard as it will look on that date. Members never see this unless they type it.
+Add `?asof=2027-02-10` to the address to see the dashboard as it will look on that date, and `&now=16:45` to preview a time of day. Members never see this unless they type it.
 
 ## Role links
 

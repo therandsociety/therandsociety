@@ -2,7 +2,8 @@
   "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD and times HH:MM (SAST). After saving, open check.html on the site to confirm the file is valid. README.md explains every field.",
   "updated": "2026-10-17",
   "site": {
-    "url": "https://therandsociety.github.io/therandsociety/"
+    "url": "https://therandsociety.github.io/therandsociety/",
+    "teams": ""
   },
   "term": {
     "name": "H1 2026–27",
