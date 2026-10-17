@@ -1,6 +1,9 @@
 {
-  "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD. After saving, open check.html on the site to confirm the file is valid.",
+  "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD and times HH:MM (SAST). After saving, open check.html on the site to confirm the file is valid. README.md explains every field.",
   "updated": "2026-10-17",
+  "site": {
+    "url": "https://therandsociety.github.io/therandsociety/"
+  },
   "term": {
     "name": "H1 2026–27",
     "start": "2026-09-01",
@@ -10,7 +13,8 @@
     "recessEnd": "2027-01-04",
     "fullProduction": "2027-01-05",
     "close": "2027-02-28",
-    "source": "Master Delivery Calendar v1.0 and Term Plan v1.1"
+    "source": "Master Delivery Calendar v1.0 and Term Plan v1.1",
+    "defaultTime": "17:00"
   },
   "cycles": {
     "A": {
@@ -1056,6 +1060,11 @@
         "title": "November exams",
         "chip": "If writing",
         "body": "Notify the Society by 17:00 on 2 November through WhatsApp, Teams or email, with your final-exam date. You are excused until the day after it."
+      },
+      {
+        "id": "deadlines",
+        "title": "Deadlines",
+        "body": "Every deadline closes at {time} SAST on its due date, unless a different time is shown."
       },
       {
         "id": "meet",

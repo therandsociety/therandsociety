@@ -1,10 +1,11 @@
 /* Offline support for the Rand Society app.
    The app shell is cached on install. data.json is fetched fresh whenever the network allows and falls back to the
    last good copy, so an edit with a typo never blanks the dashboard. */
-var VERSION = 'faa840fc30';
-var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "img/d-coo.jpg", "img/d-portfolio.jpg", "img/d-president.jpg", "img/d-research.jpg", "img/p-coo.jpg", "img/p-portfolio.jpg", "img/p-president.jpg", "img/p-research.jpg"];
+var VERSION = '9045642374';
+var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 var SHELL_CACHE = 'trs-shell-' + VERSION;
 var DATA_CACHE = 'trs-data';
+var MEDIA_CACHE = 'trs-media';
 
 self.addEventListener('install', function (event) {
   event.waitUntil(caches.open(SHELL_CACHE).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
@@ -44,6 +45,15 @@ self.addEventListener('fetch', function (event) {
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.searchParams.has('fresh')) return; // the data checker always reads the file as published
+  if (/\/cal\//.test(url.pathname)) return;  // calendar feeds go straight to the network
+  if (/\/(img|splash)\//.test(url.pathname)) {   // a member's photo is saved the first time it is shown
+    event.respondWith(caches.open(MEDIA_CACHE).then(function (cache) {
+      return cache.match(req).then(function (hit) {
+        return hit || fetch(req).then(function (res) { if (res.ok) cache.put(req, res.clone()); return res; });
+      });
+    }));
+    return;
+  }
   if (/\/data\.json$/.test(url.pathname)) { event.respondWith(freshData(req)); return; }
   if (/\/check\.html$/.test(url.pathname)) return;
   if (req.mode === 'navigate') {

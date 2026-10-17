@@ -51,6 +51,9 @@ a{color:var(--navy)}
     });
     var T = D.term || {};
     ['start', 'protectedEnd', 'resume', 'recessStart', 'recessEnd', 'fullProduction', 'close'].forEach(function (k) { if (isNaN(day(T[k]))) errs.push('<code>term.' + k + '</code> must be a real date written YYYY-MM-DD.'); });
+    if (T.defaultTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(T.defaultTime)) errs.push('<code>term.defaultTime</code> must look like 17:00.');
+    if (D.notice && (!D.notice.id || !D.notice.text)) errs.push('<code>notice</code> needs both an <code>id</code> and a <code>text</code>.');
+    if (D.site && D.site.url && !/^https:\/\//.test(D.site.url)) errs.push('<code>site.url</code> must start with https://');
     function events(list, name) {
       if (!Array.isArray(list)) { errs.push('<code>' + name + '</code> must be a list.'); return 0; }
       list.forEach(function (e, i) {
@@ -72,6 +75,7 @@ a{color:var(--navy)}
         });
         ['titleBy', 'detailBy', 'labelBy'].forEach(function (k) { Object.keys(e[k] || {}).forEach(function (r) { if (!ids[r]) warns.push(at + ': <code>' + k + '</code> names <code>' + esc(r) + '</code>, which is not a member id.'); }); });
         if (!e.who && !Object.keys(e.roles || {}).length) warns.push(at + ' has no <code>who</code> and no <code>roles</code>, so nobody sees it.');
+        Object.keys(e.status || {}).forEach(function (r) { if (!ids[r]) warns.push(at + ': <code>status</code> names <code>' + esc(r) + '</code>, which is not a member id.'); });
       });
       return list.length;
     }

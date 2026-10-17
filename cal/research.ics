@@ -1,0 +1,710 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//The Rand Society//Members app//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Rand Society · Head of Research
+X-WR-CALDESC:Your deadlines and meetings as Head of Research and Financials
+  analyst.
+X-WR-TIMEZONE:Africa/Johannesburg
+REFRESH-INTERVAL;VALUE=DURATION:PT6H
+X-PUBLISHED-TTL:PT6H
+BEGIN:VEVENT
+UID:notice-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:November exam notice due (if writing)
+DESCRIPTION:Writing a November exam? By 17:00\, notify the Society through 
+ the official WhatsApp\, Teams or email channel and state your final-exam d
+ ate. You are excused until the day after it.\n\nOpen the app: https://ther
+ andsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261102T150000Z
+DTEND:20261102T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: November exam notice due (if writing)
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: November exam notice due (if writing)
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:nov6-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Research Standards Manual outline
+DESCRIPTION:Complete the outline of the Investment Research and Thesis Stan
+ dards Manual.\n\nOpen the app: https://therandsociety.github.io/therandsoc
+ iety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261106T150000Z
+DTEND:20261106T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Research Standards Manual outl
+ ine
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Research Standards Manual outline
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:tl1-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: First drafts and Traffic-Light Review 1
+DESCRIPTION:File your first operating-pack drafts for Traffic-Light Review 
+ 1.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#resea
+ rch
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261113T150000Z
+DTEND:20261113T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: First drafts and Traffic-Light
+  Review 1
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: First drafts and Traffic-Light Rev
+ iew 1
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:nov20-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Cross-role consistency review
+DESCRIPTION:Research\, portfolio\, records\, publication\, access and appro
+ val dependencies tested on paper.\n\nOpen the app: https://therandsociety.
+ github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261120T150000Z
+DTEND:20261120T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Cross-role consistency review
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Cross-role consistency review
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:rm-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Research Standards Manual draft
+DESCRIPTION:Controlled draft of the Investment Research and Thesis Standard
+ s Manual with its correction register\, circulated in the controlled IC pr
+ e-read.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#
+ research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261204T150000Z
+DTEND:20261204T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Research Standards Manual draf
+ t
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Research Standards Manual draft
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:ic1-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Formal IC 1
+DESCRIPTION:Operating-pack review\, provisional workflow-test decisions\, c
+ orrection owners and deadlines. You lead the research discussion.\n\nAs an
+  analyst: Operating-pack review. Every full IC carries a five-to-ten-minut
+ e Concept of the Meeting: present yours at IC 1\, 2\, 3 or 6.\n\nOpen the 
+ app: https://therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261206T150000Z
+DTEND:20261206T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Formal IC 1
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:wft-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: End-to-end workflow test
+DESCRIPTION:One sample idea run through registration\, pre-clearance\, rese
+ arch review\, version control\, circulation\, decision recording and publi
+ cation controls\, with a defect register.\n\nOpen the app: https://therand
+ society.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART;VALUE=DATE:20261207
+DTEND;VALUE=DATE:20261212
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Head of Research: End-to-end workflow test
+TRIGGER:PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:ls1-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Learning Session 1: How financial services companies make money · 
+ You support
+DESCRIPTION:One-page brief\, facilitated discussion and an application exer
+ cise: compare a bank\, an insurer and an asset manager\, and how each earn
+ s revenue and absorbs risk.\n\nOpen the app: https://therandsociety.github
+ .io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261213T150000Z
+DTEND:20261213T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Learning Session 1: How financial services companies make money
+  · You support
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:fclose-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Foundation phase closes
+DESCRIPTION:Your Research Standards Manual is approved and live.\n\nOpen th
+ e app: https://therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261218T150000Z
+DTEND:20261218T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Foundation phase closes
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Foundation phase closes
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-scope-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Sector scope and source map filed
+DESCRIPTION:File your initial Financials scope and source map\, ready for J
+ anuary sector work.\n\nOpen the app: https://therandsociety.github.io/ther
+ andsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20261218T150000Z
+DTEND:20261218T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Sector scope and source map filed
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Sector scope and source map filed
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:jan5-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Full production resumes
+DESCRIPTION:Research queue\, owners\, review slots and January workload con
+ firmed.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#
+ research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART;VALUE=DATE:20270105
+DTEND;VALUE=DATE:20270106
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Head of Research: Full production resumes
+TRIGGER:PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:jan15-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Theme primer in\, sector briefs to review
+DESCRIPTION:Submit the Financials theme primer. The other analysts’ brief
+ s and watchlists come to you for quality review: accepted or revision-requ
+ ired.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#re
+ search
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270115T150000Z
+DTEND:20270115T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Theme primer in\, sector brief
+ s to review
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Theme primer in\, sector briefs to
+  review
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-brief-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Theme primer and watchlist submitted
+DESCRIPTION:Submit the Financials theme primer\, which counts as your secto
+ r brief\, with a watchlist of five to ten companies.\n\nOpen the app: http
+ s://therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270115T150000Z
+DTEND:20270115T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Theme primer and watchlist submitted
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Theme primer and watchlist submitted
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:ic2-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Formal IC 2
+DESCRIPTION:Sector readiness\, theme primer\, watchlist quality\, portfolio
+  capacity and corrective actions.\n\nAs an analyst: Sector readiness: your
+  brief\, watchlist quality and portfolio capacity.\n\nOpen the app: https:
+ //therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270117T150000Z
+DTEND:20270117T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Formal IC 2
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-cand-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Thesis candidate pre-cleared
+DESCRIPTION:Your brief and watchlist are accepted. Register your preferred 
+ candidate with a primary source pack and get Portfolio Manager pre-clearan
+ ce.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#rese
+ arch
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270122T150000Z
+DTEND:20270122T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Thesis candidate pre-cleared
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Thesis candidate pre-cleared
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:ls2-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Learning Session 2: Valuing financial companies · You support
+DESCRIPTION:Compare two JSE-listed financial companies and defend the valua
+ tion premium or discount.\n\nOpen the app: https://therandsociety.github.i
+ o/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270124T150000Z
+DTEND:20270124T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Learning Session 2: Valuing financial companies · You support
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:jan29-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Interim report inputs
+DESCRIPTION:Submit your Interim Progress Report inputs and corrective-actio
+ n proposals.\n\nOpen the app: https://therandsociety.github.io/therandsoci
+ ety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270129T150000Z
+DTEND:20270129T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Interim report inputs
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Interim report inputs
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:jan31-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Formal IC 3: Interim Progress Report
+DESCRIPTION:Traffic-Light Review 2\, Interim Progress Report approval\, can
+ didate readiness and February sequencing.\n\nAs an analyst: Candidate read
+ iness and February sequencing.\n\nOpen the app: https://therandsociety.git
+ hub.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270131T150000Z
+DTEND:20270131T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Formal IC 3: Interim Progress Report
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:feb5-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Level 2 draft and Cycle A theses
+DESCRIPTION:Submit your Level 2 full draft for independent review. Pitch Cy
+ cle A theses and models arrive for your research review.\n\nOpen the app: 
+ https://therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270205T150000Z
+DTEND:20270205T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Level 2 draft and Cycle A thes
+ es
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Level 2 draft and Cycle A theses
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-thesisA-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Level 2 draft to independent review
+DESCRIPTION:Your Level 2 full draft\, which counts as your thesis\, goes to
+  the independent reviewer appointed by the Members.\n\nOpen the app: https
+ ://therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270205T150000Z
+DTEND:20270205T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Level 2 draft to independent review
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Level 2 draft to independent review
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:ls3-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Learning Session 3: Technology\, competition and financial inclusio
+ n · You support
+DESCRIPTION:Assess whether a selected strategy improves revenue\, cost\, ri
+ sk\, customer value or valuation.\n\nOpen the app: https://therandsociety.
+ github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270207T150000Z
+DTEND:20270207T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Learning Session 3: Technology\, competition and financial incl
+ usion · You support
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:feb9-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Cycle A research feedback
+DESCRIPTION:Return research feedback on Cycle A theses\, with evidence-base
+ d correction requirements.\n\nOpen the app: https://therandsociety.github.
+ io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270209T150000Z
+DTEND:20270209T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Cycle A research feedback
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Cycle A research feedback
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-fbA-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Review comments back
+DESCRIPTION:Comments come back with written reasons. Address each one or gi
+ ve reasoned written disagreement.\n\nOpen the app: https://therandsociety.
+ github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270209T150000Z
+DTEND:20270209T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Review comments back
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Review comments back
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-preA-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Final pre-read circulated
+DESCRIPTION:Your final version passes COO format control and goes out as th
+ e controlled pre-read by 17:00.\n\nOpen the app: https://therandsociety.gi
+ thub.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270213T150000Z
+DTEND:20270213T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Final pre-read circulated
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Final pre-read circulated
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:pica-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Formal IC 4: Pitch IC A · You pitch
+DESCRIPTION:Pitch Cycle A presentations and simulated investment decisions.
+  You lead the research discussion.\n\nAs an analyst: Present your thesis f
+ or discussion and a simulated investment decision. Research approval does 
+ not compel an investment.\n\nOpen the app: https://therandsociety.github.i
+ o/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270214T150000Z
+DTEND:20270214T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Formal IC 4: Pitch IC A · You pitch
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:feb15-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Cycle B research feedback
+DESCRIPTION:Return research feedback on Cycle B theses\, with correction re
+ quirements.\n\nOpen the app: https://therandsociety.github.io/therandsocie
+ ty/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270215T150000Z
+DTEND:20270215T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Cycle B research feedback
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Cycle B research feedback
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:feb19h-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Draft handovers due
+DESCRIPTION:Submit your draft handover by 17:00\, ahead of the handover-dra
+ ft review at Formal IC 5.\n\nOpen the app: https://therandsociety.github.i
+ o/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270219T150000Z
+DTEND:20270219T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Draft handovers due
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Draft handovers due
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-second-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Secondary contribution and development
+DESCRIPTION:Your secondary output (a company update\, valuation comparison\
+ , catalyst or monitoring note) and your professional-development evidence\
+ , such as Bloomberg Market Concepts\, are substantially complete.\n\nOpen 
+ the app: https://therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270219T150000Z
+DTEND:20270219T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Secondary contribution and development
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Secondary contribution and development
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:picb-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Formal IC 5: Pitch IC B · You support
+DESCRIPTION:Pitch Cycle B presentations and votes\, the final portfolio rev
+ iew and the handover-draft review. You lead the research discussion.\n\nOp
+ en the app: https://therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270221T150000Z
+DTEND:20270221T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Formal IC 5: Pitch IC B · You support
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:feb23-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Head of Research: Level 2 report final\, report inputs submitted
+DESCRIPTION:Your Level 2 Equity Research Report is finalised and accepted t
+ hrough independent review. Submit your Term-End Report inputs.\n\nOpen the
+  app: https://therandsociety.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270223T150000Z
+DTEND:20270223T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Head of Research: Level 2 report final\, report 
+ inputs submitted
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Head of Research: Level 2 report final\, report inpu
+ ts submitted
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-l2-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Level 2 report final
+DESCRIPTION:Your Level 2 Equity Research Report is finalised and accepted t
+ hrough independent review.\n\nOpen the app: https://therandsociety.github.
+ io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270223T150000Z
+DTEND:20270223T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Level 2 report final
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Level 2 report final
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:close-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Formal IC 6 and H1 close
+DESCRIPTION:Traffic-Light Review 3\, scorecard\, H2 recommendations\, final
+  approvals and the closing resolution.\n\nAs an analyst: Scorecard\, H2 re
+ commendations and the closing resolution. Your handover note and peer eval
+ uation are filed by today.\n\nOpen the app: https://therandsociety.github.
+ io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270228T150000Z
+DTEND:20270228T163000Z
+LOCATION:Microsoft Teams
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Formal IC 6 and H1 close
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:a-close-hor@therandsociety
+DTSTAMP:20261017T000000Z
+SUMMARY:Analyst: Handover note and peer evaluation
+DESCRIPTION:Both are filed by the H1 close. The peer-evaluation pack goes o
+ ut with the Term-End pack on 26 February.\n\nOpen the app: https://therand
+ society.github.io/therandsociety/#research
+URL:https://therandsociety.github.io/therandsociety/#research
+DTSTART:20270228T150000Z
+DTEND:20270228T153000Z
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due in 2 days: Analyst: Handover note and peer evaluation
+TRIGGER:-P2DT8H
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Due today: Analyst: Handover note and peer evaluation
+TRIGGER:-PT8H
+END:VALARM
+END:VEVENT
+END:VCALENDAR
