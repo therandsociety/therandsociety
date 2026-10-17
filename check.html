@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Dates File Check</title>
+<style>
+:root{--navy:#0F2340;--ink:#13203A;--muted:#56667C;--line:#DCE2E9;--page:#EEF1F5;--ok:#1E6B4A;--bad:#A3262A;--warn:#8A5A00}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+main{max-width:760px;margin:0 auto;padding:32px 16px 48px}
+h1{margin:0 0 4px;font:400 32px/1.15 Georgia,'Times New Roman',serif;color:var(--navy)}
+p{margin:0}
+.lead{color:var(--muted);margin-bottom:20px}
+.box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-top:16px}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}.warn{color:var(--warn);font-weight:600}
+ul{margin:10px 0 0;padding-left:20px}li{margin:4px 0}
+code{font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--page);padding:1px 5px;border-radius:4px}
+button{font:inherit;min-height:44px;padding:0 18px;border:0;border-radius:999px;background:var(--navy);color:#fff;font-weight:600;cursor:pointer}
+a{color:var(--navy)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Dates file check</h1>
+  <p class="lead">Checks <code>data.json</code> after you edit it. Problems listed here are what members would otherwise miss.</p>
+  <button id="run" type="button">Check again</button>
+  <div id="out" class="box" aria-live="polite">Checking…</div>
+  <p class="lead" style="margin-top:20px">GitHub can take a few minutes to publish an edit. If a fix doesn't show yet, wait a minute and check again. <a href="./">Open the dashboard</a></p>
+</main>
+<script>
+(function () {
+  var out = document.getElementById('out');
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+  function day(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); if (!m) return NaN; var t = Date.UTC(+m[1], +m[2] - 1, +m[3]); var d = new Date(t); return d.getUTCDate() === +m[3] ? t : NaN; }
+  function where(text, err) {
+    var msg = String(err && err.message || err), pos = /position (\d+)/.exec(msg), lc = /line (\d+) column (\d+)/.exec(msg);
+    if (lc) return 'line ' + lc[1] + ', column ' + lc[2];
+    if (!pos) return '';
+    var before = text.slice(0, +pos[1]).split('\n');
+    return 'line ' + before.length + ', column ' + (before[before.length - 1].length + 1);
+  }
+  function check(D) {
+    var errs = [], warns = [], ids = {}, keys = {};
+    if (!Array.isArray(D.members) || !D.members.length) errs.push('<code>members</code> must be a list with at least one member.');
+    (D.members || []).forEach(function (m, i) {
+      var at = 'Member ' + (i + 1);
+      if (!m.id) errs.push(at + ' has no <code>id</code>.'); else ids[m.id] = m;
+      ['role', 'sector', 'link'].forEach(function (k) { if (!m[k]) errs.push(at + ' (' + esc(m.id || '?') + ') has no <code>' + k + '</code>.'); });
+      if (m.cycle && !(D.cycles || {})[m.cycle]) errs.push(at + ' (' + esc(m.id) + ') is in cycle <code>' + esc(m.cycle) + '</code>, which is not defined under <code>cycles</code>.');
+    });
+    var T = D.term || {};
+    ['start', 'protectedEnd', 'resume', 'recessStart', 'recessEnd', 'fullProduction', 'close'].forEach(function (k) { if (isNaN(day(T[k]))) errs.push('<code>term.' + k + '</code> must be a real date written YYYY-MM-DD.'); });
+    function events(list, name) {
+      if (!Array.isArray(list)) { errs.push('<code>' + name + '</code> must be a list.'); return 0; }
+      list.forEach(function (e, i) {
+        var at = name + ' item ' + (i + 1) + (e && e.key ? ' (<code>' + esc(e.key) + '</code>)' : '');
+        if (!e || !e.key) { errs.push(at + ' has no <code>key</code>.'); return; }
+        if (keys[e.key]) errs.push(at + ' reuses the key <code>' + esc(e.key) + '</code>. Every key must be different.');
+        keys[e.key] = true;
+        var s = day(e.date);
+        if (isNaN(s)) errs.push(at + ': <code>date</code> must be a real date written YYYY-MM-DD.');
+        if (e.end != null && (isNaN(day(e.end)) || day(e.end) < s)) errs.push(at + ': <code>end</code> must be a YYYY-MM-DD date on or after <code>date</code>.');
+        if (['deadline', 'meeting', 'marker'].indexOf(e.type) < 0) errs.push(at + ': <code>type</code> must be deadline, meeting or marker.');
+        if (e.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(e.time)) errs.push(at + ': <code>time</code> must look like 17:00.');
+        if (!e.title) errs.push(at + ' has no <code>title</code>.');
+        if (e.who && ['all', 'some'].indexOf(e.who) < 0) errs.push(at + ': <code>who</code> must be all or some.');
+        if (e.cycle && !(D.cycles || {})[e.cycle]) errs.push(at + ': cycle <code>' + esc(e.cycle) + '</code> is not defined.');
+        Object.keys(e.roles || {}).forEach(function (r) {
+          if (!ids[r]) errs.push(at + ': <code>roles</code> names <code>' + esc(r) + '</code>, which is not a member id.');
+          if (['lead', 'support'].indexOf(e.roles[r]) < 0) errs.push(at + ': role <code>' + esc(r) + '</code> must be lead or support.');
+        });
+        ['titleBy', 'detailBy', 'labelBy'].forEach(function (k) { Object.keys(e[k] || {}).forEach(function (r) { if (!ids[r]) warns.push(at + ': <code>' + k + '</code> names <code>' + esc(r) + '</code>, which is not a member id.'); }); });
+        if (!e.who && !Object.keys(e.roles || {}).length) warns.push(at + ' has no <code>who</code> and no <code>roles</code>, so nobody sees it.');
+      });
+      return list.length;
+    }
+    var ns = events(D.society, 'society'), na = events(D.analyst || [], 'analyst');
+    return { errs: errs, warns: warns, ns: ns, na: na, nm: (D.members || []).length };
+  }
+  function run() {
+    out.textContent = 'Checking…';
+    fetch('data.json?fresh=' + Date.now(), { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('data.json could not be fetched (HTTP ' + r.status + ').');
+      return r.text();
+    }).then(function (text) {
+      var D;
+      try { D = JSON.parse(text); } catch (e) {
+        var w = where(text, e);
+        out.innerHTML = '<p class="bad">The file is not valid JSON' + (w ? ' near ' + w : '') + '.</p><p style="margin-top:8px">Look for a missing comma between items, a missing or extra quote mark, or a comma after the last item in a list. Members keep seeing the last good version until this is fixed.</p>';
+        return;
+      }
+      var r = check(D), h = '';
+      if (!r.errs.length) h += '<p class="ok">All good. ' + r.nm + ' members, ' + r.ns + ' Society dates and ' + r.na + ' analyst dates.</p>';
+      else h += '<p class="bad">' + r.errs.length + (r.errs.length === 1 ? ' problem' : ' problems') + ' to fix:</p><ul>' + r.errs.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
+      if (r.warns.length) h += '<p class="warn" style="margin-top:12px">Worth a look:</p><ul>' + r.warns.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
+      out.innerHTML = h;
+    }).catch(function (e) { out.innerHTML = '<p class="bad">' + esc(e.message) + '</p>'; });
+  }
+  document.getElementById('run').addEventListener('click', run);
+  run();
+})();
+</script>
+</body>
+</html>

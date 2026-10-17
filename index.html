@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Rand Society</title>
+<meta name="description" content="Members’ dashboard for The Rand Society.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0F2340">
+<meta name="color-scheme" content="only light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rand Society">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/newsreader.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app"><div class="boot">Loading the members’ dashboard…</div></div>
+<noscript><p class="boot">This dashboard needs JavaScript. Turn it on in your browser settings, then reload the page.</p></noscript>
+<script>window.TRS_PWA = true;</script>
+<script src="vendor/preact.min.js"></script>
+<script src="vendor/hooks.umd.js"></script>
+<script src="vendor/htm.umd.js"></script>
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>

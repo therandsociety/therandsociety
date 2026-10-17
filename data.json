@@ -1,0 +1,1091 @@
+{
+  "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD. After saving, open check.html on the site to confirm the file is valid.",
+  "updated": "2026-10-17",
+  "term": {
+    "name": "H1 2026–27",
+    "start": "2026-09-01",
+    "protectedEnd": "2026-10-31",
+    "resume": "2026-11-01",
+    "recessStart": "2026-12-19",
+    "recessEnd": "2027-01-04",
+    "fullProduction": "2027-01-05",
+    "close": "2027-02-28",
+    "source": "Master Delivery Calendar v1.0 and Term Plan v1.1"
+  },
+  "cycles": {
+    "A": {
+      "name": "Pitch IC A",
+      "pitch": "2027-02-14",
+      "path": [
+        {
+          "label": "Brief and watchlist",
+          "date": "2027-01-15"
+        },
+        {
+          "label": "Candidate cleared",
+          "date": "2027-01-22"
+        },
+        {
+          "label": "Thesis to review",
+          "date": "2027-02-05"
+        },
+        {
+          "label": "Comments back",
+          "date": "2027-02-09"
+        },
+        {
+          "label": "Final pre-read",
+          "date": "2027-02-13"
+        },
+        {
+          "label": "You pitch",
+          "date": "2027-02-14"
+        }
+      ]
+    },
+    "B": {
+      "name": "Pitch IC B",
+      "pitch": "2027-02-21",
+      "path": [
+        {
+          "label": "Brief and watchlist",
+          "date": "2027-01-15"
+        },
+        {
+          "label": "Candidate cleared",
+          "date": "2027-01-22"
+        },
+        {
+          "label": "Thesis to review",
+          "date": "2027-02-10"
+        },
+        {
+          "label": "Comments back",
+          "date": "2027-02-15"
+        },
+        {
+          "label": "Final pre-read",
+          "date": "2027-02-20"
+        },
+        {
+          "label": "You pitch",
+          "date": "2027-02-21"
+        }
+      ]
+    }
+  },
+  "members": [
+    {
+      "id": "hor",
+      "link": "research",
+      "role": "Head of Research",
+      "roleShort": "Head of Research",
+      "pick": "Research",
+      "sector": "Financials",
+      "sectorLine": "Banking, insurance, asset management and financial platforms",
+      "coverage": "REITs are excluded unless approved.",
+      "analyst": "B",
+      "cycle": "A",
+      "focus": "Quality, after the break.",
+      "focusLine": "Lead the Financials theme and keep every analyst’s research credible.",
+      "safeguard": {
+        "title": "Independent review",
+        "body": "Your own thesis or Level 2 report needs a reviewer appointed by the Members. You may not approve your own work."
+      },
+      "owns": [
+        {
+          "name": "Research Standards Manual",
+          "when": "Draft 4 Dec · live 18 Dec"
+        },
+        {
+          "name": "Financials theme primer",
+          "when": "15 Jan"
+        },
+        {
+          "name": "Thesis reviews",
+          "when": "Comments in 3 working days"
+        },
+        {
+          "name": "Level 2 report",
+          "when": "Draft 5 Feb · final 23 Feb"
+        },
+        {
+          "name": "Research lead at each IC",
+          "when": "Six meetings"
+        }
+      ]
+    },
+    {
+      "id": "pres",
+      "link": "president",
+      "role": "President & IC Chair",
+      "roleShort": "President",
+      "pick": "President",
+      "sector": "Consumer Services",
+      "sectorLine": "JSE-listed companies in ICB Consumer Services (402010)",
+      "coverage": "Adjacent consumer sectors need an IC-approved boundary.",
+      "analyst": "A",
+      "cycle": "B",
+      "focus": "Coordination, not command.",
+      "focusLine": "Run meetings, learning, capacity and reporting while every Member keeps equal standing.",
+      "safeguard": {
+        "title": "Procedural chair",
+        "body": "You chair, but you do not vote first on ordinary investment decisions and you may not override research, portfolio or publication controls."
+      },
+      "owns": [
+        {
+          "name": "Capacity map",
+          "when": "1 to 6 Nov"
+        },
+        {
+          "name": "Six formal ICs",
+          "when": "Agendas by Friday 17:00"
+        },
+        {
+          "name": "Three learning sessions",
+          "when": "13 Dec · 24 Jan · 7 Feb"
+        },
+        {
+          "name": "Traffic-light reviews",
+          "when": "13 Nov · 31 Jan · 28 Feb"
+        },
+        {
+          "name": "Interim and Term-End reports",
+          "when": "31 Jan · 26 Feb"
+        }
+      ]
+    },
+    {
+      "id": "pm",
+      "link": "portfolio",
+      "role": "Portfolio Manager",
+      "roleShort": "Portfolio Manager",
+      "pick": "Portfolio",
+      "sector": "TMT",
+      "sectorLine": "Technology, media and telecommunications",
+      "coverage": "Keep the watchlist narrow rather than covering every sub-sector.",
+      "analyst": "C",
+      "cycle": "A",
+      "focus": "Discipline before deployment.",
+      "focusLine": "Run the simulated portfolio’s controls and keep every position within Schedule A.",
+      "safeguard": {
+        "title": "Independent compliance check",
+        "body": "When you pitch, a Member appointed by the IC checks your proposal’s eligibility and compliance."
+      },
+      "owns": [
+        {
+          "name": "Portfolio Framework",
+          "when": "Validated 4 Dec · live 18 Dec"
+        },
+        {
+          "name": "Pre-clearance",
+          "when": "2 working days · all by 22 Jan"
+        },
+        {
+          "name": "Schedule A limits",
+          "when": "20% single-position cap"
+        },
+        {
+          "name": "Trades recorded",
+          "when": "Within 48 hours of a decision"
+        },
+        {
+          "name": "Portfolio data lock",
+          "when": "24 Feb"
+        }
+      ]
+    },
+    {
+      "id": "coo",
+      "link": "coo",
+      "role": "COO & External Affairs",
+      "roleShort": "COO",
+      "pick": "COO",
+      "sector": "Metals and Mining",
+      "sectorLine": "Diversified miners, precious metals, PGMs and industrial metals",
+      "coverage": "Coal is excluded unless Members approve it.",
+      "analyst": "D",
+      "cycle": "B",
+      "focus": "Systems that outlast the term.",
+      "focusLine": "Build the records, brand standards and publication controls the next role-holder inherits.",
+      "safeguard": {
+        "title": "Format, not conclusions",
+        "body": "You own format, brand and publication review, not research conclusions."
+      },
+      "owns": [
+        {
+          "name": "LinkedIn announcement",
+          "when": "1 to 7 Nov"
+        },
+        {
+          "name": "Brand and Publication Manual",
+          "when": "Draft 4 Dec · live 18 Dec"
+        },
+        {
+          "name": "Minutes",
+          "when": "Tuesday 17:00 after each meeting"
+        },
+        {
+          "name": "Pitch pre-reads",
+          "when": "13 and 20 Feb, 17:00"
+        },
+        {
+          "name": "Handovers collected",
+          "when": "26 Feb"
+        }
+      ]
+    }
+  ],
+  "society": [
+    {
+      "key": "apend",
+      "date": "2026-10-31",
+      "type": "marker",
+      "title": "Academic Priority ends",
+      "detail": "Society-wide protection ends. Individual November exam exemptions may continue.",
+      "who": "all"
+    },
+    {
+      "key": "resume",
+      "date": "2026-11-01",
+      "type": "marker",
+      "title": "Active Society work resumes",
+      "detail": "Work resumes for every Member not under a November exam exemption. Until 30 November, no new full thesis, Level 2 report or major event is imposed unless you volunteer and reviewers confirm capacity.",
+      "who": "all",
+      "roles": {
+        "pres": "lead"
+      },
+      "leadLabel": "You administer",
+      "detailBy": {
+        "pres": "You update the capacity map and administer November exam exemptions. Until 30 November, no new full thesis, Level 2 report or major event is imposed unless a Member volunteers."
+      }
+    },
+    {
+      "key": "linkedin",
+      "date": "2026-11-01",
+      "end": "2026-11-07",
+      "type": "deadline",
+      "title": "LinkedIn founding announcement",
+      "detail": "In your first active week, confirm the LinkedIn page is live and publish the founding announcement, or record it if already done.",
+      "roles": {
+        "coo": "lead"
+      }
+    },
+    {
+      "key": "notice",
+      "date": "2026-11-02",
+      "type": "deadline",
+      "time": "17:00",
+      "title": "November exam notice due",
+      "detail": "Writing a November exam? By 17:00, notify the Society through the official WhatsApp, Teams or email channel and state your final-exam date. You are excused until the day after it.",
+      "who": "some",
+      "roles": {
+        "pres": "lead"
+      },
+      "leadLabel": "You receive",
+      "detailBy": {
+        "pres": "Members writing November exams notify the Society by 17:00 through the official channel, with their final-exam dates. Record each one on the capacity map."
+      }
+    },
+    {
+      "key": "nov6",
+      "date": "2026-11-06",
+      "type": "deadline",
+      "title": "Outlines and capacity map",
+      "detail": "Research Manual outline and capacity map completed, Portfolio Framework current-state review completed and Publication Manual outline begun.",
+      "roles": {
+        "pres": "lead",
+        "hor": "lead",
+        "pm": "lead",
+        "coo": "lead"
+      },
+      "titleBy": {
+        "pres": "Capacity map completed",
+        "hor": "Research Standards Manual outline",
+        "pm": "Portfolio Framework current-state review",
+        "coo": "Publication Manual outline begins"
+      },
+      "detailBy": {
+        "pres": "Complete the capacity map, so dependent work follows each Member’s resumption.",
+        "hor": "Complete the outline of the Investment Research and Thesis Standards Manual.",
+        "pm": "Complete the current-state review of the Portfolio Framework, with its gap record.",
+        "coo": "Begin the outline of the Brand, Document and Publication Standards Manual."
+      }
+    },
+    {
+      "key": "tl1",
+      "date": "2026-11-13",
+      "type": "deadline",
+      "title": "First drafts and Traffic-Light Review 1",
+      "detail": "First operating-pack drafts are filed. Traffic-Light Review 1 rates every Foundation item green, amber or red.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "hor": "lead",
+        "pm": "lead",
+        "coo": "lead"
+      },
+      "detailBy": {
+        "pres": "You lead Traffic-Light Review 1. Every amber or red Foundation item gets an owner, support and a revised date.",
+        "hor": "File your first operating-pack drafts for Traffic-Light Review 1.",
+        "pm": "File your first operating-pack drafts for Traffic-Light Review 1.",
+        "coo": "File your first operating-pack drafts for Traffic-Light Review 1."
+      }
+    },
+    {
+      "key": "nov20",
+      "date": "2026-11-20",
+      "type": "deadline",
+      "title": "Cross-role consistency review",
+      "detail": "Research, portfolio, records, publication, access and approval dependencies tested on paper.",
+      "roles": {
+        "pm": "lead",
+        "hor": "lead",
+        "coo": "lead"
+      }
+    },
+    {
+      "key": "pf",
+      "date": "2026-12-04",
+      "type": "deadline",
+      "title": "Portfolio Framework validated",
+      "detail": "Gap assessment and controlled version, circulated in the controlled IC pre-read with the templates, tracker and open corrections.",
+      "roles": {
+        "pm": "lead",
+        "pres": "support",
+        "hor": "support",
+        "coo": "support"
+      }
+    },
+    {
+      "key": "rm",
+      "date": "2026-12-04",
+      "type": "deadline",
+      "title": "Research Standards Manual draft",
+      "detail": "Controlled draft of the Investment Research and Thesis Standards Manual with its correction register, circulated in the controlled IC pre-read.",
+      "roles": {
+        "hor": "lead",
+        "pres": "support",
+        "pm": "support",
+        "coo": "support"
+      }
+    },
+    {
+      "key": "bm",
+      "date": "2026-12-04",
+      "type": "deadline",
+      "title": "Brand and Publication Manual draft",
+      "detail": "Controlled draft of the Brand, Document and Publication Standards Manual with its correction register, circulated in the controlled IC pre-read.",
+      "roles": {
+        "coo": "lead",
+        "pres": "support",
+        "pm": "support",
+        "hor": "support"
+      }
+    },
+    {
+      "key": "ic1",
+      "date": "2026-12-06",
+      "type": "meeting",
+      "ic": 1,
+      "title": "Formal IC 1",
+      "detail": "Operating-pack review, provisional workflow-test decisions, correction owners and deadlines. Proceeds only with quorum.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "coo": "support"
+      },
+      "leadLabel": "You chair",
+      "labelBy": {
+        "coo": "You minute"
+      },
+      "detailBy": {
+        "pres": "You chair: operating-pack review, provisional workflow-test decisions, correction owners and deadlines. Circulate the agenda by Friday 17:00; without quorum, move to the nearest Sunday with quorum.",
+        "coo": "Operating-pack review, provisional workflow-test decisions, correction owners and deadlines. You file the minutes and resolutions by Tuesday 17:00.",
+        "pm": "Operating-pack review, provisional workflow-test decisions, correction owners and deadlines. You present the portfolio and mandate update.",
+        "hor": "Operating-pack review, provisional workflow-test decisions, correction owners and deadlines. You lead the research discussion."
+      }
+    },
+    {
+      "key": "wft",
+      "date": "2026-12-07",
+      "end": "2026-12-11",
+      "type": "deadline",
+      "title": "End-to-end workflow test",
+      "detail": "One sample idea run through registration, pre-clearance, research review, version control, circulation, decision recording and publication controls, with a defect register.",
+      "roles": {
+        "pm": "lead",
+        "hor": "lead",
+        "coo": "lead",
+        "pres": "support"
+      }
+    },
+    {
+      "key": "ls1",
+      "date": "2026-12-13",
+      "type": "meeting",
+      "title": "Learning Session 1: How financial services companies make money",
+      "detail": "One-page brief, facilitated discussion and an application exercise: compare a bank, an insurer and an asset manager, and how each earns revenue and absorbs risk.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "hor": "support"
+      },
+      "leadLabel": "You coordinate"
+    },
+    {
+      "key": "fclose",
+      "date": "2026-12-18",
+      "type": "deadline",
+      "title": "Foundation phase closes",
+      "detail": "Operating manuals, templates, tracker, folders and access controls approved and live.",
+      "who": "all",
+      "roles": {
+        "pm": "lead",
+        "hor": "lead",
+        "coo": "lead"
+      },
+      "detailBy": {
+        "hor": "Your Research Standards Manual is approved and live.",
+        "pm": "Your Portfolio Framework, tracker and registers are approved and live.",
+        "coo": "Your Brand Manual, templates and asset pack are approved and live."
+      }
+    },
+    {
+      "key": "recess",
+      "date": "2026-12-19",
+      "end": "2027-01-04",
+      "type": "marker",
+      "title": "Year-end recess",
+      "detail": "Reduced activity: urgent governance, record preservation and portfolio monitoring only. No major original work.",
+      "who": "all",
+      "roles": {
+        "pres": "support",
+        "pm": "support",
+        "coo": "support"
+      },
+      "supportLabel": "Urgent only",
+      "detailBy": {
+        "pres": "Reduced activity. Only urgent governance, record preservation and portfolio monitoring; you file any urgent resolution.",
+        "pm": "Reduced activity. You keep lightweight portfolio monitoring; urgent mandate matters use a written resolution.",
+        "coo": "Reduced activity. Only urgent governance and record preservation; you keep any urgent resolution on record."
+      }
+    },
+    {
+      "key": "jan5",
+      "date": "2027-01-05",
+      "type": "marker",
+      "title": "Full production resumes",
+      "detail": "Research queue, owners, review slots and January workload confirmed.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "hor": "lead",
+        "pm": "lead"
+      },
+      "leadLabel": "You confirm"
+    },
+    {
+      "key": "jan15",
+      "date": "2027-01-15",
+      "type": "deadline",
+      "title": "Theme primer in, sector briefs to review",
+      "detail": "Submit the Financials theme primer. The other analysts’ briefs and watchlists come to you for quality review: accepted or revision-required.",
+      "roles": {
+        "hor": "lead"
+      }
+    },
+    {
+      "key": "ic2",
+      "date": "2027-01-17",
+      "type": "meeting",
+      "ic": 2,
+      "title": "Formal IC 2",
+      "detail": "Sector readiness, theme primer, watchlist quality, portfolio capacity and corrective actions.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "coo": "support"
+      },
+      "leadLabel": "You chair",
+      "labelBy": {
+        "coo": "You minute"
+      },
+      "detailBy": {
+        "pres": "You chair: sector readiness, theme primer, watchlist quality, portfolio capacity and corrective actions.",
+        "coo": "Sector readiness, theme primer, watchlist quality, portfolio capacity and corrective actions. You file the minutes and resolutions by Tuesday 17:00."
+      }
+    },
+    {
+      "key": "jan22",
+      "date": "2027-01-22",
+      "type": "deadline",
+      "title": "Thesis candidates pre-cleared",
+      "detail": "Pre-clear every other analyst’s candidate within two working days of complete information. A Member appointed by the IC verifies your own.",
+      "roles": {
+        "pm": "lead"
+      },
+      "leadLabel": "You pre-clear"
+    },
+    {
+      "key": "ls2",
+      "date": "2027-01-24",
+      "type": "meeting",
+      "title": "Learning Session 2: Valuing financial companies",
+      "detail": "Compare two JSE-listed financial companies and defend the valuation premium or discount.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "hor": "support"
+      },
+      "leadLabel": "You coordinate"
+    },
+    {
+      "key": "jan29",
+      "date": "2027-01-29",
+      "type": "deadline",
+      "title": "Interim report inputs",
+      "detail": "Role owners submit Interim Progress Report inputs and corrective-action proposals.",
+      "roles": {
+        "pres": "lead",
+        "hor": "lead",
+        "pm": "lead",
+        "coo": "lead"
+      },
+      "detailBy": {
+        "pres": "Role owners submit their Interim Progress Report inputs and corrective-action proposals to you.",
+        "hor": "Submit your Interim Progress Report inputs and corrective-action proposals.",
+        "pm": "Submit your Interim Progress Report inputs and corrective-action proposals.",
+        "coo": "Submit your Interim Progress Report inputs and corrective-action proposals."
+      }
+    },
+    {
+      "key": "jan31",
+      "date": "2027-01-31",
+      "type": "meeting",
+      "ic": 3,
+      "title": "Formal IC 3: Interim Progress Report",
+      "detail": "Traffic-Light Review 2, Interim Progress Report approval, candidate readiness and February sequencing.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "coo": "support"
+      },
+      "leadLabel": "You chair",
+      "labelBy": {
+        "coo": "You minute"
+      },
+      "detailBy": {
+        "pres": "You chair Traffic-Light Review 2 and present the Interim Progress Report for approval, with candidate readiness and February sequencing.",
+        "coo": "Traffic-Light Review 2, Interim Progress Report approval, candidate readiness and February sequencing. You file the minutes and resolutions by Tuesday 17:00."
+      }
+    },
+    {
+      "key": "feb5",
+      "date": "2027-02-05",
+      "type": "deadline",
+      "title": "Cycle A thesis drafts",
+      "detail": "Pitch Cycle A full theses and models submitted for review.",
+      "roles": {
+        "hor": "lead",
+        "pm": "support"
+      },
+      "titleBy": {
+        "hor": "Level 2 draft and Cycle A theses"
+      },
+      "detailBy": {
+        "hor": "Submit your Level 2 full draft for independent review. Pitch Cycle A theses and models arrive for your research review.",
+        "pm": "Pitch Cycle A full theses and models submitted for review. You advise on sizing and portfolio fit."
+      }
+    },
+    {
+      "key": "ls3",
+      "date": "2027-02-07",
+      "type": "meeting",
+      "title": "Learning Session 3: Technology, competition and financial inclusion",
+      "detail": "Assess whether a selected strategy improves revenue, cost, risk, customer value or valuation.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "hor": "support"
+      },
+      "leadLabel": "You coordinate"
+    },
+    {
+      "key": "feb9",
+      "date": "2027-02-09",
+      "type": "deadline",
+      "title": "Cycle A research feedback",
+      "detail": "Research feedback on Cycle A theses returned, with evidence-based correction requirements.",
+      "roles": {
+        "hor": "lead"
+      },
+      "detailBy": {
+        "hor": "Return research feedback on Cycle A theses, with evidence-based correction requirements."
+      }
+    },
+    {
+      "key": "feb10",
+      "date": "2027-02-10",
+      "type": "deadline",
+      "title": "Cycle B thesis drafts",
+      "detail": "Pitch Cycle B full theses and models submitted for review.",
+      "roles": {
+        "hor": "support",
+        "pm": "support"
+      },
+      "labelBy": {
+        "hor": "You review"
+      },
+      "detailBy": {
+        "hor": "Pitch Cycle B full theses and models arrive for your research review.",
+        "pm": "Pitch Cycle B full theses and models submitted for review. You advise on sizing and portfolio fit."
+      }
+    },
+    {
+      "key": "feb12",
+      "date": "2027-02-12",
+      "type": "deadline",
+      "title": "Term-End Report structure locked",
+      "detail": "Report structure, section owners and secondary-output evidence requirements locked.",
+      "who": "all",
+      "roles": {
+        "pres": "lead"
+      },
+      "detailBy": {
+        "pres": "Lock the Term-End Report structure, section owners and secondary-output evidence requirements."
+      }
+    },
+    {
+      "key": "feb13",
+      "date": "2027-02-13",
+      "type": "deadline",
+      "time": "17:00",
+      "title": "Pitch A pre-reads circulated",
+      "detail": "Final controlled pre-reads for Pitch Cycle A circulated by 17:00.",
+      "who": "all",
+      "roles": {
+        "coo": "lead",
+        "pres": "support"
+      },
+      "detailBy": {
+        "coo": "Circulate the final controlled, version-numbered pre-reads for Pitch Cycle A by 17:00."
+      }
+    },
+    {
+      "key": "pica",
+      "date": "2027-02-14",
+      "type": "meeting",
+      "ic": 4,
+      "title": "Formal IC 4: Pitch IC A",
+      "detail": "Pitch Cycle A research presentations and simulated investment decisions.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "hor": "support",
+        "pm": "support",
+        "coo": "support"
+      },
+      "leadLabel": "You chair",
+      "labelBy": {
+        "coo": "You minute"
+      },
+      "detailBy": {
+        "pm": "Pitch Cycle A presentations and simulated investment decisions. You record approved paper trades within 48 hours.",
+        "hor": "Pitch Cycle A presentations and simulated investment decisions. You lead the research discussion.",
+        "pres": "Pitch Cycle A presentations and simulated investment decisions. You chair.",
+        "coo": "Pitch Cycle A presentations and simulated investment decisions. You file the minutes and resolutions by Tuesday 17:00."
+      }
+    },
+    {
+      "key": "feb15",
+      "date": "2027-02-15",
+      "type": "deadline",
+      "title": "Cycle B research feedback",
+      "detail": "Research feedback on Cycle B theses returned, with correction requirements.",
+      "roles": {
+        "hor": "lead"
+      },
+      "detailBy": {
+        "hor": "Return research feedback on Cycle B theses, with correction requirements."
+      }
+    },
+    {
+      "key": "feb19",
+      "date": "2027-02-19",
+      "type": "deadline",
+      "title": "Evidence register: secondary work and development",
+      "detail": "Every Member’s secondary analytical contribution and professional-development evidence is substantially complete. You keep the evidence register.",
+      "roles": {
+        "coo": "lead"
+      }
+    },
+    {
+      "key": "feb19h",
+      "date": "2027-02-19",
+      "type": "deadline",
+      "time": "17:00",
+      "title": "Draft handovers due",
+      "detail": "Every role-holder’s draft handover submitted by 17:00, ahead of the handover-draft review at Formal IC 5.",
+      "who": "all",
+      "roles": {
+        "hor": "lead",
+        "pres": "lead",
+        "pm": "lead",
+        "coo": "lead"
+      },
+      "detailBy": {
+        "hor": "Submit your draft handover by 17:00, ahead of the handover-draft review at Formal IC 5.",
+        "pres": "Submit your draft handover by 17:00, ahead of the handover-draft review at Formal IC 5.",
+        "pm": "Submit your draft handover by 17:00, ahead of the handover-draft review at Formal IC 5.",
+        "coo": "Submit your draft handover by 17:00, ahead of the handover-draft review at Formal IC 5."
+      }
+    },
+    {
+      "key": "feb20",
+      "date": "2027-02-20",
+      "type": "deadline",
+      "time": "17:00",
+      "title": "Pitch B pre-reads circulated",
+      "detail": "Final controlled pre-reads for Pitch Cycle B circulated by 17:00.",
+      "who": "all",
+      "roles": {
+        "coo": "lead",
+        "pres": "support"
+      },
+      "detailBy": {
+        "coo": "Circulate the final controlled, version-numbered pre-reads for Pitch Cycle B by 17:00."
+      }
+    },
+    {
+      "key": "picb",
+      "date": "2027-02-21",
+      "type": "meeting",
+      "ic": 5,
+      "title": "Formal IC 5: Pitch IC B",
+      "detail": "Pitch Cycle B presentations and votes, the final portfolio review and the handover-draft review.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "hor": "support",
+        "pm": "support",
+        "coo": "support"
+      },
+      "leadLabel": "You chair",
+      "labelBy": {
+        "coo": "You minute"
+      },
+      "detailBy": {
+        "pm": "Pitch Cycle B presentations and votes, the final portfolio review and the handover-draft review. You record approved paper trades within 48 hours.",
+        "hor": "Pitch Cycle B presentations and votes, the final portfolio review and the handover-draft review. You lead the research discussion.",
+        "pres": "You chair Pitch Cycle B, the final portfolio review and the handover-draft review.",
+        "coo": "Pitch Cycle B presentations and votes, the final portfolio review and the handover-draft review. You file the minutes and resolutions by Tuesday 17:00."
+      }
+    },
+    {
+      "key": "feb23",
+      "date": "2027-02-23",
+      "type": "deadline",
+      "title": "Report inputs submitted",
+      "detail": "Role-owner inputs to the Term-End Report submitted.",
+      "who": "all",
+      "roles": {
+        "hor": "lead",
+        "pres": "lead",
+        "pm": "lead",
+        "coo": "lead"
+      },
+      "titleBy": {
+        "hor": "Level 2 report final, report inputs submitted"
+      },
+      "detailBy": {
+        "hor": "Your Level 2 Equity Research Report is finalised and accepted through independent review. Submit your Term-End Report inputs.",
+        "pres": "Submit your Term-End Report inputs.",
+        "pm": "Submit your Term-End Report inputs.",
+        "coo": "Submit your Term-End Report inputs."
+      }
+    },
+    {
+      "key": "feb24",
+      "date": "2027-02-24",
+      "type": "deadline",
+      "title": "Portfolio data and evidence locked",
+      "detail": "Portfolio decisions, portfolio data, the evidence register and performance attribution locked.",
+      "who": "all",
+      "roles": {
+        "pm": "lead",
+        "coo": "lead"
+      }
+    },
+    {
+      "key": "feb26",
+      "date": "2027-02-26",
+      "type": "deadline",
+      "title": "Term-End pack circulated",
+      "detail": "Term-End Report, final handovers and the peer-evaluation pack circulated for approval.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "coo": "lead"
+      }
+    },
+    {
+      "key": "close",
+      "date": "2027-02-28",
+      "type": "meeting",
+      "ic": 6,
+      "title": "Formal IC 6 and H1 close",
+      "detail": "Traffic-Light Review 3, scorecard, H2 recommendations, final approvals and the closing resolution.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "coo": "support"
+      },
+      "leadLabel": "You chair",
+      "labelBy": {
+        "coo": "You minute"
+      },
+      "detailBy": {
+        "pres": "You chair Traffic-Light Review 3, the scorecard, H2 recommendations, final approvals and the closing resolution.",
+        "coo": "Traffic-Light Review 3, scorecard, H2 recommendations, final approvals and the closing resolution. You file the minutes and resolutions by Tuesday 17:00."
+      }
+    }
+  ],
+  "analyst": [
+    {
+      "key": "a-scope",
+      "date": "2026-12-18",
+      "type": "deadline",
+      "title": "Sector scope and source map filed",
+      "detail": "File your initial {sector} scope and source map, ready for January sector work.",
+      "who": "all"
+    },
+    {
+      "key": "a-brief",
+      "date": "2027-01-15",
+      "type": "deadline",
+      "title": "Sector brief and watchlist submitted",
+      "detail": "Submit your {sector} initiation brief (value chain, listed universe, profit drivers, risks, legislation and indicators) and a focused watchlist of five to ten companies for quality review.",
+      "who": "all",
+      "titleBy": {
+        "hor": "Theme primer and watchlist submitted"
+      },
+      "detailBy": {
+        "hor": "Submit the Financials theme primer, which counts as your sector brief, with a watchlist of five to ten companies."
+      }
+    },
+    {
+      "key": "a-cand",
+      "date": "2027-01-22",
+      "type": "deadline",
+      "title": "Thesis candidate pre-cleared",
+      "detail": "Your brief and watchlist are accepted. Register your preferred candidate with a primary source pack and get Portfolio Manager pre-clearance.",
+      "who": "all",
+      "detailBy": {
+        "pm": "Your brief and watchlist are accepted. Register your preferred candidate with a primary source pack. A Member appointed by the IC verifies its eligibility, not you."
+      }
+    },
+    {
+      "key": "a-thesisA",
+      "cycle": "A",
+      "date": "2027-02-05",
+      "type": "deadline",
+      "title": "Thesis and model to review",
+      "detail": "Submit your complete thesis and model to the Head of Research, five working days before Pitch IC A.",
+      "who": "all",
+      "titleBy": {
+        "hor": "Level 2 draft to independent review"
+      },
+      "detailBy": {
+        "hor": "Your Level 2 full draft, which counts as your thesis, goes to the independent reviewer appointed by the Members."
+      }
+    },
+    {
+      "key": "a-fbA",
+      "cycle": "A",
+      "date": "2027-02-09",
+      "type": "deadline",
+      "title": "Review comments back",
+      "detail": "Comments come back with written reasons. Address each one or give reasoned written disagreement.",
+      "who": "all"
+    },
+    {
+      "key": "a-preA",
+      "cycle": "A",
+      "date": "2027-02-13",
+      "time": "17:00",
+      "type": "deadline",
+      "title": "Final pre-read circulated",
+      "detail": "Your final version passes COO format control and goes out as the controlled pre-read by 17:00.",
+      "who": "all"
+    },
+    {
+      "key": "a-thesisB",
+      "cycle": "B",
+      "date": "2027-02-10",
+      "type": "deadline",
+      "title": "Thesis and model to review",
+      "detail": "Submit your complete thesis and model to the Head of Research for Pitch IC B.",
+      "who": "all",
+      "titleBy": {
+        "hor": "Level 2 draft to independent review"
+      },
+      "detailBy": {
+        "hor": "Your Level 2 full draft, which counts as your thesis, goes to the independent reviewer appointed by the Members."
+      }
+    },
+    {
+      "key": "a-fbB",
+      "cycle": "B",
+      "date": "2027-02-15",
+      "type": "deadline",
+      "title": "Review comments back",
+      "detail": "Comments come back with written reasons. Address each one or give reasoned written disagreement.",
+      "who": "all"
+    },
+    {
+      "key": "a-preB",
+      "cycle": "B",
+      "date": "2027-02-20",
+      "time": "17:00",
+      "type": "deadline",
+      "title": "Final pre-read circulated",
+      "detail": "Your final version passes COO format control and goes out as the controlled pre-read by 17:00.",
+      "who": "all"
+    },
+    {
+      "key": "a-second",
+      "date": "2027-02-19",
+      "type": "deadline",
+      "title": "Secondary contribution and development",
+      "detail": "Your secondary output (a company update, valuation comparison, catalyst or monitoring note) and your professional-development evidence, such as Bloomberg Market Concepts, are substantially complete.",
+      "who": "all"
+    },
+    {
+      "key": "a-l2",
+      "date": "2027-02-23",
+      "type": "deadline",
+      "title": "Level 2 report final",
+      "detail": "Your Level 2 Equity Research Report is finalised and accepted through independent review.",
+      "roles": {
+        "hor": "lead"
+      }
+    },
+    {
+      "key": "a-close",
+      "date": "2027-02-28",
+      "type": "deadline",
+      "title": "Handover note and peer evaluation",
+      "detail": "Both are filed by the H1 close. The peer-evaluation pack goes out with the Term-End pack on 26 February.",
+      "who": "all"
+    }
+  ],
+  "analystMeetings": {
+    "ic1": {
+      "detail": "Operating-pack review. Every full IC carries a five-to-ten-minute Concept of the Meeting: present yours at IC 1, 2, 3 or 6."
+    },
+    "ic2": {
+      "detail": "Sector readiness: your brief, watchlist quality and portfolio capacity."
+    },
+    "jan31": {
+      "detail": "Candidate readiness and February sequencing."
+    },
+    "pica": {
+      "cycle": "A",
+      "label": "You pitch",
+      "detail": "Present your thesis for discussion and a simulated investment decision. Research approval does not compel an investment."
+    },
+    "picb": {
+      "cycle": "B",
+      "label": "You pitch",
+      "detail": "Present your thesis for discussion and a simulated investment decision. Research approval does not compel an investment."
+    },
+    "close": {
+      "detail": "Scorecard, H2 recommendations and the closing resolution. Your handover note and peer evaluation are filed by today."
+    }
+  },
+  "analystScorecard": [
+    {
+      "name": "Sector brief",
+      "when": "15 Jan",
+      "nameBy": {
+        "hor": "Theme primer, as your brief"
+      }
+    },
+    {
+      "name": "Watchlist of 5 to 10 companies",
+      "when": "15 Jan"
+    },
+    {
+      "name": "Level 1 thesis",
+      "when": "{pitch}",
+      "nameBy": {
+        "hor": "Level 2 report, as your thesis"
+      }
+    },
+    {
+      "name": "Secondary contribution",
+      "when": "19 Feb"
+    },
+    {
+      "name": "Professional development",
+      "when": "19 Feb · Bloomberg Market Concepts"
+    },
+    {
+      "name": "Concept of the Meeting",
+      "when": "5 to 10 minutes at a full IC"
+    },
+    {
+      "name": "Attendance",
+      "when": "70% of formal meetings"
+    },
+    {
+      "name": "Handover note and peer evaluation",
+      "when": "28 Feb"
+    }
+  ],
+  "rules": {
+    "shared": [
+      {
+        "id": "ap",
+        "title": "Academic Priority",
+        "body": "1 September to 31 October: no mandatory meeting, duty or major deliverable. Urgent matters use a written resolution."
+      },
+      {
+        "id": "exams",
+        "title": "November exams",
+        "chip": "If writing",
+        "body": "Notify the Society by 17:00 on 2 November through WhatsApp, Teams or email, with your final-exam date. You are excused until the day after it."
+      },
+      {
+        "id": "meet",
+        "title": "Meetings and quorum",
+        "chip": "Sun 17:00",
+        "body": "Sundays 17:00 to 18:30 on Teams. Agenda by Friday 17:00, pre-reads by Saturday 17:00, minutes by Tuesday 17:00. Three of the four Members make quorum; without it, the meeting moves to the next Sunday with quorum."
+      }
+    ],
+    "analyst": [
+      {
+        "id": "times",
+        "title": "Review times",
+        "chip": "Working days",
+        "body": "Pre-clearance within two working days of complete information. Research comments within three. Revised work reviewed within two where possible."
+      },
+      {
+        "id": "gate",
+        "title": "Quality gate",
+        "body": "Work is complete when it is accepted, not when it is submitted."
+      },
+      {
+        "id": "one",
+        "title": "One pitch at a time",
+        "body": "One active primary pitch per analyst in review, unless the Head of Research and Portfolio Manager confirm capacity and Members approve."
+      },
+      {
+        "id": "own",
+        "title": "Your work stays yours",
+        "body": "Review does not transfer authorship: you keep responsibility for your sources, reasoning and conclusions. No analyst holds a personal capital allocation."
+      }
+    ]
+  }
+}

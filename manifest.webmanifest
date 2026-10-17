@@ -1,0 +1,33 @@
+{
+  "id": "./",
+  "name": "The Rand Society",
+  "short_name": "Rand Society",
+  "description": "Members’ dashboard: key dates for your Society role and your analyst seat.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0F2340",
+  "theme_color": "#0F2340",
+  "lang": "en-ZA",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
