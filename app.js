@@ -3,17 +3,20 @@
 (function () {
   'use strict';
   var root = document.getElementById('app');
-  // Launch screen: shown by index.html until the dashboard is ready, for at least 0.7 s from page start so it never flickers.
+  // Launch screen: index.html shows the logo and name until the dashboard is ready. The first open in a session holds it
+  // for at least 1.7 s from page start (so the logo, name and loading line finish), a reload in the same session for 0.9 s;
+  // then it opens into the dashboard, whose own entrance plays as the screen clears.
   function hideSplash(now) {
     var el = document.getElementById('splash');
     if (!el || el.getAttribute('data-out')) return;
     el.setAttribute('data-out', '1');
+    var de = document.documentElement, quick = de.classList.contains('splash-quick');
     var t = window.performance && performance.now ? performance.now() : 0;
     setTimeout(function () {
       el.classList.add('out');
-      document.documentElement.classList.remove('splashing');  // the dashboard builds in as the logo fades
-      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
-    }, now ? 0 : Math.max(0, 700 - t));
+      setTimeout(function () { de.classList.remove('splashing'); }, now ? 0 : 250);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 950);
+    }, now ? 0 : Math.max(0, (quick ? 900 : 1700) - t));
   }
   function fail(msg) { document.documentElement.classList.remove('splashing'); hideSplash(true); root.innerHTML = '<div class="boot">' + msg + '</div>'; }
   if (!window.preact || !window.preactHooks || !window.htm) { fail('The dashboard could not load. Check your connection, then reload the page.'); return; }
