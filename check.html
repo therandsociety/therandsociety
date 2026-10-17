@@ -75,7 +75,10 @@ a{color:var(--navy)}
         });
         ['titleBy', 'detailBy', 'labelBy'].forEach(function (k) { Object.keys(e[k] || {}).forEach(function (r) { if (!ids[r]) warns.push(at + ': <code>' + k + '</code> names <code>' + esc(r) + '</code>, which is not a member id.'); }); });
         if (!e.who && !Object.keys(e.roles || {}).length) warns.push(at + ' has no <code>who</code> and no <code>roles</code>, so nobody sees it.');
-        Object.keys(e.status || {}).forEach(function (r) { if (!ids[r]) warns.push(at + ': <code>status</code> names <code>' + esc(r) + '</code>, which is not a member id.'); });
+        Object.keys(e.status || {}).forEach(function (r) {
+          if (!ids[r]) warns.push(at + ': <code>status</code> names <code>' + esc(r) + '</code>, which is not a member id.');
+          if (['accepted', 'revise'].indexOf(e.status[r]) < 0) errs.push(at + ': <code>status</code> for <code>' + esc(r) + '</code> must be accepted or revise.');
+        });
       });
       return list.length;
     }

@@ -1071,6 +1071,11 @@
         "title": "Meetings and quorum",
         "chip": "Sun 17:00",
         "body": "Sundays 17:00 to 18:30 on Teams. Agenda by Friday 17:00, pre-reads by Saturday 17:00, minutes by Tuesday 17:00. Three of the four Members make quorum; without it, the meeting moves to the next Sunday with quorum."
+      },
+      {
+        "id": "colours",
+        "title": "What the colours mean",
+        "body": "Your deadlines stay navy until they are close. Soft orange means due within a week; solid orange, within two days. Green means the Society has accepted the work. A grey tick means you marked it submitted, which only you see."
       }
     ],
     "analyst": [

@@ -31,10 +31,21 @@ Each date is one block in the `society` list (Society-role work) or the `analyst
 | `titleBy`, `detailBy` | A different title or paragraph for a particular role. | `{"pres": "Capacity map completed"}` |
 | `leadLabel`, `labelBy` | The small tag, such as "You chair" or "You minute". | `"You chair"` |
 | `cycle` | Analyst dates only: `A` or `B`. Only members in that pitch cycle see it. | `"A"` |
+| `status` | Quality-gate result per member: `accepted` or `revise` (see below). | `{"pm": "accepted"}` |
 
 Deadlines without a `time` close at `term.defaultTime` (17:00). Members see this in the Rules panel, and the calendar feeds use it for reminders.
 
 Each member's pitch cycle is the `cycle` field in the `members` list. Change a member from `"A"` to `"B"` and their analyst deadlines and thesis path move to Cycle B.
+
+### Recording accepted work
+
+Members can mark their own deadlines as submitted (only they see that). When a piece of work passes the quality gate, record it so it turns green for that member, and everyone sees the same truth. Add a `status` to the date, naming each member by role id:
+
+```json
+"status": { "pres": "accepted", "coo": "revise" }
+```
+
+`accepted` turns it green ("Accepted"). `revise` shows "Revision needed" in orange until you change it to `accepted`. Analyst deadlines live in the `analyst` list; for example, accepted sector briefs go on the `a-brief` item.
 
 ### Telling members about a change
 

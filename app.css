@@ -7,6 +7,8 @@
   --silver:#C9D1DC; --silver-2:#B4BFCD; --mist:#E3E8EF; --line:#DCE2E9; --line-2:#E9EDF2;
   --page:#D5DBE3; --card:#FFFFFF; --card-2:#F4F6F9;
   --on-navy:#FFFFFF; --on-navy-2:#C9D1DC; --on-navy-3:#9AA8BB;
+  --due:#C2410C; --due-tint:#FDEBDD; --due-ink:#9A3412; --due-edge:#F2A675; --due-wash:#FFF8F3;
+  --ok:#276B4E; --ok-tint:#E2F1E9; --ok-dot:#3C8B67;
   --serif:'Newsreader', Georgia, 'Noto Serif', 'Times New Roman', serif;
   --sans:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'HarmonyOS Sans', 'Helvetica Neue', Arial, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -154,6 +156,8 @@ a{color:inherit;-webkit-tap-highlight-color:transparent}
 .rows li:first-child .row{border-top-color:transparent}
 .row:hover{background:var(--card-2)}
 .row.is-next{background:var(--card-2);box-shadow:inset 3px 0 0 var(--navy)}
+.row.is-next.b-soon{box-shadow:inset 3px 0 0 var(--due)}
+.row.is-next.b-week,.row.is-next.b-rev{box-shadow:inset 3px 0 0 var(--due-edge)}
 .row .dd{display:flex;flex-direction:column;align-items:flex-start;line-height:1}
 .row .dd b{font-family:var(--serif);font-weight:400;font-size:24px;color:var(--navy)}
 .row .dd small{margin-top:4px;font-size:11.5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
@@ -251,7 +255,7 @@ a{color:inherit;-webkit-tap-highlight-color:transparent}
 
 
 /* ---------- this week ---------- */
-.week{margin-top:auto;padding:4px 24px 16px;border-top:1px solid var(--line-2)}
+.wkstrip{margin-top:auto;padding:4px 24px 16px;border-top:1px solid var(--line-2)}
 .week-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 0 8px}
 .week-head .then-k{padding:0}
 .week-sum{font-size:12.5px;color:var(--muted)}
@@ -322,7 +326,7 @@ button.ch-row:hover{background:var(--card-2)}
 .cal-k{flex:1 1 100%;font-size:13px;color:var(--muted)}
 .cal-url{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:var(--card-2);padding:8px 10px;border-radius:6px;user-select:all}
 @media (max-width:759px){
-  .week{padding:2px 16px 14px}
+  .wkstrip{padding:2px 16px 14px}
   .wday{min-height:58px}
   .wday .wn{font-size:18px}
   .wday .wd{font-size:10px}
@@ -333,6 +337,59 @@ button.ch-row:hover{background:var(--card-2)}
   .ch-more{margin-left:10px}
   .cal-row{width:calc(100% - 8px);margin:8px 4px 0}
   .cal-btns{grid-template-columns:1fr}
+}
+
+
+/* ---------- deadline colours: calm until it matters ---------- */
+.tag.u-soon{background:var(--due);color:#FFFFFF}
+.tag.u-week{background:var(--due-tint);color:var(--due-ink)}
+.tag.ok{background:var(--ok-tint);color:var(--ok)}
+.tag.sub{background:var(--mist);color:var(--slate)}
+.tag.ok::before,.tag.sub::before{content:"";width:9px;height:5px;margin:-3px 1px 0 0;border:solid currentColor;border-width:0 0 2px 2px;transform:rotate(-45deg)}
+.row.b-soon{background:var(--due-wash);box-shadow:inset 3px 0 0 var(--due)}
+.row.b-week,.row.b-rev{box-shadow:inset 3px 0 0 var(--due-edge)}
+.row.b-soon:hover{background:#FFF1E8}
+.row.b-ok .tt,.row.b-sub .tt{color:var(--muted)}
+.row.is-next.b-soon,.row.is-next.b-week{background:var(--due-wash)}
+.next.b-soon{box-shadow:inset 0 3px 0 var(--due),var(--shadow)}
+.next.b-week,.next.b-rev{box-shadow:inset 0 3px 0 var(--due-edge),var(--shadow)}
+.next.b-soon .datebox{background:var(--due)}
+.next-act{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:0 24px 16px}
+.next-act span{font-size:12.5px;color:var(--muted)}
+.mark{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:14px 0 0;border-top:1px solid var(--line-2)}
+.mark span{font-size:13px;line-height:1.45;color:var(--muted);flex:1 1 200px}
+.mark .tag{flex:none}
+.mark-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;background:var(--navy);color:#FFFFFF;font-weight:600;font-size:14px;flex:none;transition:background-color 160ms ease}
+.mark-btn:hover{background:var(--slate)}
+.mark-btn.on{background:var(--mist);color:var(--slate)}
+.next-act .mark-btn{min-height:40px;padding:0 14px;font-size:13.5px;background:var(--card-2);color:var(--navy);border:1px solid var(--line)}
+.next-act .mark-btn:hover{background:var(--mist)}
+.prog{padding:2px 24px 8px}
+.prog-bar{display:flex;gap:3px;height:8px}
+.ps{flex:1 1 0;border-radius:2px;background:var(--line)}
+.ps.ok{background:var(--ok-dot)}.ps.sub{background:var(--slate)}.ps.soon{background:var(--due)}.ps.week,.ps.rev{background:var(--due-edge)}
+.ps.gap{background:repeating-linear-gradient(135deg,var(--silver-2) 0 3px,var(--card) 3px 6px)}
+.prog-cap{margin-top:8px;font-size:12.5px;color:var(--muted)}
+.wm i.due.soon{background:var(--due)}
+.wm i.due.week,.wm i.due.rev{background:var(--due-edge)}
+.wm i.due.done{background:var(--ok-dot)}
+.wday.today .wm i.due.soon{background:var(--due-edge)}
+.tl-tick.b-soon i{background:var(--due)}
+.tl-tick.b-week i,.tl-tick.b-rev i{background:var(--due-edge)}
+.tl-tick.b-ok i{background:var(--ok-dot)}
+.tl-tick.b-sub i{background:var(--slate)}
+.lens-due.urgent{background:var(--due);color:#FFFFFF}
+.lens-btn[aria-pressed="true"] .lens-due.urgent{background:var(--due)}
+.other.b-soon .dt{color:var(--due-ink);font-weight:600}
+.other.b-week .dt{color:var(--due-ink)}
+.toast{position:fixed;z-index:45;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);display:flex;align-items:center;gap:16px;max-width:calc(100vw - 32px);padding:10px 10px 10px 18px;box-sizing:border-box;border-radius:12px;background:var(--navy);color:var(--on-navy-2);font-size:13.5px;box-shadow:0 14px 34px rgba(11,26,48,.32);animation:toastIn 260ms var(--ease)}
+.toast span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast b{color:var(--on-navy);font-weight:600;margin-right:4px}
+.toast button{flex:none;min-height:40px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.12);color:var(--on-navy);font-weight:600}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (max-width:759px){
+  .prog{padding:2px 16px 8px}
+  .next-act{padding:0 16px 14px}
 }
 
 /* ---------- phones and narrow windows ---------- */

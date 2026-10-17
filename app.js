@@ -179,11 +179,41 @@
     return it;
   }
 
+  // Option B, "calm until it matters": only your own deadlines get colour, and only when they are close.
+  //   far  (8+ days)  navy as usual        week (3-7 days) soft orange      soon (0-2 days) solid orange
+  //   sub  you marked it submitted (this phone)    ok  the Society recorded it accepted    rev  revision needed
+  //   gap  the date passed and it wasn't marked
+  function bandOf(it) {
+    if (it.part !== 'lead' || it.type !== 'deadline') return '';
+    if (it.status === 'accepted') return 'ok';
+    if (it.submitted) return 'sub';
+    if (it.status === 'revise') return 'rev';
+    if (it.past) return 'gap';
+    return it.n <= 2 ? 'soon' : it.n <= 7 ? 'week' : 'far';
+  }
+  function isDone(it) { return it.band === 'ok' || it.band === 'sub'; }
+  function stateTag(it) {
+    switch (it.band) {
+      case 'ok': return { text: 'Accepted', tone: 'ok' };
+      case 'sub': return { text: 'Submitted', tone: 'sub' };
+      case 'rev': return { text: 'Revision needed', tone: 'u-week' };
+      case 'soon': return { text: it.current ? 'Due today' : it.n === 1 ? 'Due tomorrow' : 'Due in ' + it.n + ' days', tone: 'u-soon' };
+      case 'week': return { text: 'Due in ' + it.n + ' days', tone: 'u-week' };
+      case 'gap': return { text: 'Passed', tone: 'quiet' };
+      default: return { text: it.label, tone: it.tone };
+    }
+  }
+  function mark(P, m, items, done) {
+    items.forEach(function (it) { it.submitted = !!done[m.id + ':' + it.key]; it.band = bandOf(it); it.tag = stateTag(it); });
+    return items;
+  }
+
   function buildModel(P, st) {
     var asOf = st.asOf, T = P.term;
     var mi = clamp(st.mi || 0, 0, P.members.length - 1), m = P.members[mi], lens = st.lens === 'analyst' ? 'analyst' : 'society';
     var phase = asOf < T.start ? 'pre' : asOf <= T.protectedEnd ? 'protected' : (asOf >= T.recessStart && asOf <= T.recessEnd) ? 'recess' : asOf > T.close ? 'closed' : 'open';
-    var all = lensItems(P, m, lens).map(function (it) { return decorate(it, asOf); });
+    var done = st.done || {};
+    var all = mark(P, m, lensItems(P, m, lens).map(function (it) { return decorate(it, asOf); }), done);
     var shown = st.all ? all : all.filter(function (it) { return it.isKey; });
     var pastItems = shown.filter(function (it) { return it.past; });
     var listed = st.showPast ? shown : shown.filter(function (it) { return !it.past; });
@@ -206,7 +236,7 @@
       g.summary = bits.length ? bits.join(' · ') : g.items.length + ' ' + plural(g.items.length, 'date');
     });
     var firstUp = shown.filter(function (it) { return !it.past; })[0];
-    var mine = all.filter(function (it) { return it.part === 'lead' && !it.past; });
+    var mine = all.filter(function (it) { return it.part === 'lead' && !it.past && !isDone(it); });
     var next = mine[0] || all.filter(function (it) { return !it.past && it.isKey; })[0] || null;
     var nextLabel = !next ? '' : next.type === 'meeting' ? 'Your next meeting' : (next.part === 'lead' && next.type === 'deadline') ? 'Your next deadline' : 'Next for you';
     // seven days from today: what lands on each day in this view
@@ -214,9 +244,9 @@
     for (var wi = 0; wi < 7; wi++) {
       var dayMs = asOf + wi * DAY;
       var on = all.filter(function (it) { return it.isKey && !(it.type === 'marker' && !it.part) && (it.ms === dayMs || (it.range && it.endMs === dayMs)); });
-      on.forEach(function (it) { if (seen[it.key]) return; seen[it.key] = 1; if (it.type === 'meeting') wMeet++; else if (it.part === 'lead') wDue++; });
+      on.forEach(function (it) { if (seen[it.key]) return; seen[it.key] = 1; if (it.type === 'meeting') wMeet++; else if (it.part === 'lead' && !isDone(it)) wDue++; });
       week.push({ ms: dayMs, wk: wk(dayMs).slice(0, 3), d: D(dayMs).getUTCDate(), today: wi === 0, items: on,
-        marks: on.slice(0, 3).map(function (it) { return it.type === 'meeting' ? 'meet' : it.part === 'lead' ? 'due' : 'other'; }),
+        marks: on.slice(0, 3).map(function (it) { return it.type === 'meeting' ? 'meet' : it.part === 'lead' ? (isDone(it) ? 'due done' : 'due ' + (it.band || '')) : 'other'; }),
         label: wk(dayMs) + ' ' + dMonth(dayMs) + (on.length ? ': ' + on.map(function (it) { return it.title; }).join('; ') : ': nothing scheduled') });
     }
     var weekBits = [];
@@ -225,10 +255,21 @@
     var weekSummary = weekBits.length ? weekBits.join(' · ') : 'Nothing scheduled';
     // the other role: its next deadline, and how many fall within a week
     var otherLens = lens === 'society' ? 'analyst' : 'society';
-    var oAll = lensItems(P, m, otherLens).map(function (it) { return decorate(it, asOf); });
-    var oDue = oAll.filter(function (it) { return it.part === 'lead' && it.type === 'deadline' && !it.past; });
+    var oAll = mark(P, m, lensItems(P, m, otherLens).map(function (it) { return decorate(it, asOf); }), done);
+    var oDue = oAll.filter(function (it) { return it.part === 'lead' && it.type === 'deadline' && !it.past && !isDone(it); });
+    var oWeek = oDue.filter(function (it) { return it.n <= 7; });
     var other = { lens: otherLens, label: otherLens === 'analyst' ? 'As a ' + m.sector + ' analyst' : 'As ' + (m.roleShort || m.role),
-      next: oDue[0] || null, week: oDue.filter(function (it) { return it.n <= 7; }).length, all: oAll };
+      next: oDue[0] || null, week: oWeek.length, urgent: oWeek.some(function (it) { return it.n <= 2; }), all: oAll };
+    // progress across this view's own deadlines
+    var own = all.filter(function (it) { return it.part === 'lead' && it.type === 'deadline'; });
+    var segOf = { ok: 'ok', sub: 'sub', rev: 'rev', gap: 'gap', soon: 'soon', week: 'week', far: 'todo' };
+    var nDone = own.filter(isDone).length, nWeek = own.filter(function (it) { return it.band === 'soon' || it.band === 'week'; }).length;
+    var nRev = own.filter(function (it) { return it.band === 'rev'; }).length, nGap = own.filter(function (it) { return it.band === 'gap'; }).length;
+    var capBits = [nDone + ' of ' + own.length + ' submitted'];
+    if (nWeek) capBits.push(nWeek + ' due within a week');
+    if (nRev) capBits.push(nRev + ' ' + plural(nRev, 'needs', 'need') + ' revision');
+    if (nGap) capBits.push(nGap + ' past ' + plural(nGap, 'date') + ' not marked');
+    var progress = own.length ? { segs: own.map(function (it) { return { key: it.key, s: segOf[it.band] || 'todo', title: it.title + ': ' + it.tag.text }; }), cap: capBits.join(' · ') } : null;
 
     var ics = P.society.filter(function (e) { return e.ic; });
     var nextIC = ics.filter(function (e) { return e.endMs >= asOf; })[0] || null;
@@ -260,7 +301,7 @@
       ].map(function (x) { return { label: x.label, left: pct(pos(x.a)), width: pct(pos(x.b) - pos(x.a)), now: x.now, rec: !!x.rec }; }),
       today: pct(todayP), showToday: asOf >= T.start && asOf <= T.close, flip: todayP > 78,
       ics: ics.map(function (e) { return { key: e.key, left: pct(pos(e.ms)), past: e.endMs < asOf }; }),
-      dots: all.filter(function (it) { return it.part === 'lead' && it.type !== 'meeting'; }).map(function (it) { return { key: it.key, left: pct(pos(it.ms)), past: it.past, title: it.title + ', ' + dShort(it.ms) }; }),
+      dots: all.filter(function (it) { return it.part === 'lead' && it.type !== 'meeting'; }).map(function (it) { return { key: it.key, left: pct(pos(it.ms)), past: it.past, band: it.band || '', title: it.title + ', ' + dShort(it.ms) }; }),
       months: months
     };
     var deadlinesLeft = mine.filter(function (it) { return it.type !== 'meeting'; }).length;
@@ -297,7 +338,7 @@
     var t = D(asOf);
     return {
       m: m, mi: mi, lens: lens, phase: phase, hero: hero, phaseTag: phaseTag, all: all, shown: shown, groups: groups, pastCount: pastItems.length,
-      nextKey: firstUp ? firstUp.key : null, next: next, nextLabel: nextLabel, week: week, weekSummary: weekSummary, other: other, tl: tl, stats: stats, cycle: cycle, path: path, score: score, rules: rules,
+      progress: progress, nextKey: firstUp ? firstUp.key : null, next: next, nextLabel: nextLabel, week: week, weekSummary: weekSummary, other: other, tl: tl, stats: stats, cycle: cycle, path: path, score: score, rules: rules,
       todayLong: wk(asOf) + ' ' + dMonth(asOf) + ' ' + t.getUTCFullYear() + ' · SAST',
       todayShort: wk(asOf).slice(0, 3) + ' ' + dShort(asOf),
       term: T, updated: isNaN(P.updated) ? '' : dMonth(P.updated) + ' ' + D(P.updated).getUTCFullYear()
@@ -366,8 +407,13 @@
       <div class="sheet-head"><span class="when tnum">${it.whenLong}</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
         <h2 class="sheet-title">${it.title}</h2>
-        <div class="sheet-tags"><${Tag} text=${it.label} tone=${it.tone} /><${Tag} text=${it.soon} tone=${it.current ? 'now' : it.past ? 'quiet' : 'when'} /></div>
+        <div class="sheet-tags"><${Tag} text=${it.tag.text} tone=${it.tag.tone} />${it.band && it.band !== 'far' ? null : html`<${Tag} text=${it.soon} tone=${it.current ? 'now' : it.past ? 'quiet' : 'when'} />`}</div>
         <p class="sheet-detail">${it.detail}</p>
+        ${it.band === 'ok' ? html`<div class="mark"><span class="tag ok">Accepted</span><span>Recorded by the Society after quality review.</span></div>`
+          : it.part === 'lead' && it.type === 'deadline' ? html`<div class="mark">
+            <button class=${'mark-btn' + (it.submitted ? ' on' : '')} aria-pressed=${it.submitted ? 'true' : 'false'} onClick=${function () { p.toggleDone(it.key, it.title); }}>${it.submitted ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Submitted` : 'Mark as submitted'}</button>
+            <span>${it.submitted ? 'Saved on this phone. Tap again to undo.' : it.band === 'rev' ? 'The reviewer asked for changes. Mark it again once you resubmit.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
+          </div>` : null}
         ${it.people.length ? html`<dl class="who">${it.people.map(function (x) { return html`<div key=${x.k}><dt>${x.k}</dt><dd>${x.v}</dd></div>`; })}</dl>` : null}
       </div>
       <div class="sheet-foot">
@@ -396,8 +442,8 @@
     var M = p.M, A = p.A, right = M.lens === 'analyst';
     return html`<div class="lens" role="group" aria-label="Choose which deadlines to show">
       <span class=${'lens-ind' + (right ? ' right' : '')} aria-hidden="true"></span>
-      <button class="lens-btn" aria-pressed=${right ? 'false' : 'true'} aria-label=${'Society role, ' + (M.m.roleShort || M.m.role) + (right && M.other.week ? ', ' + M.other.week + ' due within a week' : '')} onClick=${function () { A.setLens('society'); }}><span class="lens-k">Society role${right && M.other.week ? html`<span class="lens-due">${M.other.week} due</span>` : null}</span><span class="lens-v">${M.m.roleShort || M.m.role}</span></button>
-      <button class="lens-btn" aria-pressed=${right ? 'true' : 'false'} aria-label=${'Analyst, ' + M.m.sector + (!right && M.other.week ? ', ' + M.other.week + ' due within a week' : '')} onClick=${function () { A.setLens('analyst'); }}><span class="lens-k">Analyst${!right && M.other.week ? html`<span class="lens-due">${M.other.week} due</span>` : null}</span><span class="lens-v">${M.m.sector}</span></button>
+      <button class="lens-btn" aria-pressed=${right ? 'false' : 'true'} aria-label=${'Society role, ' + (M.m.roleShort || M.m.role) + (right && M.other.week ? ', ' + M.other.week + ' due within a week' : '')} onClick=${function () { A.setLens('society'); }}><span class="lens-k">Society role${right && M.other.week ? html`<span class=${'lens-due' + (M.other.urgent ? ' urgent' : '')}>${M.other.week} due</span>` : null}</span><span class="lens-v">${M.m.roleShort || M.m.role}</span></button>
+      <button class="lens-btn" aria-pressed=${right ? 'true' : 'false'} aria-label=${'Analyst, ' + M.m.sector + (!right && M.other.week ? ', ' + M.other.week + ' due within a week' : '')} onClick=${function () { A.setLens('analyst'); }}><span class="lens-k">Analyst${!right && M.other.week ? html`<span class=${'lens-due' + (M.other.urgent ? ' urgent' : '')}>${M.other.week} due</span>` : null}</span><span class="lens-v">${M.m.sector}</span></button>
     </div>`;
   }
 
@@ -425,13 +471,16 @@
 
   function NextCard(p) {
     var M = p.M, A = p.A, n = M.next, o = M.other;
-    return html`<section class="card next" aria-labelledby="next-h">
-      <div class="card-head"><h2 id="next-h" class="card-k">${M.nextLabel || 'Next for you'}</h2>${n ? html`<${Tag} text=${n.soon} tone=${n.current ? 'now' : 'when'} />` : null}</div>
+    var chip = !n ? null : n.band === 'soon' ? 'u-soon' : n.band === 'week' || n.band === 'rev' ? 'u-week' : n.current ? 'now' : 'when';
+    var canMark = n && n.part === 'lead' && n.type === 'deadline' && n.band !== 'ok';
+    return html`<section class=${'card next' + (n && n.band ? ' b-' + n.band : '')} aria-labelledby="next-h">
+      <div class="card-head"><h2 id="next-h" class="card-k">${M.nextLabel || 'Next for you'}</h2>${n ? html`<${Tag} text=${n.soon} tone=${chip} />` : null}</div>
       ${n ? html`<button class="next-main" onClick=${function () { A.openItem(n.key); }}>
         <span class="datebox tnum" aria-hidden="true"><span class="d">${n.day}</span><span class="m">${n.mon}</span></span>
-        <span class="next-text"><span class="next-title">${n.title}</span><span class="next-meta"><${Tag} text=${n.label} tone=${n.tone} /><span class="tnum">${n.whenShort}</span></span></span>
+        <span class="next-text"><span class="next-title">${n.title}</span><span class="next-meta"><${Tag} text=${n.tag.text} tone=${n.tag.tone} /><span class="tnum">${n.whenShort}</span></span></span>
       </button>` : html`<p class="next-empty">Nothing else is dated for you in this view.</p>`}
-      <div class="week" role="group" aria-labelledby="wk-h">
+      ${canMark ? html`<div class="next-act"><button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Mark as submitted</button><span>Only you see this</span></div>` : null}
+      <div class="wkstrip" role="group" aria-labelledby="wk-h">
         <div class="week-head"><span id="wk-h" class="then-k">This week</span><span class="week-sum tnum">${M.weekSummary}</span></div>
         <div class="week-days">${M.week.map(function (d) {
           var inner = html`<span class="wd">${d.today ? 'Today' : d.wk}</span><span class="wn tnum">${d.d}</span><span class="wm">${d.marks.map(function (k, i) { return html`<i key=${i} class=${k}></i>`; })}</span>`;
@@ -440,7 +489,7 @@
             : html`<div key=${d.ms} class=${'wday' + (d.today ? ' today' : '')} aria-label=${d.label} role="img">${inner}</div>`;
         })}</div>
       </div>
-      ${o.next ? html`<button class="other" onClick=${function () { A.openOther(o.next.key); }}>
+      ${o.next ? html`<button class=${'other' + (o.next.band ? ' b-' + o.next.band : '')} onClick=${function () { A.openOther(o.next.key); }}>
         <span class="other-k">${o.label}</span>
         <span class="other-t"><span class="tt">${o.next.title}</span><span class="dt tnum">${o.next.whenShort} · ${o.next.soon.toLowerCase()}</span></span>
         <${Arrow} />
@@ -514,7 +563,7 @@
         <div class="tl-track"></div>
         <div class="tl-done" style=${'width:' + tl.done}></div>
         ${tl.ics.map(function (d) { return html`<div key=${d.key} class=${'tl-ic' + (d.past ? ' past' : '')} style=${'left:' + d.left}></div>`; })}
-        ${tl.dots.map(function (d) { return html`<button key=${d.key} tabindex="-1" class=${'tl-tick' + (d.past ? ' past' : '')} style=${'left:' + d.left} title=${d.title} onClick=${function () { A.openItem(d.key); }}><i></i></button>`; })}
+        ${tl.dots.map(function (d) { return html`<button key=${d.key} tabindex="-1" class=${'tl-tick' + (d.past ? ' past' : '') + (d.band ? ' b-' + d.band : '')} style=${'left:' + d.left} title=${d.title} onClick=${function () { A.openItem(d.key); }}><i></i></button>`; })}
         ${tl.showToday ? html`<div class=${'tl-today' + (tl.flip ? ' flip' : '')} style=${'left:' + tl.today}><span>Today</span><b></b></div>` : null}
         ${tl.months.map(function (mo) { return html`<div key=${mo.label} class="tl-mo" style=${'left:' + mo.left}>${mo.label}</div>`; })}
         ${tl.phases.map(function (ph) { return html`<div key=${ph.label} class=${'tl-ph' + (ph.now ? ' now' : '') + (ph.rec ? ' rec' : '')} style=${'left:' + ph.left + ';width:' + ph.width} title=${ph.label}>${ph.label}</div>`; })}
@@ -527,11 +576,12 @@
   function Agenda(p) {
     var M = p.M, A = p.A, st = p.st;
     function row(it) {
-      var cls = 'row' + (it.past ? ' past' : '') + (it.key === M.nextKey ? ' is-next' : '') + (it.type === 'marker' && !it.part ? ' marker' : '');
+      var cls = 'row' + (it.past ? ' past' : '') + (it.key === M.nextKey ? ' is-next' : '') + (it.type === 'marker' && !it.part ? ' marker' : '') + (it.band ? ' b-' + it.band : '');
+      var showSoon = !it.past && (!it.band || it.band === 'far');
       return html`<li key=${it.key}><button class=${cls} onClick=${function () { A.openItem(it.key); }}>
         <span class="dd tnum"><b>${it.day}</b><small>${it.wk}</small></span>
         <span class="tx"><span class="tt">${it.title}</span>${it.sub ? html`<span class="sub tnum">${it.sub}</span>` : null}</span>
-        <span class="tags"><${Tag} text=${it.label} tone=${it.tone} />${it.past ? null : html`<span class="soon tnum">${it.soon}</span>`}</span>
+        <span class="tags"><${Tag} text=${it.tag.text} tone=${it.tag.tone} />${showSoon ? html`<span class="soon tnum">${it.soon}</span>` : null}</span>
       </button></li>`;
     }
     return html`<section class="card agenda" aria-labelledby="ag-h">
@@ -542,6 +592,10 @@
           <button aria-pressed=${st.all ? 'true' : 'false'} onClick=${function () { A.setAll(true); }}>Everything</button>
         </div>
       </div>
+      ${M.progress ? html`<div class="prog" role="img" aria-label=${M.progress.cap}>
+        <div class="prog-bar">${M.progress.segs.map(function (g) { return html`<i key=${g.key} class=${'ps ' + g.s} title=${g.title}></i>`; })}</div>
+        <div class="prog-cap tnum" aria-hidden="true">${M.progress.cap}</div>
+      </div>` : null}
       ${M.pastCount ? html`<button class="past-btn" onClick=${A.togglePast} aria-expanded=${st.showPast ? 'true' : 'false'}><${Chev} open=${st.showPast} />${st.showPast ? 'Hide earlier dates' : 'Show ' + M.pastCount + ' earlier ' + plural(M.pastCount, 'date')}</button>` : null}
       ${M.groups.length ? M.groups.map(function (g) {
         var id = 'm-' + g.k;
@@ -654,6 +708,9 @@
     return out;
   }
 
+  // Your own "submitted" ticks: saved on this phone only, keyed by member and date.
+  function readDone() { try { return JSON.parse(read('trs-done') || '{}') || {}; } catch (e) { return {}; } }
+
   var phoneQuery = window.matchMedia ? window.matchMedia('(max-width: 759px)') : null;
   function isPhone() { return phoneQuery ? phoneQuery.matches : window.innerWidth < 760; }
 
@@ -666,11 +723,11 @@
   function App() {
     var s = useState(function () {
       return { P: null, err: null, mi: 0, lens: read('trs-lens') === 'analyst' ? 'analyst' : 'society', all: false, showPast: false, sheet: null, open: {}, months: {},
-        asOf: todaySAST(), phone: isPhone(), canInstall: false, changes: null, showInstall: false };
+        asOf: todaySAST(), phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null };
     });
     var st = s[0], setSt = s[1];
     function set(patch) { setSt(function (prev) { return Object.assign({}, prev, typeof patch === 'function' ? patch(prev) : patch); }); }
-    var loadedAt = useRef(0);
+    var loadedAt = useRef(0), toastT = useRef(0);
 
     function load(first) {
       loadData().then(function (raw) {
@@ -757,6 +814,16 @@
       toggleMonth: function (k, v) { set(function (prev) { var o = Object.assign({}, prev.months); o[k] = v; return { months: o }; }); },
       toggleRule: function (id) { set(function (prev) { var o = Object.assign({}, prev.open); o[id] = !o[id]; return { open: o }; }); },
       openItem: function (k) { set({ sheet: { kind: 'item', key: k } }); },
+      toggleDone: function (k, title) {
+        var id = M.m.id + ':' + k, on = !st.done[id];
+        var o = Object.assign({}, st.done);
+        if (on) o[id] = Date.now(); else delete o[id];
+        store('trs-done', JSON.stringify(o));
+        clearTimeout(toastT.current);
+        toastT.current = setTimeout(function () { set({ toast: null }); }, 5000);
+        set({ done: o, toast: { text: on ? 'Marked as submitted' : 'No longer marked as submitted', title: title, key: k } });
+      },
+      undo: function () { var t = st.toast; if (t) A.toggleDone(t.key, t.title); set({ toast: null }); },
       openOther: function (k) { store('trs-lens', M.other.lens); set({ lens: M.other.lens, showPast: false, sheet: { kind: 'item', key: k } }); },
       openAny: function (k) {
         if (M.all.some(function (it) { return it.key === k; })) return set({ sheet: { kind: 'item', key: k } });
@@ -789,7 +856,7 @@
       var idx = -1;
       seq.forEach(function (it, i) { if (it.key === st.sheet.key) idx = i; });
       if (idx >= 0) {
-        sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close}
+        sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close} toggleDone=${A.toggleDone}
           prev=${function () { if (idx > 0) A.openItem(seq[idx - 1].key); }} next=${function () { if (idx < seq.length - 1) A.openItem(seq[idx + 1].key); }} />`;
       }
     }
@@ -813,6 +880,7 @@
         ]}
       </main>
       <${Footer} M=${M} A=${A} st=${st} />
+      ${st.toast ? html`<div class="toast" role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span><button onClick=${A.undo}>Undo</button></div>` : null}
       ${sheet}
     </div>`;
   }
