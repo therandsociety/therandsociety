@@ -3,7 +3,18 @@
 (function () {
   'use strict';
   var root = document.getElementById('app');
-  function fail(msg) { root.innerHTML = '<div class="boot">' + msg + '</div>'; }
+  // Launch screen: shown by index.html until the dashboard is ready, for at least 0.7 s from page start so it never flickers.
+  function hideSplash(now) {
+    var el = document.getElementById('splash');
+    if (!el || el.getAttribute('data-out')) return;
+    el.setAttribute('data-out', '1');
+    var t = window.performance && performance.now ? performance.now() : 0;
+    setTimeout(function () {
+      el.classList.add('out');
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
+    }, now ? 0 : Math.max(0, 700 - t));
+  }
+  function fail(msg) { hideSplash(true); root.innerHTML = '<div class="boot">' + msg + '</div>'; }
   if (!window.preact || !window.preactHooks || !window.htm) { fail('The dashboard could not load. Check your connection, then reload the page.'); return; }
   var h = preact.h, render = preact.render;
   var useState = preactHooks.useState, useEffect = preactHooks.useEffect, useRef = preactHooks.useRef;
@@ -546,7 +557,7 @@
           return { P: P, err: null, mi: mi, lens: hsh.lens || prev.lens, sheet: hsh.mi == null && saved == null ? { kind: 'member' } : null };
         });
       }).catch(function (e) {
-        if (first) set({ err: e && e.message ? e.message : 'unknown error' });
+        if (first) { hideSplash(true); set({ err: e && e.message ? e.message : 'unknown error' }); }
       });
     }
 
@@ -581,6 +592,8 @@
         installListeners = installListeners.filter(function (f) { return f !== onInstall; });
       };
     }, []);
+
+    useEffect(function () { if (st.P) hideSplash(false); }, [!!st.P]);
 
     if (st.err) return html`<div class="boot">The dates could not load (${st.err}). Check your connection, then reload the page.</div>`;
     if (!st.P) return html`<div class="boot">Loading the members’ dashboard…</div>`;

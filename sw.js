@@ -1,7 +1,7 @@
 /* Offline support for the Rand Society app.
    The app shell is cached on install. data.json is fetched fresh whenever the network allows and falls back to the
    last good copy, so an edit with a typo never blanks the dashboard. */
-var VERSION = 'd389b524da';
+var VERSION = 'faa840fc30';
 var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "img/d-coo.jpg", "img/d-portfolio.jpg", "img/d-president.jpg", "img/d-research.jpg", "img/p-coo.jpg", "img/p-portfolio.jpg", "img/p-president.jpg", "img/p-research.jpg"];
 var SHELL_CACHE = 'trs-shell-' + VERSION;
 var DATA_CACHE = 'trs-data';
@@ -26,7 +26,7 @@ function timeout(ms, p) {
 function freshData(request) {
   return caches.open(DATA_CACHE).then(function (cache) {
     var lastGood = function () { return cache.match('data.json'); };
-    return timeout(6000, fetch(request.url, { cache: 'no-store' })).then(function (res) {
+    return timeout(3000, fetch(request.url, { cache: 'no-store' })).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.clone().text().then(function (text) {
         try { JSON.parse(text); } catch (e) { return lastGood().then(function (hit) { return hit || res; }); }
