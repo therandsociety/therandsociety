@@ -11,10 +11,11 @@
     var t = window.performance && performance.now ? performance.now() : 0;
     setTimeout(function () {
       el.classList.add('out');
+      document.documentElement.classList.remove('splashing');  // the dashboard builds in as the logo fades
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
     }, now ? 0 : Math.max(0, 700 - t));
   }
-  function fail(msg) { hideSplash(true); root.innerHTML = '<div class="boot">' + msg + '</div>'; }
+  function fail(msg) { document.documentElement.classList.remove('splashing'); hideSplash(true); root.innerHTML = '<div class="boot">' + msg + '</div>'; }
   if (!window.preact || !window.preactHooks || !window.htm) { fail('The dashboard could not load. Check your connection, then reload the page.'); return; }
   var h = preact.h, render = preact.render;
   var useState = preactHooks.useState, useEffect = preactHooks.useEffect, useRef = preactHooks.useRef;
@@ -475,18 +476,18 @@
     var canMark = n && n.part === 'lead' && n.type === 'deadline' && n.band !== 'ok';
     return html`<section class=${'card next' + (n && n.band ? ' b-' + n.band : '')} aria-labelledby="next-h">
       <div class="card-head"><h2 id="next-h" class="card-k">${M.nextLabel || 'Next for you'}</h2>${n ? html`<${Tag} text=${n.soon} tone=${chip} />` : null}</div>
-      ${n ? html`<button class="next-main" onClick=${function () { A.openItem(n.key); }}>
+      ${n ? html`<button key=${n.key} class="next-main" onClick=${function () { A.openItem(n.key); }}>
         <span class="datebox tnum" aria-hidden="true"><span class="d">${n.day}</span><span class="m">${n.mon}</span></span>
         <span class="next-text"><span class="next-title">${n.title}</span><span class="next-meta"><${Tag} text=${n.tag.text} tone=${n.tag.tone} /><span class="tnum">${n.whenShort}</span></span></span>
       </button>` : html`<p class="next-empty">Nothing else is dated for you in this view.</p>`}
       ${canMark ? html`<div class="next-act"><button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Mark as submitted</button><span>Only you see this</span></div>` : null}
       <div class="wkstrip" role="group" aria-labelledby="wk-h">
         <div class="week-head"><span id="wk-h" class="then-k">This week</span><span class="week-sum tnum">${M.weekSummary}</span></div>
-        <div class="week-days">${M.week.map(function (d) {
+        <div class="week-days">${M.week.map(function (d, di) {
           var inner = html`<span class="wd">${d.today ? 'Today' : d.wk}</span><span class="wn tnum">${d.d}</span><span class="wm">${d.marks.map(function (k, i) { return html`<i key=${i} class=${k}></i>`; })}</span>`;
           return d.items.length
-            ? html`<button key=${d.ms} class=${'wday has' + (d.today ? ' today' : '')} aria-label=${d.label} onClick=${function () { A.openItem(d.items[0].key); }}>${inner}</button>`
-            : html`<div key=${d.ms} class=${'wday' + (d.today ? ' today' : '')} aria-label=${d.label} role="img">${inner}</div>`;
+            ? html`<button key=${d.ms} class=${'wday has' + (d.today ? ' today' : '')} style=${'--i:' + di} aria-label=${d.label} onClick=${function () { A.openItem(d.items[0].key); }}>${inner}</button>`
+            : html`<div key=${d.ms} class=${'wday' + (d.today ? ' today' : '')} style=${'--i:' + di} aria-label=${d.label} role="img">${inner}</div>`;
         })}</div>
       </div>
       ${o.next ? html`<button class=${'other' + (o.next.band ? ' b-' + o.next.band : '')} onClick=${function () { A.openOther(o.next.key); }}>
@@ -569,16 +570,16 @@
         ${tl.phases.map(function (ph) { return html`<div key=${ph.label} class=${'tl-ph' + (ph.now ? ' now' : '') + (ph.rec ? ' rec' : '')} style=${'left:' + ph.left + ';width:' + ph.width} title=${ph.label}>${ph.label}</div>`; })}
       </div>
       <div class="legend"><span><i class="lg-ic"></i>Formal IC</span><span><i class="lg-tick"></i>Your deadline</span><span><i class="lg-rec"></i>Recess</span></div>
-      <div class="stats">${M.stats.map(function (s, i) { return html`<div key=${i} class="stat"><span class="v tnum">${s.v}</span><span class="l">${s.l}</span></div>`; })}</div>
+      <div class="stats">${M.stats.map(function (s, i) { return html`<div key=${i} class="stat" style=${'--i:' + i}><span class="v tnum">${s.v}</span><span class="l">${s.l}</span></div>`; })}</div>
     </section>`;
   }
 
   function Agenda(p) {
     var M = p.M, A = p.A, st = p.st;
-    function row(it) {
+    function row(it, ri) {
       var cls = 'row' + (it.past ? ' past' : '') + (it.key === M.nextKey ? ' is-next' : '') + (it.type === 'marker' && !it.part ? ' marker' : '') + (it.band ? ' b-' + it.band : '');
       var showSoon = !it.past && (!it.band || it.band === 'far');
-      return html`<li key=${it.key}><button class=${cls} onClick=${function () { A.openItem(it.key); }}>
+      return html`<li key=${it.key} style=${'--i:' + Math.min(ri || 0, 8)}><button class=${cls} onClick=${function () { A.openItem(it.key); }}>
         <span class="dd tnum"><b>${it.day}</b><small>${it.wk}</small></span>
         <span class="tx"><span class="tt">${it.title}</span>${it.sub ? html`<span class="sub tnum">${it.sub}</span>` : null}</span>
         <span class="tags"><${Tag} text=${it.tag.text} tone=${it.tag.tone} />${showSoon ? html`<span class="soon tnum">${it.soon}</span>` : null}</span>
@@ -593,7 +594,7 @@
         </div>
       </div>
       ${M.progress ? html`<div class="prog" role="img" aria-label=${M.progress.cap}>
-        <div class="prog-bar">${M.progress.segs.map(function (g) { return html`<i key=${g.key} class=${'ps ' + g.s} title=${g.title}></i>`; })}</div>
+        <div class="prog-bar">${M.progress.segs.map(function (g, gi) { return html`<i key=${g.key} class=${'ps ' + g.s} title=${g.title} style=${'--i:' + gi}></i>`; })}</div>
         <div class="prog-cap tnum" aria-hidden="true">${M.progress.cap}</div>
       </div>` : null}
       ${M.pastCount ? html`<button class="past-btn" onClick=${A.togglePast} aria-expanded=${st.showPast ? 'true' : 'false'}><${Chev} open=${st.showPast} />${st.showPast ? 'Hide earlier dates' : 'Show ' + M.pastCount + ' earlier ' + plural(M.pastCount, 'date')}</button>` : null}
@@ -603,7 +604,7 @@
           <h3 class="month"><button class="month-btn" aria-expanded=${g.open ? 'true' : 'false'} aria-controls=${id} onClick=${function () { A.toggleMonth(g.k, !g.open); }}>
             <span class="mn">${g.name}</span><span class="mc tnum">${g.summary}</span><${Chev} open=${g.open} />
           </button></h3>
-          ${g.open ? html`<ol id=${id} class="rows">${g.items.map(row)}</ol>` : null}
+          ${g.open ? html`<ol id=${id} class="rows">${g.items.map(function (it, ri) { return row(it, ri); })}</ol>` : null}
         </div>`;
       }) : html`<p class="empty">Every H1 date in this view has passed.</p>`}
       <button class="cal-row" onClick=${A.openCal}>
@@ -864,7 +865,7 @@
     return html`<div class="app">
       <${Mast} M=${M} A=${A} st=${st} />
       ${st.phone ? html`<div class="lens-dock"><${LensSwitch} M=${M} A=${A} /></div>` : null}
-      <main key=${M.m.id + M.lens} class=${'board fade' + (st.phone ? ' stack' : '') + (st.changes && st.changes.member === M.m.id ? ' has-changes' : '')}>
+      <main key=${M.m.id + M.lens} class=${'board fade ' + (M.lens === 'analyst' ? 'from-r' : 'from-l') + (st.phone ? ' stack' : '') + (st.changes && st.changes.member === M.m.id ? ' has-changes' : '')}>
         ${st.changes && st.changes.member === M.m.id ? html`<${Changes} changes=${st.changes} A=${A} />` : null}
         <${NextCard} M=${M} A=${A} />
         ${st.phone ? [
