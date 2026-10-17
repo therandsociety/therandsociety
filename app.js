@@ -486,7 +486,7 @@
     var url = p.calBase + m.link + '.ics', webcal = url.replace(/^https?:/, 'webcal:');
     var google = 'https://calendar.google.com/calendar/render?cid=' + encodeURIComponent(webcal);
     var apple = html`<a key="a" class="cal-btn" href=${webcal}>Apple Calendar<small>iPhone, iPad and Mac</small></a>`;
-    var goog = html`<a key="g" class="cal-btn" href=${google} target="_blank" rel="noopener">Google Calendar<small>Android and the web</small></a>`;
+    var goog = html`<a key="g" class="cal-btn" href=${google} target="_blank" rel="noopener">Google Calendar<small>Then switch on its notifications once</small></a>`;
     function copy() {
       function pick() { var el = ref.current; if (!el) return; var r = document.createRange(); r.selectNodeContents(el); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
       try { navigator.clipboard.writeText(url).then(function () { setCopied(true); }, pick); } catch (e) { pick(); }
@@ -495,7 +495,7 @@
       <div class="sheet-head"><span class="when">${m.role} · ${m.sector} analyst</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
         <h2 class="sheet-title">Get reminders in your calendar</h2>
-        <p class="sheet-detail">Your deadlines and meetings from both roles, with a reminder two days before each deadline and on the morning it is due. When dates change here, your calendar updates by itself.</p>
+        <p class="sheet-detail">Your deadlines and meetings from both roles, with a reminder two days before each deadline and on the morning it is due. When dates change here, your calendar catches up by itself within a few hours.</p>
         <div class="cal-btns">${p.android ? [goog, apple] : [apple, goog]}</div>
         <div class="cal-copy">
           <span class="cal-k">Outlook, Huawei or another calendar app: subscribe with this link</span>
