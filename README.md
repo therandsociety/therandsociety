@@ -164,7 +164,7 @@ The Learn section turns the two required books (The Intelligent Investor and Inv
 
 **Fixing a question.** Members can tap **Report this question**; the message carries its `id` (such as `ib3-28`). Find that line in `learn.json`, correct it, commit, then open `check.html`. Options are shuffled in the app, so the right answer can sit anywhere in the list; `answer` just points to it.
 
-**Learn's look.** Learn deliberately breaks from the Society palette with its own skin, "coast": an original 1980s Miami-coast look (a sunset over an Art Deco shoreline on the Learn page, neon night inside a check, a sunrise when a member passes, the sun behind a level-up). It reaches the question card on Today and the Learn tab, but nothing else; the certificate keeps the Society look. Headings and scores use Kanit and the neon title Monoton (both in `fonts/`, Learn only); questions stay in IBM Plex Sans. Everything hangs off one line in `app.js`, `var SKIN = 'coast';`, and the "Learn skin: coast" block at the end of `app.css`. Set `SKIN = ''` to return Learn to navy and silver; a new skin is a new CSS block under its own name. Members can turn on **Sound effects** (a short synth sting on a pass or a level-up; off by default) and **Vibration** (on supported phones; on by default) under **Effects** on the Learn page; both settings stay on their device. Motion stops for anyone with reduced motion turned on.
+**Learn's look.** Learn deliberately breaks from the Society palette with its own skin, "coast": an original 1980s Miami-coast look (a sunset over an Art Deco shoreline on the Learn page, neon night inside a check, a sunrise when a member passes, the sun behind a level-up). It reaches the question card on Today and the Learn tab, but nothing else; the certificate keeps the Society look. Headings and scores use Kanit and the neon titles Michroma (both in `fonts/`, Learn only); questions stay in IBM Plex Sans. Everything hangs off one line in `app.js`, `var SKIN = 'coast';`, and the "Learn skin: coast" block at the end of `app.css`. Set `SKIN = ''` to return Learn to navy and silver; a new skin is a new CSS block under its own name. Members can turn on **Sound effects** (a short synth sting on a pass or a level-up; off by default) and **Vibration** (on supported phones; on by default) under **Effects** on the Learn page; both settings stay on their device. Motion stops for anyone with reduced motion turned on.
 
 ## Role links
 
@@ -178,7 +178,7 @@ Each link opens straight to that role. Add `-analyst` to open the analyst view.
 - `data.json`: all dates and wording
 - `learn.json`: the reading programme and question bank
 - `index.html`, `app.js`, `app.css`: the app (no build step)
-- `fonts/`: IBM Plex Sans and Newsreader for the app; Kanit and Monoton for Learn only
+- `fonts/`: IBM Plex Sans and Newsreader for the app; Kanit and Michroma for Learn only
 - `sw.js`: offline support
 - `manifest.webmanifest`, `icons/`: home-screen install
 - `check.html`: the checker for both files

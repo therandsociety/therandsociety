@@ -2031,7 +2031,7 @@
       var mail = 'Question ' + it.id + ' (' + spec.kicker + '): "' + it.q + '"\n\nWhat looks wrong: ';
       content = html`
         <div class="qz-bar" aria-hidden="true">${items.map(function (x, i) { return html`<i key=${i} class=${i < q.i || (i === q.i && answered) ? 'done' : i === q.i ? 'cur' : ''}></i>`; })}</div>
-        <div class="qz-body" ref=${body}>
+        <div class="qz-body" ref=${body} tabindex="0" aria-label=${label}>
           <div class="qz-src"><span class="card-k">${spec.kicker}</span><span>${spec.title}</span></div>
           <span class="qz-tier">${tierName} · ${spec.paid[it.id] ? 'already counted' : pts + ' XP'}${it.sample ? ' · sample' : ''}</span>
           <h2 class="qz-q" ref=${head} tabindex="-1">${it.q}</h2>
@@ -2078,7 +2078,7 @@
       </div>`;
     } else if (q.phase === 'cert') {
       var bk = bookOf(LP, spec.ref);
-      content = html`<div class="qz-body" ref=${body}>
+      content = html`<div class="qz-body" ref=${body} tabindex="0" aria-label=${label}>
         <h2 class="qz-q" ref=${head} tabindex="-1">Book final passed</h2>
         <${Certificate} LP=${LP} book=${bk} role=${p.role} best=${q.ev.score} size=${q.ev.size} at=${p.day} />
       </div>
@@ -2089,7 +2089,7 @@
       var note = spec.kind === 'review' ? (p.dueLeft ? p.dueLeft + ' still due today.' : 'Your deck is clear for today.')
         : e.passed ? (spec.kind === 'check' && e.score < e.size ? 'A retake with full marks makes this chapter’s badge mastered.' : '')
         : 'You need ' + e.pass + ' of ' + e.size + '. Missed questions are in your review deck' + (LP.R.retry === 'nextDay' ? '; your next try opens tomorrow.' : '.');
-      content = html`<div class="qz-body" ref=${body}>
+      content = html`<div class="qz-body" ref=${body} tabindex="0" aria-label=${label}>
         <div class="qr-score">
           ${SKIN ? html`<${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} color=${spec.kind === 'review' ? '#22E4E0' : e.passed ? 'url(#cx-gold)' : 'url(#cx-arc)'} track="rgba(255,255,255,.16)" fill="rgba(26,10,64,.55)" ink="#FFFFFF" />`
             : html`<${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} color=${e.passed || spec.kind === 'review' ? '#0F2340' : '#3E5A82'} />`}

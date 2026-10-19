@@ -1179,8 +1179,8 @@ button.bk-nm:hover{background:var(--mist)}
 #splash{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:#0F2340;transition:opacity 650ms cubic-bezier(.4,0,.2,1) 150ms}#splash.out{opacity:0;pointer-events:none}.sp-in{position:relative;display:flex;flex-direction:column;align-items:center;gap:22px;animation:spIn 900ms cubic-bezier(.2,.8,.2,1) backwards;transition:opacity 480ms ease,transform 800ms cubic-bezier(.4,0,.2,1)}#splash.out .sp-in{opacity:0;transform:scale(1.06)}.sp-mark{display:block;width:92px;height:auto}.sp-word{font:700 13px/1 'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:.14em;color:#C9D1DC;white-space:nowrap;animation:spWord 800ms 300ms cubic-bezier(.2,.8,.2,1) backwards}.sp-load{position:absolute;left:50%;bottom:-30px;width:76px;height:2px;margin-left:-38px;border-radius:1px;background:rgba(201,209,220,.22);overflow:hidden}.sp-load i{display:block;height:100%;background:#C9D1DC;transform-origin:left center;animation:spLoad 1200ms cubic-bezier(.45,0,.25,1) 400ms both}.sp-slow{position:absolute;left:16px;right:16px;bottom:calc(32px + env(safe-area-inset-bottom,0px));margin:0;text-align:center;font:400 13px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#9AA8BB;opacity:0;animation:spSlow 300ms 9s forwards}@keyframes spIn{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:none}}@keyframes spWord{from{opacity:0;letter-spacing:.32em}to{opacity:1;letter-spacing:.14em}}@keyframes spLoad{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes spSlow{to{opacity:1}}.splash-quick .sp-in{animation-duration:320ms}.splash-quick .sp-word{animation:none}.splash-quick .sp-load i{animation-duration:420ms;animation-delay:60ms}.splash-quick #splash{transition-duration:420ms;transition-delay:60ms}.splash-quick .sp-in{transition-duration:280ms,420ms}@media (display-mode:standalone){.sp-in,.sp-word{animation:none}}@media (prefers-reduced-motion:reduce){.sp-in,.sp-word,.sp-load i{animation:none}#splash,.sp-in{transition-duration:150ms;transition-delay:0s}#splash.out .sp-in{transform:none}}
 /* ---------- Learn skin: coast ----------
    Learn breaks from the Society palette on purpose: an original 1980s Miami-coast look. Sunset over an Art Deco shoreline on
-   the Learn page, neon night inside a check, a sunrise when a member passes. Kanit (headings, scores) and Monoton (the neon
-   title) are Learn-only; questions stay in IBM Plex Sans. The certificate keeps the Society look. Colours inside the skin carry
+   the Learn page, neon night inside a check, a sunrise when a member passes. Kanit (headings, scores) and Michroma (the neon
+   titles) are Learn-only; questions stay in IBM Plex Sans. The certificate keeps the Society look. Colours inside the skin carry
    their own meaning: teal is right or done, pink is wrong or behind. */
 .skin-defs{position:absolute;width:0;height:0;overflow:hidden}
 .board.coast,.sheet.coast{
@@ -1235,13 +1235,13 @@ html.coast-on body::before{background:#1A0A40}
 .page-head.coast{background:#1A0A40}
 .page-head.coast .mast-inner{padding-bottom:182px}
 .page-head.coast .eyebrow{font-weight:600;letter-spacing:.14em;color:#7CF3EE;text-shadow:0 0 10px rgba(34,228,224,.5)}
-.page-head.coast .hero h1{font-family:'Monoton',var(--sans);font-weight:400;font-size:clamp(46px,2.6vw + 26px,66px);line-height:1;letter-spacing:.03em;color:#FFE9F6;text-shadow:0 0 2px #FFFFFF,0 0 8px #FF3EA5,0 0 18px #FF3EA5,0 0 36px rgba(194,24,122,.9);animation:neonOn 1.4s linear both}
+.page-head.coast .hero h1{font-family:'Michroma',var(--sans);font-weight:400;font-size:clamp(38px,2vw + 24px,56px);line-height:1.05;letter-spacing:.08em;text-transform:uppercase;color:#FFE9F6;text-shadow:0 0 2px #FFFFFF,0 0 8px #FF3EA5,0 0 18px #FF3EA5,0 0 36px rgba(194,24,122,.9);animation:neonOn 1.4s linear both}
 .page-head.coast .hero p{color:#F3E9FF;text-shadow:0 1px 3px rgba(20,4,50,.75)}
 .page-head.coast .today{color:#CFC6F2}
 @keyframes neonOn{0%{opacity:.12}6%{opacity:1}10%{opacity:.25}16%{opacity:1}22%{opacity:.45}26%,100%{opacity:1}}
 @media (max-width:759px){
   .page-head.coast .mast-inner,.compact-head .page-head.coast .mast-inner{padding-bottom:100px}
-  .page-head.coast .hero h1,.compact-head .page-head.coast .hero h1{font-size:40px;line-height:1.05;margin:2px 0}
+  .page-head.coast .hero h1,.compact-head .page-head.coast .hero h1{font-size:34px;line-height:1.1;margin:4px 0}
   .page-head.coast .cs{--cs-water:36px;--cs-sun-w:122px;--cs-sun-r:18px;--cs-city-h:24px}
   .page-head.coast .cs-palm.p1{max-height:260px;right:-50px}
   .page-head.coast .cs-palm.p2{height:40%;right:calc(18px + 122px * .84)}
@@ -1422,7 +1422,7 @@ html.coast-on body::before{background:#1A0A40}
 @keyframes sunUp2{from{transform:translate(-50%,-22%);opacity:0}to{transform:translate(-50%,-50%);opacity:1}}
 .quiz.coast .ql-emblem .ring{position:relative;margin:0}
 .quiz.coast .ql-k{color:#CFC6F2}
-.quiz.coast .ql-eyebrow{font-family:'Monoton',var(--sans);font-weight:400;font-size:30px;line-height:1.1;letter-spacing:.06em;color:#FFE9F6;text-shadow:0 0 2px #FFFFFF,0 0 8px #FF3EA5,0 0 18px #FF3EA5,0 0 34px rgba(194,24,122,.9);animation:neonOn 1.4s 400ms linear both}
+.quiz.coast .ql-eyebrow{font-family:'Michroma',var(--sans);font-weight:400;font-size:22px;line-height:1.2;letter-spacing:.1em;color:#FFE9F6;text-shadow:0 0 2px #FFFFFF,0 0 8px #FF3EA5,0 0 18px #FF3EA5,0 0 34px rgba(194,24,122,.9);animation:neonOn 1.4s 400ms linear both}
 .quiz.coast .ql-name{font-family:'Kanit',var(--sans);font-style:italic;font-weight:800;font-size:46px;line-height:1.08;padding:0 6px;background:linear-gradient(180deg,#FFFFFF 0%,#FFE3F2 46%,#FFB36B 54%,#FF4F8F 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(255,62,165,.4))}
 .quiz.coast .ql-note{color:#EDE7FF}
 .quiz.coast .ql-mix,.quiz.coast .ql-badge{background:rgba(26,10,64,.72);border-color:rgba(255,255,255,.14)}

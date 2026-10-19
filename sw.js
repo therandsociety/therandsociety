@@ -1,8 +1,8 @@
 /* Offline support for the Rand Society app.
    The app shell is cached on install. data.json (dates) and learn.json (the reading programme) are fetched fresh
    whenever the network allows and fall back to the last good copy, so an edit with a typo never blanks the app. */
-var VERSION = '4ede8cab21';
-var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "fonts/kanit-800i.woff2", "fonts/monoton.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
+var VERSION = '5ce87b3b62';
+var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "fonts/kanit-800i.woff2", "fonts/michroma.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 var SHELL_CACHE = 'trs-shell-' + VERSION;
 var DATA_CACHE = 'trs-data';
 var MEDIA_CACHE = 'trs-media';
