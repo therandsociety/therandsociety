@@ -53,7 +53,7 @@ The four outcomes follow Term Plan 19.1:
 |---|---|
 | `accepted` | Green, "Accepted" |
 | `minor` | Green, "Minor corrections" (accepted subject to minor corrections) |
-| `revise` | Orange, "Revision needed", until you change it |
+| `revise` | Orange, "Revision needed", until you change it, even if the member had marked it submitted |
 | `incomplete` | Orange, "Not completed" |
 
 Analyst deadlines live in the `analyst` list; for example, accepted sector briefs go on the `a-brief` item. Every Member sees every recorded result on the **Society board** (Plan section), in keeping with equal standing and the collective traffic-light reviews.

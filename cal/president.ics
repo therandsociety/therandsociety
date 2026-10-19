@@ -399,28 +399,6 @@ TRIGGER:-PT8H
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:feb19h-pres@therandsociety
-DTSTAMP:20261019T000000Z
-SUMMARY:President: Draft handovers due
-DESCRIPTION:Submit your draft handover by 17:00\, ahead of the handover-dra
- ft review at Formal IC 5.\n\nOpen the app: https://therandsociety.github.i
- o/therandsociety/#president
-URL:https://therandsociety.github.io/therandsociety/#president
-DTSTART:20270219T150000Z
-DTEND:20270219T153000Z
-TRANSP:TRANSPARENT
-BEGIN:VALARM
-ACTION:DISPLAY
-DESCRIPTION:Due in 2 days: President: Draft handovers due
-TRIGGER:-P2DT8H
-END:VALARM
-BEGIN:VALARM
-ACTION:DISPLAY
-DESCRIPTION:Due today: President: Draft handovers due
-TRIGGER:-PT8H
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
 UID:a-second-pres@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Secondary contribution and development
@@ -487,21 +465,23 @@ END:VEVENT
 BEGIN:VEVENT
 UID:feb23-pres@therandsociety
 DTSTAMP:20261019T000000Z
-SUMMARY:President: Report inputs submitted
-DESCRIPTION:Submit your Term-End Report inputs.\n\nOpen the app: https://th
- erandsociety.github.io/therandsociety/#president
+SUMMARY:President: Report inputs and draft handovers submitted
+DESCRIPTION:Submit your Term-End Report inputs and your draft handover.\n\n
+ Open the app: https://therandsociety.github.io/therandsociety/#president
 URL:https://therandsociety.github.io/therandsociety/#president
 DTSTART:20270223T150000Z
 DTEND:20270223T153000Z
 TRANSP:TRANSPARENT
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Due in 2 days: President: Report inputs submitted
+DESCRIPTION:Due in 2 days: President: Report inputs and draft handovers sub
+ mitted
 TRIGGER:-P2DT8H
 END:VALARM
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Due today: President: Report inputs submitted
+DESCRIPTION:Due today: President: Report inputs and draft handovers submitt
+ ed
 TRIGGER:-PT8H
 END:VALARM
 END:VEVENT

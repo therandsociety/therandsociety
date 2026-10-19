@@ -247,11 +247,13 @@
   //   gap  the date passed and it wasn't marked
   function bandOf(it, since) {
     if (it.part !== 'lead' || it.type !== 'deadline') return '';
+    // The Society's recorded result outranks a member's own "submitted" mark: work returned for revision shows as
+    // such even if it was marked submitted earlier.
     if (it.status === 'accepted') return 'ok';
     if (it.status === 'minor') return 'min';
-    if (it.submitted) return 'sub';
     if (it.status === 'revise') return 'rev';
     if (it.status === 'incomplete') return 'nc';
+    if (it.submitted) return 'sub';
     if (it.past) return since && it.ms >= since ? 'gap' : 'past';
     return it.n <= 2 ? 'soon' : it.n <= 7 ? 'week' : 'far';
   }
@@ -386,12 +388,13 @@
     var progress = own.length ? { segs: own.map(function (it) { return { key: it.key, s: segOf[it.band] || 'todo', title: it.title + ': ' + it.tag.text }; }), cap: capBits.join(' · ') } : null;
 
     var ics = P.society.filter(function (e) { return e.ic; });
-    var nextIC = ics.filter(function (e) { return e.endMs >= asOf; })[0] || null;
+    // the next formal IC that hasn't finished (one that ended at 18:30 today no longer counts as next)
+    var nextIC = ics.filter(function (e) { return atSAST(e.endMs, '18:30') > now; })[0] || null;
     var hero = {};
     if (phase === 'pre' || phase === 'protected') { hero.h = 'Studies first.'; hero.p = 'Academic Priority runs to ' + dMonth(T.protectedEnd) + '. Society work resumes on ' + dMonth(T.resume) + '.'; }
     else if (phase === 'recess') { hero.h = 'Year-end recess.'; hero.p = 'Urgent matters only until ' + dMonth(T.recessEnd) + '. Full production resumes on ' + dMonth(T.fullProduction) + '.'; }
     else if (phase === 'closed') { hero.h = 'H1 is closed.'; hero.p = 'The term closed on ' + dMonth(T.close) + ' ' + D(T.close).getUTCFullYear() + '.'; }
-    else { hero.h = 'The programme is open.'; hero.p = nextIC ? (nextIC.ms === asOf ? 'Formal IC ' + nextIC.ic + ' is today at 17:00.' : 'Next formal IC: ' + wk(nextIC.ms) + ' ' + dMonth(nextIC.ms) + ', 17:00.') : 'The controlled close is ' + dMonth(T.close) + '.'; }
+    else { hero.h = 'The programme is open.'; hero.p = nextIC ? (nextIC.ms === asOf ? 'Formal IC ' + nextIC.ic + (now >= atSAST(asOf, '17:00') ? ' is on now, until 18:30.' : ' is today at 17:00.') : 'Next formal IC: ' + wk(nextIC.ms) + ' ' + dMonth(nextIC.ms) + ', 17:00.') : asOf < T.close ? 'The controlled close is ' + dMonth(T.close) + '.' : 'The term closes today.'; }
     var phaseTag = { pre: ['Starts ' + dShort(T.start), 'quiet'], protected: ['Academic Priority', 'lead'], open: ['Programme open', 'now'], recess: ['Year-end recess', 'support'], closed: ['H1 closed', 'quiet'] }[phase];
 
     // timeline
@@ -574,7 +577,9 @@
           : it.band === 'min' ? html`<div class="mark"><span class="tag okm">Minor corrections</span><span>Accepted subject to minor corrections. Correct and file by the stated date.</span></div>`
           : it.part === 'lead' && it.type === 'deadline' ? html`<div class="mark">
             <button class=${'mark-btn' + (it.submitted ? ' on' : '')} aria-pressed=${it.submitted ? 'true' : 'false'} onClick=${function () { p.toggleDone(it.key, it.title); }}>${it.submitted ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Submitted` : 'Mark as submitted'}</button>
-            <span>${it.submitted ? 'Saved on this phone. Tap again to undo.' : it.band === 'rev' ? 'The reviewer asked for changes. Mark it again once you resubmit.' : it.band === 'nc' ? 'Recorded as not completed. It goes to the traffic-light review with a revised date.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
+            <span>${it.band === 'rev' ? (it.submitted ? 'You marked the revised version as submitted. It stays here until the Society records the outcome.' : 'The reviewer asked for changes. Mark it once you resubmit.')
+              : it.band === 'nc' ? 'Recorded as not completed. It goes to the traffic-light review with a revised date.'
+              : it.submitted ? 'Saved on this device. Tap again to undo.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
           </div>` : null}
         ${p.check ? html`<${Checklist} c=${p.check} state=${p.checkState} toggle=${p.toggleCheck} />` : null}
         <${LinkRow} links=${it.links} />
@@ -1082,7 +1087,7 @@
           <span class="ck-box" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
           <span class="ck-t">${t}</span></label></li>`;
       })}</ul>
-      <p class="ck-src">From ${c.source}. Your ticks stay on this phone.</p>
+      <p class="ck-src">From ${c.source}. Your ticks stay on this device.</p>
     </section>`;
   }
   function LinkRow(p) {
@@ -1733,7 +1738,7 @@
       <ul class="glist">
         ${gRow('sh', 'send', 'Share my progress', 'Your level, chapters and badges in one message', A.shareProgress)}
         ${gRow('bk', 'phone', 'Moving to a new phone', 'Copy a backup code, then paste it on the new phone', A.openBackup)}
-        ${gRow('sv', 'file', 'Saved on this phone', 'Only you see your progress. Nothing is sent anywhere.', null)}
+        ${gRow('sv', 'file', 'Saved on this device', 'Only you see your progress. Nothing is sent anywhere.', null)}
       </ul>
     </section>`;
   }
@@ -1779,7 +1784,7 @@
               <span class="ck-box" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
               <span class="ck-t">${t}</span></label></li>`;
           })}</ul>
-          <p class="ck-src">Tick sections as you read. Your ticks stay on this phone.</p>
+          <p class="ck-src">Tick sections as you read. Your ticks stay on this device.</p>
         </section>` : null}
         ${u.ideas.length ? html`<section class="u-ideas" aria-label="Key ideas">
           <button class="u-ideas-btn" aria-expanded=${ideasOpen ? 'true' : 'false'} aria-controls=${'ideas-' + u.id} onClick=${function () { setIdeas(!ideasOpen); }}>
@@ -1844,7 +1849,7 @@
       <div class="sheet-head"><span class="when">Backup code</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
         <h2 class="sheet-title">Move your progress</h2>
-        <p class="share-note">Your progress is saved on this phone only. Copy this code and paste it into the app on your new phone.</p>
+        <p class="share-note">Your progress is saved on this device only. Copy this code and paste it into the app on your new phone or computer.</p>
         <textarea ref=${ref} class="share-text bk-code" rows="4" readonly value=${p.code} aria-label="Your backup code"></textarea>
         <div class="share-btns"><button class="share-btn primary" onClick=${copy}>${copied ? 'Copied' : 'Copy code'}</button></div>
         <div class="bk-restore">
@@ -1867,6 +1872,7 @@
       var prev = document.activeElement, de = document.documentElement, ov = de.style.overflow; de.style.overflow = 'hidden';
       return function () {
         de.style.overflow = ov;
+        if (p.guard) p.guard.current = null;
         var L = live.current; if (L.started && !L.done) A.learnAbandon(spec, L.answers);
         if (prev && prev.focus) { try { prev.focus({ preventScroll: true }); } catch (e) { /* gone */ } }
       };
@@ -1914,6 +1920,11 @@
       if (live.current.started && !live.current.done && spec.kind !== 'review' && !q.leave) return set2({ leave: true });
       p.onClose();
     }
+    // the phone's Back gesture: true means the check asked first instead of closing
+    if (p.guard) p.guard.current = function () {
+      if (q.phase === 'q' && live.current.started && !live.current.done && spec.kind !== 'review') { if (!q.leave) set2({ leave: true }); return true; }
+      return false;
+    };
     var label = { check: 'Chapter check', promo: 'Promotion review', final: 'Book final', review: 'Review deck' }[spec.kind];
     var top = html`<div class="qz-top">
       <button class="x" onClick=${close} aria-label=${q.phase === 'q' ? 'Leave' : 'Close'}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
@@ -2086,7 +2097,7 @@
     var st = s[0], setSt = s[1];
     function set(patch) { setSt(function (prev) { return Object.assign({}, prev, typeof patch === 'function' ? patch(prev) : patch); }); }
     var loadedAt = useRef(0), toastT = useRef(0), loadRef = useRef(null), sheetRef = useRef(null), ignorePop = useRef(false);
-    var tabRef = useRef(st.tab), scrolls = useRef({}), animRef = useRef('from-l'), aRef = useRef(null), learnRef = useRef({});
+    var tabRef = useRef(st.tab), scrolls = useRef({}), animRef = useRef('from-l'), aRef = useRef(null), learnRef = useRef({}), quizGuard = useRef(null);
 
     function load(first) {
       return loadData().then(function (res) {
@@ -2148,7 +2159,11 @@
       // Back closes an open panel first; otherwise it returns from another tab to Today, then leaves the app.
       function onPop(ev) {
         if (ignorePop.current) { ignorePop.current = false; return; }
-        if (sheetRef.current) { set({ sheet: null }); return; }
+        if (sheetRef.current) {
+          // a check that has started asks before Back leaves it (leaving counts as a try)
+          if (quizGuard.current && quizGuard.current()) { try { history.pushState(tabRef.current === 'today' ? { trsSheet: 1 } : { trsSheet: 1, trsTab: tabRef.current }, ''); } catch (e) { /* not allowed here */ } return; }
+          set({ sheet: null }); return;
+        }
         var t = (ev && ev.state && ev.state.trsTab) || 'today';
         if (t !== tabRef.current) { scrolls.current[tabRef.current] = window.scrollY; animRef.current = 'tab-in'; tabRef.current = t; set({ tab: t }); }
       }
@@ -2407,7 +2422,7 @@
     } else if (st.sheet && st.sheet.kind === 'member') {
       sheet = html`<${MemberSheet} key="member" phone=${st.phone} members=${P.members} mi=${M.mi} pick=${A.pick} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'quiz' && LP) {
-      sheet = html`<${Quiz} key=${'quiz' + st.sheet.id} spec=${st.sheet.spec} LP=${LP} A=${A} onClose=${A.close} role=${M.m.role} day=${learnDay} dueLeft=${LM ? LM.due.length : 0} />`;
+      sheet = html`<${Quiz} key=${'quiz' + st.sheet.id} spec=${st.sheet.spec} LP=${LP} A=${A} onClose=${A.close} role=${M.m.role} day=${learnDay} dueLeft=${LM ? LM.due.length : 0} guard=${quizGuard} />`;
     } else if (st.sheet && st.sheet.kind === 'unit' && LM) {
       var uu = null;
       LM.books.forEach(function (x) { x.units.forEach(function (u) { if (u.id === st.sheet.unit) uu = u; }); });

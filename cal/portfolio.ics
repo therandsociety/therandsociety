@@ -490,28 +490,6 @@ TRIGGER:-PT1H
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:feb19h-pm@therandsociety
-DTSTAMP:20261019T000000Z
-SUMMARY:Portfolio Manager: Draft handovers due
-DESCRIPTION:Submit your draft handover by 17:00\, ahead of the handover-dra
- ft review at Formal IC 5.\n\nOpen the app: https://therandsociety.github.i
- o/therandsociety/#portfolio
-URL:https://therandsociety.github.io/therandsociety/#portfolio
-DTSTART:20270219T150000Z
-DTEND:20270219T153000Z
-TRANSP:TRANSPARENT
-BEGIN:VALARM
-ACTION:DISPLAY
-DESCRIPTION:Due in 2 days: Portfolio Manager: Draft handovers due
-TRIGGER:-P2DT8H
-END:VALARM
-BEGIN:VALARM
-ACTION:DISPLAY
-DESCRIPTION:Due today: Portfolio Manager: Draft handovers due
-TRIGGER:-PT8H
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
 UID:a-second-pm@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Secondary contribution and development
@@ -555,21 +533,23 @@ END:VEVENT
 BEGIN:VEVENT
 UID:feb23-pm@therandsociety
 DTSTAMP:20261019T000000Z
-SUMMARY:Portfolio Manager: Report inputs submitted
-DESCRIPTION:Submit your Term-End Report inputs.\n\nOpen the app: https://th
- erandsociety.github.io/therandsociety/#portfolio
+SUMMARY:Portfolio Manager: Report inputs and draft handovers submitted
+DESCRIPTION:Submit your Term-End Report inputs and your draft handover.\n\n
+ Open the app: https://therandsociety.github.io/therandsociety/#portfolio
 URL:https://therandsociety.github.io/therandsociety/#portfolio
 DTSTART:20270223T150000Z
 DTEND:20270223T153000Z
 TRANSP:TRANSPARENT
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Due in 2 days: Portfolio Manager: Report inputs submitted
+DESCRIPTION:Due in 2 days: Portfolio Manager: Report inputs and draft hando
+ vers submitted
 TRIGGER:-P2DT8H
 END:VALARM
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Due today: Portfolio Manager: Report inputs submitted
+DESCRIPTION:Due today: Portfolio Manager: Report inputs and draft handovers
+  submitted
 TRIGGER:-PT8H
 END:VALARM
 END:VEVENT

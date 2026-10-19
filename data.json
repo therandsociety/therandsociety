@@ -759,27 +759,6 @@
       }
     },
     {
-      "key": "feb19h",
-      "date": "2027-02-19",
-      "type": "deadline",
-      "time": "17:00",
-      "title": "Draft handovers due",
-      "detail": "Every role-holder’s draft handover submitted by 17:00, ahead of the handover-draft review at Formal IC 5.",
-      "who": "all",
-      "roles": {
-        "hor": "lead",
-        "pres": "lead",
-        "pm": "lead",
-        "coo": "lead"
-      },
-      "detailBy": {
-        "hor": "Submit your draft handover by 17:00, ahead of the handover-draft review at Formal IC 5.",
-        "pres": "Submit your draft handover by 17:00, ahead of the handover-draft review at Formal IC 5.",
-        "pm": "Submit your draft handover by 17:00, ahead of the handover-draft review at Formal IC 5.",
-        "coo": "Submit your draft handover by 17:00, ahead of the handover-draft review at Formal IC 5."
-      }
-    },
-    {
       "key": "feb20",
       "date": "2027-02-20",
       "type": "deadline",
@@ -825,8 +804,8 @@
       "key": "feb23",
       "date": "2027-02-23",
       "type": "deadline",
-      "title": "Report inputs submitted",
-      "detail": "Role-owner inputs to the Term-End Report submitted.",
+      "title": "Report inputs and draft handovers submitted",
+      "detail": "Role-owner inputs to the Term-End Report and every role-holder’s draft handover submitted, after the handover-draft review at Formal IC 5.",
       "who": "all",
       "roles": {
         "hor": "lead",
@@ -835,13 +814,13 @@
         "coo": "lead"
       },
       "titleBy": {
-        "hor": "Level 2 report final, report inputs submitted"
+        "hor": "Level 2 report final, report inputs and draft handover in"
       },
       "detailBy": {
-        "hor": "Your Level 2 Equity Research Report is finalised and accepted through independent review. Submit your Term-End Report inputs.",
-        "pres": "Submit your Term-End Report inputs.",
-        "pm": "Submit your Term-End Report inputs.",
-        "coo": "Submit your Term-End Report inputs."
+        "hor": "Your Level 2 Equity Research Report is finalised and accepted through independent review. Submit your Term-End Report inputs and your draft handover.",
+        "pres": "Submit your Term-End Report inputs and your draft handover.",
+        "pm": "Submit your Term-End Report inputs and your draft handover.",
+        "coo": "Submit your Term-End Report inputs and your draft handover. You collect every role’s handover."
       }
     },
     {

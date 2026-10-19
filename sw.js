@@ -1,7 +1,7 @@
 /* Offline support for the Rand Society app.
    The app shell is cached on install. data.json (dates) and learn.json (the reading programme) are fetched fresh
    whenever the network allows and fall back to the last good copy, so an edit with a typo never blanks the app. */
-var VERSION = 'a10c8f0fea';
+var VERSION = 'fc7399e019';
 var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 var SHELL_CACHE = 'trs-shell-' + VERSION;
 var DATA_CACHE = 'trs-data';
@@ -33,14 +33,19 @@ function freshData(request, name) {
         return hit.blob().then(function (b) { return new Response(b, { status: 200, headers: h }); });
       });
     };
-    return timeout(3000, fetch(request.url, { cache: 'no-store' })).then(function (res) {
+    // Ask the server whether the file changed (an unchanged file costs almost no data); a broken file never replaces
+    // the last good copy.
+    var net = fetch(request.url, { cache: 'no-cache' }).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.clone().text().then(function (text) {
         try { JSON.parse(text); } catch (e) { return lastGood().then(function (hit) { return hit || res; }); }
         return cache.put(name, res.clone()).then(function () { return res; });
       });
-    }).catch(function (err) {
-      return lastGood().then(function (hit) { if (hit) return hit; throw err; });
+    });
+    // On a slow connection the saved copy shows after 3 seconds and the fresh one is saved for next time; with no saved
+    // copy yet, keep waiting for the network rather than failing.
+    return timeout(3000, net).catch(function () {
+      return lastGood().then(function (hit) { if (hit) { net.catch(function () {}); return hit; } return net; });
     });
   });
 }

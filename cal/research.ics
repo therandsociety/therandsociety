@@ -559,28 +559,6 @@ TRIGGER:-PT8H
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:feb19h-hor@therandsociety
-DTSTAMP:20261019T000000Z
-SUMMARY:Head of Research: Draft handovers due
-DESCRIPTION:Submit your draft handover by 17:00\, ahead of the handover-dra
- ft review at Formal IC 5.\n\nOpen the app: https://therandsociety.github.i
- o/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
-DTSTART:20270219T150000Z
-DTEND:20270219T153000Z
-TRANSP:TRANSPARENT
-BEGIN:VALARM
-ACTION:DISPLAY
-DESCRIPTION:Due in 2 days: Head of Research: Draft handovers due
-TRIGGER:-P2DT8H
-END:VALARM
-BEGIN:VALARM
-ACTION:DISPLAY
-DESCRIPTION:Due today: Head of Research: Draft handovers due
-TRIGGER:-PT8H
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
 UID:a-second-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Secondary contribution and development
@@ -623,10 +601,12 @@ END:VEVENT
 BEGIN:VEVENT
 UID:feb23-hor@therandsociety
 DTSTAMP:20261019T000000Z
-SUMMARY:Head of Research: Level 2 report final\, report inputs submitted
+SUMMARY:Head of Research: Level 2 report final\, report inputs and draft ha
+ ndover in
 DESCRIPTION:Your Level 2 Equity Research Report is finalised and accepted t
- hrough independent review. Submit your Term-End Report inputs.\n\nOpen the
-  app: https://therandsociety.github.io/therandsociety/#research
+ hrough independent review. Submit your Term-End Report inputs and your dra
+ ft handover.\n\nOpen the app: https://therandsociety.github.io/therandsoci
+ ety/#research
 URL:https://therandsociety.github.io/therandsociety/#research
 DTSTART:20270223T150000Z
 DTEND:20270223T153000Z
@@ -634,13 +614,13 @@ TRANSP:TRANSPARENT
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Due in 2 days: Head of Research: Level 2 report final\, report 
- inputs submitted
+ inputs and draft handover in
 TRIGGER:-P2DT8H
 END:VALARM
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Due today: Head of Research: Level 2 report final\, report inpu
- ts submitted
+ ts and draft handover in
 TRIGGER:-PT8H
 END:VALARM
 END:VEVENT
