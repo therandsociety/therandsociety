@@ -556,7 +556,7 @@
     function up() { var d = drag.current; drag.current = null; if (!d) return; if (d.dy > 90) p.onClose(); else if (ref.current) ref.current.style.transform = ''; }
     return html`<div>
       <div class="scrim" onClick=${p.onClose}></div>
-      <div ref=${ref} class=${'sheet ' + (p.phone ? 'bottom-sheet' : 'side-sheet')} role="dialog" aria-modal="true" aria-label=${p.label} tabindex="-1" onKeyDown=${onKey}>
+      <div ref=${ref} class=${'sheet ' + (p.phone ? 'bottom-sheet' : 'side-sheet') + (p.skin && SKIN ? ' ' + SKIN : '')} role="dialog" aria-modal="true" aria-label=${p.label} tabindex="-1" onKeyDown=${onKey}>
         ${p.phone ? html`<div class="grab" onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up} aria-hidden="true"><i></i></div>` : null}
         ${p.children}
       </div>
@@ -895,6 +895,8 @@
     phone: html`<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"></rect><path d="M10.5 18.5h3"></path>`,
     person: html`<circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-3.6 3.5-5.6 7-5.6s6.2 2 7 5.6"></path>`,
     file: html`<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path>`,
+    sound: html`<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path>`,
+    buzz: html`<rect x="8" y="3.5" width="8" height="17" rx="2"></rect><path d="M4.5 8.5v7M19.5 8.5v7M2 10.5v3M22 10.5v3"></path>`,
     send: html`<path d="M21 3 10.5 13.5"></path><path d="M21 3l-6.5 18-4-7.5L3 9.5z"></path>`
   };
   function Ico(p) {
@@ -910,7 +912,7 @@
       <button class="rail-search" onClick=${A.openSearch} aria-label="Search dates, meetings and rules" title="Search (/)"><${Ico} n="search" s=${18} w=${2} /><span>Search</span><kbd>/</kbd></button>
       <ul class="rail-nav">${TABS.map(function (t) {
         var b = M.badges[t.id];
-        return html`<li key=${t.id}><button class="rail-item" aria-current=${p.tab === t.id ? 'page' : null} onClick=${function () { A.goTab(t.id); }}>
+        return html`<li key=${t.id}><button class=${'rail-item' + (t.id === 'learn' && SKIN ? ' ' + SKIN + '-tab' : '')} aria-current=${p.tab === t.id ? 'page' : null} onClick=${function () { A.goTab(t.id); }}>
           <span class="rail-ic"><${Ico} n=${t.id} on=${p.tab === t.id} /><${Badge} b=${b} /></span><span class="rail-l">${t.label}${b ? html`<span class="vh">${BADGE_TEXT[b]}</span>` : null}</span>
         </button></li>`;
       })}</ul>
@@ -928,7 +930,7 @@
     var M = p.M, A = p.A;
     return html`<nav class="tabbar" aria-label="Sections">${TABS.map(function (t) {
       var b = M.badges[t.id];
-      return html`<button key=${t.id} class="tab" aria-current=${p.tab === t.id ? 'page' : null} onClick=${function () { A.goTab(t.id); }}>
+      return html`<button key=${t.id} class=${'tab' + (t.id === 'learn' && SKIN ? ' ' + SKIN + '-tab' : '')} aria-current=${p.tab === t.id ? 'page' : null} onClick=${function () { A.goTab(t.id); }}>
         <span class="tab-ic"><${Ico} n=${t.id} s=${24} on=${p.tab === t.id} /><${Badge} b=${b} /></span><span class="tab-l">${t.label}${b ? html`<span class="vh">${BADGE_TEXT[b]}</span>` : null}</span>
       </button>`;
     })}</nav>`;
@@ -942,9 +944,10 @@
       style=${'object-position:' + (p.phone ? x.pp : x.dp) + ';filter:saturate(.65) contrast(1.04)'} /></div>`;
   }
   function PageHead(p) {
-    var M = p.M, A = p.A, st = p.st, ph = M.photos[p.tab];
-    return html`<header class=${'mast page-head on-navy' + (p.lens ? '' : ' no-dock') + (ph ? ' has-photo' : '')}>
+    var M = p.M, A = p.A, st = p.st, skin = p.tab === 'learn' && SKIN, ph = skin ? null : M.photos[p.tab];
+    return html`<header class=${'mast page-head on-navy' + (p.lens ? '' : ' no-dock') + (ph ? ' has-photo' : '') + (skin ? ' ' + SKIN : '')}>
       ${ph ? html`<${SectionPhoto} key=${p.tab} x=${ph} phone=${st.phone} />` : null}
+      ${skin ? html`<${Scene} />` : null}
       <div class="mast-inner">
         ${st.phone ? null : html`<div class="topbar"><span class="today tnum">${M.todayLong}</span></div>`}
         <div class="hero">
@@ -1564,6 +1567,88 @@
   }
 
   // ---------- learn: pieces ----------
+  // ---------- Learn skin: "coast" ----------
+  // Learn breaks from the Society palette on purpose: an original 1980s Miami-coast look. A sunset over an Art Deco
+  // shoreline on the Learn page, neon night inside a check, a sunrise when a member passes. Everything hangs off the SKIN
+  // class, so another skin (or none: SKIN = '') slots in through app.css; the certificate keeps the Society look.
+  var SKIN = 'coast';
+  var COAST = {
+    defs: "<defs><linearGradient id=\"cx-sunfill\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFE45C\"/><stop offset=\".5\" stop-color=\"#FF9A3D\"/><stop offset=\"1\" stop-color=\"#FF3E8A\"/></linearGradient><linearGradient id=\"cx-rim\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFE45C\"/><stop offset=\".5\" stop-color=\"#FF8A3D\"/><stop offset=\"1\" stop-color=\"#FF3E8A\"/></linearGradient><linearGradient id=\"cx-night\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#43188F\"/><stop offset=\"1\" stop-color=\"#160A38\"/></linearGradient><linearGradient id=\"cx-teal\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#5FF5EF\"/><stop offset=\"1\" stop-color=\"#0E8A8F\"/></linearGradient><linearGradient id=\"cx-sunset\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#E0267A\"/><stop offset=\"1\" stop-color=\"#E2541B\"/></linearGradient><linearGradient id=\"cx-arc\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FF3E8A\"/><stop offset=\"1\" stop-color=\"#FF8A3D\"/></linearGradient><linearGradient id=\"cx-gold\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF3B0\"/><stop offset=\"1\" stop-color=\"#FFC23D\"/></linearGradient><mask id=\"cx-sunmask\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"200\" height=\"112\"><rect width=\"200\" height=\"112\" fill=\"#fff\"/><g fill=\"#000\"><rect y=\"56\" width=\"200\" height=\"2\"/><rect y=\"66\" width=\"200\" height=\"3\"/><rect y=\"77\" width=\"200\" height=\"4\"/><rect y=\"89\" width=\"200\" height=\"5\"/><rect y=\"102\" width=\"200\" height=\"6\"/></g></mask><mask id=\"cx-sunmask2\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" fill=\"#fff\"/><g fill=\"#000\"><rect y=\"112\" width=\"200\" height=\"3\"/><rect y=\"126\" width=\"200\" height=\"4\"/><rect y=\"141\" width=\"200\" height=\"5\"/><rect y=\"157\" width=\"200\" height=\"6\"/><rect y=\"174\" width=\"200\" height=\"7\"/></g></mask><symbol id=\"cx-sun\" viewBox=\"0 0 200 112\"><circle cx=\"100\" cy=\"100\" r=\"96\" fill=\"url(#cx-sunfill)\" mask=\"url(#cx-sunmask)\"/></symbol><symbol id=\"cx-sunfull\" viewBox=\"0 0 200 200\"><circle cx=\"100\" cy=\"100\" r=\"96\" fill=\"url(#cx-sunfill)\" mask=\"url(#cx-sunmask2)\"/></symbol><symbol id=\"cx-palm\" viewBox=\"0 0 200 400\"><path d=\"M86 400C84 330 88 230 98 150C102 118 106 96 108 80L118 82C115 100 112 122 109 154C101 232 100 330 104 400ZM111.1 78.4L103.9 75.9L97 73.9L90.1 72.6L83.4 71.9L76.9 71.8L70.5 72.4L64.2 73.5L58 75.3L52 77.6L46.1 80.7L40.3 84.3L34.6 88.6L29.1 93.6L23.7 99.2L18.4 105.4L13.3 112.3L12.6 111.9L17.6 104.8L22.7 98.3L27.9 92.4L33.4 87.2L39 82.6L44.8 78.6L50.8 75.2L57 72.4L63.4 70.3L70 68.8L76.7 68L83.6 67.8L90.7 68.3L97.9 69.4L105.4 71.2L112.9 73.6ZM100.1 72.2Q97 71.2 91.8 66.6Q98.2 71.6 107.1 74.2ZM107.1 74.2Q99.1 77.5 94.5 83.2Q98 77.2 100.1 72.2ZM92.1 70.6Q84.8 68.5 75.2 63Q85.9 68.7 98.8 71.9ZM98.8 71.9Q88.6 79.1 81.8 88.3Q87.4 78.8 92.1 70.6ZM84.2 69.8Q73.2 67.8 59.8 62.6Q74.4 67.9 90.7 70.4ZM90.7 70.4Q79.2 81.1 71.1 93.6Q78 81 84.2 69.8ZM76.6 69.9Q62.8 68.9 46.4 65Q64 68.9 82.7 69.8ZM82.7 69.8Q71 83.5 62.4 98.7Q69.8 83.5 76.6 69.9ZM69.2 70.7Q53.8 71.3 35.5 69.3Q55 71.2 74.9 70ZM74.9 70Q63.7 85.9 55.7 103Q62.5 86 69.2 70.7ZM62.1 72.3Q46.2 74.7 27.4 74.8Q47.3 74.5 67.3 71.1ZM67.3 71.1Q57.4 88.2 50.4 106.3Q56.2 88.4 62.1 72.3ZM55.2 74.7Q39.9 78.7 21.7 80.6Q41 78.3 59.9 73ZM59.9 73Q51.6 90.3 46.2 108.5Q50.4 90.7 55.2 74.7ZM48.5 77.9Q34.8 83 18.2 86.2Q35.9 82.4 52.6 75.8ZM52.6 75.8Q46.1 92.3 42.4 109.5Q45 92.8 48.5 77.9ZM42 81.8Q30.6 87.4 16.3 91.3Q31.6 86.7 45.6 79.5ZM45.6 79.5Q40.7 94.2 38.6 109.6Q39.7 94.9 42 81.8ZM35.7 86.5Q27 91.9 15.5 95.8Q27.9 91.1 38.8 84.1ZM38.8 84.1Q35.3 96.4 34.5 109.3Q34.4 97.1 35.7 86.5ZM29.6 92Q23.7 96.6 15.1 99.8Q24.6 95.7 32.1 89.5ZM32.1 89.5Q29.7 98.9 29.9 108.9Q28.9 99.7 29.6 92ZM23.6 98.2Q20.5 101.6 14.7 103.6Q21.3 100.7 25.7 95.9ZM25.7 95.9Q24 102.1 24.7 109Q23.2 103 23.6 98.2ZM17.9 105.2Q17.2 107.1 14 107.7Q18 106.2 19.6 103.1ZM19.6 103.1Q18.1 106.2 19 110.1Q17.4 107.2 17.9 105.2ZM110.2 77.9L104.7 72.5L99.3 67.6L94.1 63.3L88.9 59.5L83.9 56.3L79.1 53.6L74.3 51.3L69.6 49.6L65.1 48.5L60.7 47.8L56.4 47.7L52.1 48L48 48.9L43.9 50.4L39.9 52.4L36 54.9L35.5 54.2L39.3 51.4L43.3 49.2L47.5 47.4L51.8 46.2L56.2 45.5L60.8 45.4L65.6 45.8L70.5 46.8L75.5 48.3L80.6 50.4L85.8 53L91.2 56.1L96.7 59.8L102.3 64.1L108 68.8L113.8 74.1ZM102.8 67.5Q102.6 64.1 102.5 57.6Q103.5 64.9 108.2 72.3ZM108.2 72.3Q100.1 72.5 94.4 76.1Q99.2 71.7 102.8 67.5ZM96.6 62.4Q94.3 55.5 92.3 45.4Q95.3 56.2 101.9 66.7ZM101.9 66.7Q90.7 69.3 81.8 75.2Q89.7 68.6 96.6 62.4ZM90.4 58Q85.7 48.7 81 36.2Q86.7 49.4 95.7 61.8ZM95.7 61.8Q82.1 66.8 70.9 74.7Q81.2 66.1 90.4 58ZM84.5 54.3Q76.9 44 69.3 30.3Q78 44.6 89.7 57.5ZM89.7 57.5Q74.7 64.7 62 74.6Q73.7 64.1 84.5 54.3ZM78.7 51.4Q68.5 41.3 58 27.9Q69.6 41.8 83.8 54ZM83.8 54Q68.4 63 55.2 74.5Q67.3 62.4 78.7 51.4ZM73.1 49.1Q60.9 40.6 48.2 28.7Q62.1 41 78.1 51.1ZM78.1 51.1Q63.1 61.5 50.4 74.1Q62 61 73.1 49.1ZM67.6 47.5Q54.5 41.3 40.4 31.8Q55.7 41.7 72.5 48.9ZM72.5 48.9Q58.7 60.1 47.4 73.3Q57.6 59.8 67.6 47.5ZM62.4 46.7Q49.4 43.1 35.2 36.4Q50.6 43.3 67 47.4ZM67 47.4Q55.2 58.7 45.7 71.9Q54 58.5 62.4 46.7ZM57.3 46.5Q45.7 45.4 32.5 41.4Q46.9 45.5 61.6 46.6ZM61.6 46.6Q52.1 57.3 44.8 69.7Q50.9 57.3 57.3 46.5ZM52.5 47Q43.1 47.8 31.9 45.9Q44.3 47.7 56.3 46.5ZM56.3 46.5Q49.1 56 44.1 66.8Q47.9 56.1 52.5 47ZM47.8 48.1Q41.2 50 32.5 49.4Q42.3 49.7 51.2 47.2ZM51.2 47.2Q46.1 54.7 43.2 63.5Q45 55 47.8 48.1ZM43.3 49.9Q39.6 52 33.7 51.8Q40.7 51.5 46.2 48.6ZM46.2 48.6Q42.8 53.8 41.6 60.1Q41.7 54.3 43.3 49.9ZM39 52.3Q38 53.9 34.7 53.5Q39 53.3 41.4 50.9ZM41.4 50.9Q39.2 53.5 39 57.2Q38.1 54.1 39 52.3ZM109.6 76.9L107.3 70.7L105 65L102.8 59.6L100.7 54.6L98.6 50.1L96.6 45.9L94.6 42.2L92.7 38.8L90.8 35.9L89 33.4L87.2 31.3L85.5 29.6L83.9 28.3L82.3 27.3L80.7 26.8L79.2 26.6L79.1 25.8L80.9 25.7L82.8 26.1L84.7 26.9L86.7 28.1L88.8 29.7L90.9 31.8L93 34.3L95.2 37.2L97.4 40.5L99.7 44.2L102 48.3L104.4 52.9L106.8 57.8L109.3 63.1L111.8 68.9L114.4 75.1ZM107.9 65.6Q111.6 64 116.2 60.9Q112 65.1 110.6 72.3ZM110.6 72.3Q104.2 69.3 98.7 70.3Q103.7 68.1 107.9 65.6ZM105.1 59.3Q110.5 55.1 116.9 49.6Q111 56.2 107.9 65.6ZM107.9 65.6Q98.6 63.3 90.2 64.8Q98.1 62.2 105.1 59.3ZM102.5 53.6Q108.9 47.1 116.5 39.4Q109.4 48.2 105.2 59.5ZM105.2 59.5Q93.6 57.9 82.9 60Q93.1 56.8 102.5 53.6ZM99.9 48.3Q106.8 39.9 114.8 30.4Q107.3 41 102.6 53.8ZM102.6 53.8Q89.4 53 77 55.8Q88.8 52 99.9 48.3ZM97.4 43.7Q104 33.8 112 22.9Q104.6 34.8 100.1 48.7ZM100.1 48.7Q85.9 48.7 72.6 52.1Q85.4 47.7 97.4 43.7ZM94.9 39.5Q100.7 28.7 107.8 16.9Q101.3 29.8 97.7 44.1ZM97.7 44.1Q83.3 44.9 69.8 48.8Q82.7 43.9 94.9 39.5ZM92.5 35.9Q96.8 24.9 102.5 12.7Q97.5 25.9 95.3 40.1ZM95.3 40.1Q81.4 41.5 68.4 45.9Q80.7 40.5 92.5 35.9ZM90.2 32.9Q92.5 22.3 96.3 10.4Q93.2 23.2 93 36.6ZM93 36.6Q80.2 38.5 68.4 43.2Q79.5 37.6 90.2 32.9ZM88 30.4Q88 21 89.7 10.1Q88.8 21.9 90.8 33.6ZM90.8 33.6Q79.6 35.9 69.4 40.8Q78.8 35 88 30.4ZM85.7 28.4Q83.8 21.2 83.3 12.1Q84.6 22 88.6 31ZM88.6 31Q79.4 33.6 71.3 38.4Q78.5 32.7 85.7 28.4ZM83.6 27.1Q80.4 22.7 78.3 15.9Q81.4 23.4 86.5 29ZM86.5 29Q79.5 31.4 73.6 36Q78.5 30.8 83.6 27.1ZM81.6 26.3Q78.4 24.9 75.8 20.6Q79.5 25.3 84.5 27.5ZM84.5 27.5Q79.6 29.5 75.9 33.3Q78.5 29 81.6 26.3ZM79.7 26Q78 26.7 76.1 24.3Q79.2 26.9 82.4 26.5ZM82.4 26.5Q79.4 27.7 77.7 30.5Q78.2 27.4 79.7 26ZM109.4 76L109.5 70.4L109.7 65L109.8 60L110 55.4L110.1 51L110.2 46.9L110.4 43.2L110.5 39.8L110.6 36.7L110.8 33.9L110.9 31.5L111 29.4L111.2 27.5L111.3 26L111.5 24.9L111.6 24L112.4 24L112.5 24.9L112.7 26L112.8 27.5L113 29.4L113.1 31.5L113.2 33.9L113.4 36.7L113.5 39.8L113.6 43.2L113.8 46.9L113.9 51L114 55.4L114.2 60L114.3 65L114.5 70.4L114.6 76ZM112 66Q116 66.9 120.8 67Q116 68.1 112 73.2ZM112 73.2Q108 68.1 103.2 67Q108 66.9 112 66ZM112 60.1Q118.1 60.2 125.1 59.8Q118.1 61.4 112 67ZM112 67Q105.9 61.4 98.9 59.8Q105.9 60.2 112 60.1ZM112 54.7Q119.9 54.1 128.6 53.2Q119.9 55.3 112 61.2ZM112 61.2Q104.1 55.3 95.4 53.2Q104.1 54.1 112 54.7ZM112 49.8Q121.2 48.6 131.2 47.3Q121.2 49.8 112 55.9ZM112 55.9Q102.8 49.8 92.8 47.3Q102.8 48.6 112 49.8ZM112 45.2Q122 43.6 132.7 42.1Q122 44.8 112 50.9ZM112 50.9Q102 44.8 91.3 42.1Q102 43.6 112 45.2ZM112 41Q122.2 39.2 133.2 37.6Q122.2 40.4 112 46.4ZM112 46.4Q101.8 40.4 90.8 37.6Q101.8 39.2 112 41ZM112 37.3Q121.9 35.4 132.7 33.8Q121.9 36.6 112 42.3ZM112 42.3Q102.1 36.6 91.3 33.8Q102.1 35.4 112 37.3ZM112 34Q121.2 32.1 131.2 30.7Q121.2 33.3 112 38.6ZM112 38.6Q102.8 33.3 92.8 30.7Q102.8 32.1 112 34ZM112 31.1Q120.1 29.3 129 28.3Q120.1 30.5 112 35.3ZM112 35.3Q103.9 30.5 95 28.3Q103.9 29.3 112 31.1ZM112 28.6Q118.7 27 126.3 26.4Q118.7 28.2 112 32.5ZM112 32.5Q105.3 28.2 97.7 26.4Q105.3 27 112 28.6ZM112 26.5Q117.2 25.2 123.2 25Q117.2 26.4 112 30ZM112 30Q106.8 26.4 100.8 25Q106.8 25.2 112 26.5ZM112 24.9Q115.6 23.8 120 24.1Q115.6 25 112 28ZM112 28Q108.4 25 104 24.1Q108.4 23.8 112 24.9ZM112 23.6Q114 22.9 116.8 23.6Q114 24.1 112 26.4ZM112 26.4Q110 24.1 107.2 23.6Q110 22.9 112 23.6ZM109.6 75.1L112.2 68.9L114.7 63.1L117.2 57.8L119.6 52.9L122 48.3L124.3 44.2L126.6 40.5L128.8 37.2L131 34.3L133.1 31.8L135.2 29.7L137.3 28.1L139.3 26.9L141.2 26.1L143.1 25.7L144.9 25.8L144.8 26.6L143.3 26.8L141.7 27.3L140.1 28.3L138.5 29.6L136.8 31.3L135 33.4L133.2 35.9L131.3 38.8L129.4 42.2L127.4 45.9L125.4 50.1L123.3 54.6L121.2 59.6L119 65L116.7 70.7L114.4 76.9ZM116.1 65.6Q120.3 68.1 125.3 70.3Q119.8 69.3 113.4 72.3ZM113.4 72.3Q112 65.1 107.8 60.9Q112.4 64 116.1 65.6ZM118.9 59.3Q125.9 62.2 133.8 64.8Q125.4 63.3 116.1 65.6ZM116.1 65.6Q113 56.2 107.1 49.6Q113.5 55.1 118.9 59.3ZM121.5 53.6Q130.9 56.8 141.1 60Q130.4 57.9 118.8 59.5ZM118.8 59.5Q114.6 48.2 107.5 39.4Q115.1 47.1 121.5 53.6ZM124.1 48.3Q135.2 52 147 55.8Q134.6 53 121.4 53.8ZM121.4 53.8Q116.7 41 109.2 30.4Q117.2 39.9 124.1 48.3ZM126.6 43.7Q138.6 47.7 151.4 52.1Q138.1 48.7 123.9 48.7ZM123.9 48.7Q119.4 34.8 112 22.9Q120 33.8 126.6 43.7ZM129.1 39.5Q141.3 43.9 154.2 48.8Q140.7 44.9 126.3 44.1ZM126.3 44.1Q122.7 29.8 116.2 16.9Q123.3 28.7 129.1 39.5ZM131.5 35.9Q143.3 40.5 155.6 45.9Q142.6 41.5 128.7 40.1ZM128.7 40.1Q126.5 25.9 121.5 12.7Q127.2 24.9 131.5 35.9ZM133.8 32.9Q144.5 37.6 155.6 43.2Q143.8 38.5 131 36.6ZM131 36.6Q130.8 23.2 127.7 10.4Q131.5 22.3 133.8 32.9ZM136 30.4Q145.2 35 154.6 40.8Q144.4 35.9 133.2 33.6ZM133.2 33.6Q135.2 21.9 134.3 10.1Q136 21 136 30.4ZM138.3 28.4Q145.5 32.7 152.7 38.4Q144.6 33.6 135.4 31ZM135.4 31Q139.4 22 140.7 12.1Q140.2 21.2 138.3 28.4ZM140.4 27.1Q145.5 30.8 150.4 36Q144.5 31.4 137.5 29ZM137.5 29Q142.6 23.4 145.7 15.9Q143.6 22.7 140.4 27.1ZM142.4 26.3Q145.5 29 148.1 33.3Q144.4 29.5 139.5 27.5ZM139.5 27.5Q144.5 25.3 148.2 20.6Q145.6 24.9 142.4 26.3ZM144.3 26Q145.8 27.4 146.3 30.5Q144.6 27.7 141.6 26.5ZM141.6 26.5Q144.8 26.9 147.9 24.3Q146 26.7 144.3 26ZM110.2 74.1L116.1 68.7L122 63.9L127.7 59.6L133.3 55.8L138.7 52.6L144.1 49.9L149.3 47.7L154.4 46.1L159.4 45.1L164.3 44.6L169 44.7L173.5 45.3L177.9 46.5L182.2 48.1L186.2 50.4L190.2 53.1L189.7 53.8L185.7 51.3L181.6 49.4L177.5 48L173.2 47.2L168.9 46.9L164.4 47.1L159.9 47.8L155.3 49L150.5 50.8L145.7 53.1L140.7 55.9L135.5 59.2L130.3 63.1L124.9 67.5L119.4 72.4L113.8 77.9ZM121.3 67.4Q125 71.7 129.9 76.1Q124.1 72.5 115.9 72.2ZM115.9 72.2Q120.7 64.7 121.7 57.3Q121.6 63.9 121.3 67.4ZM127.7 62.2Q134.7 68.5 142.8 75.2Q133.8 69.2 122.4 66.5ZM122.4 66.5Q129.1 55.9 132.2 44.9Q130 55.2 127.7 62.2ZM134 57.8Q143.4 65.9 153.9 74.7Q142.5 66.6 128.7 61.5ZM128.7 61.5Q137.9 48.9 143.7 35.4Q138.9 48.2 134 57.8ZM140.1 54Q151.1 63.9 163 74.6Q150.1 64.5 134.8 57.2ZM134.8 57.2Q146.7 44 155.6 29.4Q147.7 43.3 140.1 54ZM146 50.9Q157.7 62.2 170 74.4Q156.6 62.7 140.9 53.5ZM140.9 53.5Q155.2 41.1 167 26.9Q156.3 40.6 146 50.9ZM151.7 48.5Q163.1 60.7 174.9 74Q162 61.1 146.7 50.6ZM146.7 50.6Q162.9 40.1 177 27.5Q164 39.7 151.7 48.5ZM157.3 46.9Q167.6 59.3 178.1 73.1Q166.4 59.7 152.5 48.3ZM152.5 48.3Q169.5 40.7 184.9 30.6Q170.6 40.4 157.3 46.9ZM162.6 45.9Q171.3 58 179.9 71.5Q170.1 58.2 158.1 46.7ZM158.1 46.7Q174.6 42.3 190.2 35.1Q175.8 42.1 162.6 45.9ZM167.8 45.7Q174.5 56.7 180.9 69.2Q173.3 56.7 163.5 45.9ZM163.5 45.9Q178.5 44.4 193 40.1Q179.7 44.4 167.8 45.7ZM172.8 46.1Q177.5 55.4 181.5 66.2Q176.3 55.2 168.9 45.7ZM168.9 45.7Q181.2 46.6 193.8 44.6Q182.4 46.7 172.8 46.1ZM177.6 47.1Q180.5 54.2 182.5 62.8Q179.4 53.9 174.1 46.3ZM174.1 46.3Q183.2 48.7 193.1 48.2Q184.4 48.9 177.6 47.1ZM182.2 48.8Q183.8 53.3 184.1 59.3Q182.7 52.9 179.2 47.7ZM179.2 47.7Q184.9 50.5 191.9 50.7Q186 50.9 182.2 48.8ZM186.6 51.2Q187.5 53 186.6 56.2Q186.4 52.4 184.2 49.8ZM184.2 49.8Q186.6 52.3 190.9 52.4Q187.7 52.9 186.6 51.2ZM111.1 73.6L119 71.1L126.7 69.3L134.2 68.2L141.5 67.8L148.7 68L155.7 68.9L162.5 70.4L169.2 72.6L175.6 75.5L181.8 79L187.9 83.1L193.7 87.9L199.4 93.3L204.9 99.3L210.2 106L215.3 113.3L214.7 113.8L209.3 106.7L203.9 100.2L198.2 94.4L192.5 89.3L186.6 84.9L180.6 81.1L174.4 77.9L168.1 75.4L161.7 73.6L155.2 72.4L148.5 71.8L141.7 71.9L134.7 72.6L127.6 73.9L120.3 75.9L112.9 78.4ZM124.2 72.2Q126.5 77.3 130 83.5Q125.3 77.7 117.2 74.2ZM117.2 74.2Q126.4 71.5 132.9 66.5Q127.5 71.2 124.2 72.2ZM132.6 70.6Q137.4 79.1 143.3 88.9Q136.2 79.3 125.9 71.8ZM125.9 71.8Q139.1 68.6 150.2 62.9Q140.3 68.4 132.6 70.6ZM140.8 69.8Q147.2 81.4 154.4 94.5Q146 81.5 134.3 70.4ZM134.3 70.4Q151.1 67.9 166.2 62.5Q152.2 67.8 140.8 69.8ZM148.7 69.9Q155.8 84 163.4 99.7Q154.6 84 142.6 69.7ZM142.6 69.7Q161.9 68.9 180.1 65Q163.1 68.9 148.7 69.9ZM156.4 70.7Q163.3 86.6 170.4 104.3Q162.1 86.5 150.7 70ZM150.7 70Q171.3 71.3 191.4 69.4Q172.5 71.4 156.4 70.7ZM163.8 72.4Q169.9 89.2 175.9 107.7Q168.8 88.9 158.6 71.1ZM158.6 71.1Q179.2 74.6 199.9 75.1Q180.4 74.9 163.8 72.4ZM171 74.9Q175.9 91.5 180.4 109.9Q174.8 91.1 166.3 73.2ZM166.3 73.2Q185.8 78.6 205.7 81.1Q186.9 79 171 74.9ZM178 78.2Q181.6 93.7 184.4 111Q180.5 93.2 173.8 76.1ZM173.8 76.1Q191.1 82.9 209.4 86.8Q192.2 83.4 178 78.2ZM184.7 82.2Q187.1 95.8 188.3 111.1Q186.1 95.2 181.1 80ZM181.1 80Q195.6 87.3 211.4 92.1Q196.6 88 184.7 82.2ZM191.3 87.1Q192.7 98.1 192.6 110.7Q191.7 97.4 188.2 84.7ZM188.2 84.7Q199.4 91.9 212.3 96.7Q200.4 92.6 191.3 87.1ZM197.7 92.7Q198.4 100.8 197.5 110.3Q197.5 100 195.1 90.3ZM195.1 90.3Q202.9 96.6 212.7 100.8Q203.8 97.5 197.7 92.7ZM203.9 99.2Q204.3 104.2 202.9 110.3Q203.5 103.3 201.7 96.9ZM201.7 96.9Q206.3 101.7 213.1 104.7Q207.1 102.6 203.9 99.2ZM209.9 106.4Q210.4 108.4 208.7 111.3Q209.6 107.5 208.1 104.3ZM208.1 104.3Q209.8 107.4 213.8 108.9Q210.5 108.3 209.9 106.4ZM112.4 78.6L107.3 79.7L102.1 81.4L97.1 83.9L92 87.1L87.1 91L82.2 95.7L77.4 101L72.7 107.1L68.1 114L63.6 121.5L59.1 129.8L54.8 138.8L50.6 148.5L46.5 159L42.6 170.2L38.7 182.1L37.9 181.8L41.5 169.8L45.3 158.5L49.1 147.9L53.1 138.1L57.2 128.9L61.4 120.3L65.8 112.5L70.2 105.4L74.8 99L79.6 93.2L84.5 88.2L89.6 83.8L94.8 80.1L100.2 77.2L105.8 74.9L111.6 73.4ZM102.3 78.7Q100.2 79.9 94.1 79.4Q101.3 79.6 109.2 76.4ZM109.2 76.4Q103.5 82.2 101.8 88.7Q102.4 82.6 102.3 78.7ZM96.6 81.5Q91.1 84 81.8 85.1Q92.2 83.5 102.7 78.5ZM102.7 78.5Q97 88.2 95.1 98.1Q95.9 88.7 96.6 81.5ZM91 85.2Q83.1 89.3 71.3 92.5Q84.1 88.7 96.4 81.6ZM96.4 81.6Q91.3 94.4 89.7 107.3Q90.3 95.1 91 85.2ZM85.6 89.7Q76 95.5 62.8 100.7Q77 94.8 90.3 85.8ZM90.3 85.8Q86.1 100.9 85.4 115.9Q85.2 101.7 85.6 89.7ZM80.3 95Q70 102.3 56.2 109.1Q70.9 101.5 84.3 90.9ZM84.3 90.9Q81.2 107.4 81.5 123.7Q80.4 108.3 80.3 95ZM75.1 101.2Q64.9 109.5 51.2 117.4Q65.6 108.6 78.5 97.1ZM78.5 97.1Q76.6 114 77.8 130.6Q75.8 114.9 75.1 101.2ZM70 108.3Q60.4 117 47.6 125.4Q61.1 116 72.9 104.2ZM72.9 104.2Q71.9 120.7 73.9 136.8Q71.2 121.6 70 108.3ZM65.1 116.3Q56.6 124.8 45 133Q57.2 123.8 67.5 112.3ZM67.5 112.3Q67.1 127.5 69.8 142.4Q66.5 128.5 65.1 116.3ZM60.2 125.1Q53.3 132.9 43.2 140.4Q53.8 131.9 62.2 121.4ZM62.2 121.4Q62.3 134.7 65.2 147.8Q61.7 135.8 60.2 125.1ZM55.5 134.9Q50.2 141.5 42 147.8Q50.8 140.4 57.2 131.4ZM57.2 131.4Q57.3 142.4 60.3 153.3Q56.8 143.5 55.5 134.9ZM50.9 145.6Q47.4 150.7 41 155.5Q47.9 149.6 52.3 142.3ZM52.3 142.3Q52.3 150.8 55 159.2Q51.9 151.9 50.9 145.6ZM46.5 157.2Q44.7 160.6 40.1 163.6Q45.1 159.5 47.6 154.2ZM47.6 154.2Q47.3 160 49.6 165.9Q46.8 161.2 46.5 157.2ZM42.1 169.7Q42 171.5 39 172.6Q42.3 170.3 43 167ZM43 167Q42.3 170.3 44.1 173.7Q41.9 171.4 42.1 169.7ZM112.5 73.4L118.3 75L124 77.3L129.6 80.3L134.9 83.9L140.1 88.3L145.1 93.3L150 99L154.7 105.4L159.3 112.4L163.8 120.1L168.1 128.5L172.3 137.6L176.4 147.4L180.3 157.8L184.2 168.9L187.9 180.7L187.1 180.9L183.2 169.3L179.1 158.3L174.9 148L170.6 138.4L166.2 129.5L161.7 121.3L157 113.9L152.3 107.1L147.5 101.1L142.6 95.8L137.6 91.1L132.5 87.2L127.4 84L122.1 81.5L116.9 79.7L111.5 78.6ZM121.8 78.7Q121.8 82.8 122.4 88.9Q120.7 82.4 115 76.5ZM115 76.5Q122.9 79.7 130.2 79.5Q124.1 80 121.8 78.7ZM127.7 81.6Q128.5 88.9 129.4 98.5Q127.4 88.4 121.5 78.6ZM121.5 78.6Q132.3 83.6 142.9 85.2Q133.4 84.1 127.7 81.6ZM133.4 85.3Q134.3 95.5 134.9 107.9Q133.3 94.8 128 81.8ZM128 81.8Q140.6 88.8 153.7 92.6Q141.7 89.5 133.4 85.3ZM139 89.8Q139.6 102.1 139.5 116.6Q138.6 101.3 134.3 85.9ZM134.3 85.9Q148 94.9 162.5 100.8Q148.9 95.7 139 89.8ZM144.5 95.1Q144.5 108.7 143.5 124.4Q143.6 107.9 140.4 91.1ZM140.4 91.1Q154.2 101.6 169.3 109.2Q155.1 102.4 144.5 95.1ZM149.8 101.3Q149.2 115.3 147.4 131.3Q148.4 114.4 146.3 97.2ZM146.3 97.2Q159.6 108.7 174.5 117.5Q160.4 109.6 149.8 101.3ZM155 108.3Q153.9 121.9 151.3 137.4Q153.2 121 152.1 104.2ZM152.1 104.2Q164.2 116.1 178.2 125.5Q164.9 117 155 108.3ZM160.1 116.2Q158.7 128.7 155.6 142.9Q158.1 127.7 157.6 112.2ZM157.6 112.2Q168.2 123.7 180.8 133Q168.8 124.8 160.1 116.2ZM165 124.9Q163.6 135.8 160.2 148.1Q163 134.8 163 121.2ZM163 121.2Q171.7 131.7 182.6 140.4Q172.3 132.8 165 124.9ZM169.9 134.5Q168.6 143.3 165.2 153.4Q168.1 142.3 168.2 131ZM168.2 131Q174.8 140.2 183.8 147.6Q175.3 141.3 169.9 134.5ZM174.6 145.1Q173.7 151.5 170.5 159Q173.2 150.4 173.2 141.8ZM173.2 141.8Q177.7 149.2 184.8 155Q178.2 150.3 174.6 145.1ZM179.1 156.5Q178.8 160.5 176.1 165.4Q178.3 159.4 178 153.5ZM178 153.5Q180.6 158.9 185.7 163Q181 160 179.1 156.5ZM183.6 168.8Q183.8 170.6 181.7 172.9Q183.4 169.4 182.7 166.1ZM182.7 166.1Q183.4 169.4 186.7 171.7Q183.8 170.6 183.6 168.8Z\"/></symbol><symbol id=\"cx-city\" viewBox=\"0 0 1200 70\" preserveAspectRatio=\"xMidYMax slice\"><path d=\"M0 70V52A26 26 0 0 1 53 52V70Z M57 70V60A25 25 0 0 1 107 60V70Z M111 70V46H120V40H129V34H149V40H158V46H167V70Z M169 70V64A26 26 0 0 1 222 64V70Z M227 70V30H246V14H252V30H271V70Z M272 70V34H283L287 16L291 34H302V70Z M302 70V28H311L315 10L319 28H329V70Z M329 70V41H349V25H355V41H375V70Z M375 70V57H405V70Z M406 70V36H415V30H424V24H443V30H452V36H461V70Z M462 70V30H470V24H478V18H494V24H502V30H510V70Z M511 70V33H528V17H534V33H552V70Z M553 70V58H595V70Z M600 70V57H665V70Z M670 70V63A25 25 0 0 1 721 63V70Z M724 70V45H731V39H738V33H753V39H760V45H767V70Z M771 70V51H840V70Z M840 70V39H857V23H863V39H880V70Z M885 70V40H892V34H899V28H913V34H920V40H927V70Z M928 70V20H937L941 2L945 20H954V70Z M954 70V54A23 23 0 0 1 1001 54V70Z M1003 70V42H1033V70Z M1036 70V48H1044V42H1052V36H1073V42H1081V48H1089V70Z M1094 70V53H1161V70Z M1164 70V64A26 26 0 0 1 1217 64V70Z\"/></symbol></defs>",
+    scene: "<div class=\"cs-sky\"></div><div class=\"cs-stars\"><i style=\"left:64%;top:17%\"></i><i style=\"left:79%;top:42%\"></i><i style=\"left:86%;top:7%\"></i><i style=\"left:60%;top:34%\"></i><i style=\"left:54%;top:43%\"></i><i style=\"left:84%;top:14%\"></i><i style=\"left:92%;top:31%\"></i><i style=\"left:67%;top:30%\"></i><i style=\"left:97%;top:16%\"></i><i style=\"left:96%;top:5%\"></i><i style=\"left:94%;top:18%\"></i></div><div class=\"cs-sunwrap\"><i class=\"cs-glow\"></i><svg class=\"cs-sun\" viewBox=\"0 0 200 112\"><use href=\"#cx-sun\"/></svg></div><svg class=\"cs-city\" viewBox=\"0 0 1200 70\" preserveAspectRatio=\"xMidYMax slice\"><use href=\"#cx-city\"/></svg><div class=\"cs-water\"><i class=\"cs-line\"></i><i></i><i></i><i></i><i></i></div><svg class=\"cs-palm p1\" viewBox=\"0 0 200 400\"><use href=\"#cx-palm\"/></svg><svg class=\"cs-palm p2\" viewBox=\"0 0 200 400\"><use href=\"#cx-palm\"/></svg><svg class=\"cs-palm p3\" viewBox=\"0 0 200 400\"><use href=\"#cx-palm\"/></svg>",
+    night: "<div class=\"qz-glow\"></div><div class=\"qz-grid\"></div>",
+    sunrise: "<div class=\"qz-rays\"></div><div class=\"qz-sunrise\"><i></i><svg viewBox=\"0 0 200 112\"><use href=\"#cx-sun\"/></svg></div><div class=\"qz-confetti\"><i style=\"--x:20%;--d:132ms;--c:#FF8A3D;--r:125deg;--dx:1px;--k:1.16\"></i><i style=\"--x:51%;--d:373ms;--c:#FF8A3D;--r:119deg;--dx:-57px;--k:0.72\"></i><i style=\"--x:96%;--d:300ms;--c:#A98BF0;--r:94deg;--dx:-45px;--k:0.98\"></i><i style=\"--x:84%;--d:7ms;--c:#22E4E0;--r:127deg;--dx:24px;--k:1.01\"></i><i style=\"--x:42%;--d:682ms;--c:#22E4E0;--r:41deg;--dx:48px;--k:1.08\"></i><i style=\"--x:9%;--d:256ms;--c:#FF8A3D;--r:139deg;--dx:-11px;--k:1.18\"></i><i style=\"--x:79%;--d:530ms;--c:#FF8A3D;--r:-150deg;--dx:-48px;--k:0.74\"></i><i style=\"--x:71%;--d:561ms;--c:#FFFFFF;--r:-158deg;--dx:-54px;--k:0.92\"></i><i style=\"--x:49%;--d:610ms;--c:#FF3E8A;--r:98deg;--dx:-19px;--k:0.76\"></i><i style=\"--x:7%;--d:430ms;--c:#FFFFFF;--r:54deg;--dx:14px;--k:0.74\"></i><i style=\"--x:47%;--d:98ms;--c:#FFFFFF;--r:-58deg;--dx:41px;--k:0.74\"></i><i style=\"--x:19%;--d:695ms;--c:#FFD23F;--r:-2deg;--dx:52px;--k:1.20\"></i><i style=\"--x:79%;--d:698ms;--c:#FFFFFF;--r:43deg;--dx:-16px;--k:0.99\"></i><i style=\"--x:79%;--d:399ms;--c:#FFFFFF;--r:-164deg;--dx:-55px;--k:0.78\"></i><i style=\"--x:3%;--d:535ms;--c:#FF3E8A;--r:137deg;--dx:60px;--k:1.15\"></i><i style=\"--x:62%;--d:34ms;--c:#A98BF0;--r:-87deg;--dx:44px;--k:1.04\"></i><i style=\"--x:90%;--d:19ms;--c:#22E4E0;--r:-156deg;--dx:-23px;--k:1.23\"></i><i style=\"--x:22%;--d:65ms;--c:#FFD23F;--r:-94deg;--dx:55px;--k:0.75\"></i><i style=\"--x:79%;--d:33ms;--c:#FF3E8A;--r:168deg;--dx:57px;--k:0.93\"></i><i style=\"--x:4%;--d:283ms;--c:#22E4E0;--r:-16deg;--dx:23px;--k:1.04\"></i><i style=\"--x:94%;--d:404ms;--c:#FF3E8A;--r:-129deg;--dx:-46px;--k:1.23\"></i><i style=\"--x:58%;--d:243ms;--c:#FFD23F;--r:-61deg;--dx:-42px;--k:1.16\"></i><i style=\"--x:66%;--d:395ms;--c:#22E4E0;--r:139deg;--dx:43px;--k:0.87\"></i><i style=\"--x:12%;--d:527ms;--c:#FFFFFF;--r:-147deg;--dx:33px;--k:0.78\"></i><i style=\"--x:90%;--d:45ms;--c:#FF3E8A;--r:-107deg;--dx:-10px;--k:0.83\"></i><i style=\"--x:10%;--d:205ms;--c:#FFD23F;--r:-15deg;--dx:-5px;--k:0.96\"></i><i style=\"--x:86%;--d:511ms;--c:#FF8A3D;--r:-177deg;--dx:7px;--k:1.20\"></i><i style=\"--x:93%;--d:102ms;--c:#FF3E8A;--r:-169deg;--dx:-33px;--k:0.82\"></i></div>",
+    level: "<div class=\"qz-stars\"><i style=\"left:83%;top:13%\"></i><i style=\"left:20%;top:50%\"></i><i style=\"left:84%;top:6%\"></i><i style=\"left:20%;top:14%\"></i><i style=\"left:85%;top:37%\"></i><i style=\"left:4%;top:7%\"></i><i style=\"left:92%;top:35%\"></i><i style=\"left:20%;top:11%\"></i><i style=\"left:93%;top:51%\"></i><i style=\"left:9%;top:25%\"></i><i style=\"left:85%;top:18%\"></i><i style=\"left:4%;top:39%\"></i><i style=\"left:80%;top:23%\"></i><i style=\"left:11%;top:30%\"></i><i style=\"left:86%;top:47%\"></i><i style=\"left:19%;top:32%\"></i></div><div class=\"qz-rays lv\"></div><div class=\"qz-grid run\"></div><div class=\"qz-confetti\"><i style=\"--x:20%;--d:132ms;--c:#FF8A3D;--r:125deg;--dx:1px;--k:1.16\"></i><i style=\"--x:51%;--d:373ms;--c:#FF8A3D;--r:119deg;--dx:-57px;--k:0.72\"></i><i style=\"--x:96%;--d:300ms;--c:#A98BF0;--r:94deg;--dx:-45px;--k:0.98\"></i><i style=\"--x:84%;--d:7ms;--c:#22E4E0;--r:127deg;--dx:24px;--k:1.01\"></i><i style=\"--x:42%;--d:682ms;--c:#22E4E0;--r:41deg;--dx:48px;--k:1.08\"></i><i style=\"--x:9%;--d:256ms;--c:#FF8A3D;--r:139deg;--dx:-11px;--k:1.18\"></i><i style=\"--x:79%;--d:530ms;--c:#FF8A3D;--r:-150deg;--dx:-48px;--k:0.74\"></i><i style=\"--x:71%;--d:561ms;--c:#FFFFFF;--r:-158deg;--dx:-54px;--k:0.92\"></i><i style=\"--x:49%;--d:610ms;--c:#FF3E8A;--r:98deg;--dx:-19px;--k:0.76\"></i><i style=\"--x:7%;--d:430ms;--c:#FFFFFF;--r:54deg;--dx:14px;--k:0.74\"></i><i style=\"--x:47%;--d:98ms;--c:#FFFFFF;--r:-58deg;--dx:41px;--k:0.74\"></i><i style=\"--x:19%;--d:695ms;--c:#FFD23F;--r:-2deg;--dx:52px;--k:1.20\"></i><i style=\"--x:79%;--d:698ms;--c:#FFFFFF;--r:43deg;--dx:-16px;--k:0.99\"></i><i style=\"--x:79%;--d:399ms;--c:#FFFFFF;--r:-164deg;--dx:-55px;--k:0.78\"></i><i style=\"--x:3%;--d:535ms;--c:#FF3E8A;--r:137deg;--dx:60px;--k:1.15\"></i><i style=\"--x:62%;--d:34ms;--c:#A98BF0;--r:-87deg;--dx:44px;--k:1.04\"></i><i style=\"--x:90%;--d:19ms;--c:#22E4E0;--r:-156deg;--dx:-23px;--k:1.23\"></i><i style=\"--x:22%;--d:65ms;--c:#FFD23F;--r:-94deg;--dx:55px;--k:0.75\"></i><i style=\"--x:79%;--d:33ms;--c:#FF3E8A;--r:168deg;--dx:57px;--k:0.93\"></i><i style=\"--x:4%;--d:283ms;--c:#22E4E0;--r:-16deg;--dx:23px;--k:1.04\"></i><i style=\"--x:94%;--d:404ms;--c:#FF3E8A;--r:-129deg;--dx:-46px;--k:1.23\"></i><i style=\"--x:58%;--d:243ms;--c:#FFD23F;--r:-61deg;--dx:-42px;--k:1.16\"></i><i style=\"--x:66%;--d:395ms;--c:#22E4E0;--r:139deg;--dx:43px;--k:0.87\"></i><i style=\"--x:12%;--d:527ms;--c:#FFFFFF;--r:-147deg;--dx:33px;--k:0.78\"></i><i style=\"--x:90%;--d:45ms;--c:#FF3E8A;--r:-107deg;--dx:-10px;--k:0.83\"></i><i style=\"--x:10%;--d:205ms;--c:#FFD23F;--r:-15deg;--dx:-5px;--k:0.96\"></i><i style=\"--x:86%;--d:511ms;--c:#FF8A3D;--r:-177deg;--dx:7px;--k:1.20\"></i><i style=\"--x:93%;--d:102ms;--c:#FF3E8A;--r:-169deg;--dx:-33px;--k:0.82\"></i></div>"
+  };
+  // gradients and artwork shared by every scene, medal and ring (kept out of view, never display:none, so references resolve)
+  function SkinDefs() {
+    return SKIN ? html`<svg class="skin-defs" width="0" height="0" aria-hidden="true" focusable="false" dangerouslySetInnerHTML=${{ __html: COAST.defs }}></svg>` : null;
+  }
+  function Scene(p) {
+    return html`<div class=${'cs' + (p.cls ? ' ' + p.cls : '')} aria-hidden="true" dangerouslySetInnerHTML=${{ __html: COAST.scene }}></div>`;
+  }
+
+  // Sound and vibration for Learn: a short synth sting when a member passes or levels up (built with Web Audio, so it works
+  // offline and adds no files) and a short buzz on phones that allow it. Sound starts off; both settings stay on the device.
+  var Fx = (function () {
+    var ctx = null;
+    function prefs() { var o = null; try { o = JSON.parse(read('trs-fx') || 'null'); } catch (e) { o = null; } o = o || {}; return { sound: o.sound === true, buzz: o.buzz !== false }; }
+    function save(p) { store('trs-fx', JSON.stringify({ sound: !!p.sound, buzz: !!p.buzz })); }
+    function canBuzz() { return typeof navigator.vibrate === 'function' && ((navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window); }
+    function audio() {
+      try {
+        if (!ctx) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ctx = new C(); }
+        if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+        return ctx;
+      } catch (e) { return null; }
+    }
+    function voice(c, out, at, hz, len, type, vol) {
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(hz, at);
+      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+      o.connect(g); g.connect(out); o.start(at); o.stop(at + len + 0.05);
+    }
+    function sting(kind) {
+      var c = audio(); if (!c) return;
+      try {
+        var lv = kind === 'level', t = c.currentTime + 0.03, out = c.createGain(), lp = c.createBiquadFilter(), echo = c.createDelay(), fb = c.createGain();
+        out.gain.value = 0.8; lp.type = 'lowpass'; lp.frequency.value = 3400; echo.delayTime.value = 0.17; fb.gain.value = 0.26;
+        out.connect(lp); lp.connect(c.destination); lp.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(c.destination);
+        var up = lv ? [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98] : [659.25, 830.61, 987.77, 1318.51], gap = lv ? 0.075 : 0.07;
+        up.forEach(function (hz, i) {
+          var len = i === up.length - 1 ? (lv ? 0.9 : 0.55) : 0.2;
+          voice(c, out, t + i * gap, hz, len, 'sawtooth', 0.06);
+          voice(c, out, t + i * gap, hz * 1.006, len, 'square', 0.025);
+        });
+        voice(c, out, t, lv ? 130.81 : 164.81, lv ? 1.1 : 0.6, 'triangle', 0.16);
+        if (lv) [523.25, 659.25, 783.99, 987.77].forEach(function (hz) { voice(c, out, t + up.length * gap, hz, 1.2, 'sawtooth', 0.03); });
+        setTimeout(function () { try { out.disconnect(); echo.disconnect(); fb.disconnect(); } catch (e) { /* already gone */ } }, 4000);
+      } catch (e) { /* no audio here */ }
+    }
+    function buzz(kind) { try { if (canBuzz()) navigator.vibrate(kind === 'level' ? [24, 60, 24, 60, 90] : [22, 50, 40]); } catch (e) { /* not allowed */ } }
+    return { prefs: prefs, save: save, canBuzz: canBuzz, sting: sting, buzz: buzz,
+      play: function (kind) { var p = prefs(); if (p.sound) sting(kind); if (p.buzz) buzz(kind); } };
+  })();
+
+  function FxCard() {
+    var s = useState(Fx.prefs), fx = s[0], setFx = s[1], buzz = Fx.canBuzz();
+    function flip(k) {
+      var n = { sound: fx.sound, buzz: fx.buzz }; n[k] = !fx[k];
+      Fx.save(n); setFx(n);
+      if (n[k]) { if (k === 'sound') Fx.sting('pass'); else Fx.buzz('pass'); }
+    }
+    function row(k, ic, label, note) {
+      return html`<li key=${k}><button class="grow fx-row" role="switch" aria-checked=${fx[k] ? 'true' : 'false'} aria-labelledby=${'fx-' + k} aria-describedby=${'fx-' + k + 'd'} onClick=${function () { flip(k); }}>
+        <span class="g-ic" aria-hidden="true"><${Ico} n=${ic} s=${20} /></span>
+        <span class="g-t"><b id=${'fx-' + k}>${label}</b><small id=${'fx-' + k + 'd'}>${note}</small></span>
+        <span class="sw" aria-hidden="true"></span>
+      </button></li>`;
+    }
+    return html`<section class="card glist-card fx-card" aria-labelledby="fx-h">
+      <div class="card-head"><h2 id="fx-h" class="card-k">Effects</h2></div>
+      <ul class="glist">${row('sound', 'sound', 'Sound effects', 'A short synth sting when you pass or level up')}${buzz ? row('buzz', 'buzz', 'Vibration', 'A short buzz when you pass') : null}</ul>
+    </section>`;
+  }
+
   var MEDAL_G = {
     market: 'M3 16l4-5 3 3 4-7 3 4 4-5', shield: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z', arrow: 'M5 19L19 5M10 5h9v9',
     margin: 'M4 6h16M4 18h16M12 9v6M9.5 11.5L12 9l2.5 2.5', book: 'M12 6.5C10.2 5.1 7.7 4.5 4 4.5v14c3.7 0 6.2.6 8 2 1.8-1.4 4.3-2 8-2v-14c-3.7 0-6.2.6-8 2zM12 6.5v14',
@@ -1578,9 +1663,14 @@
     earned: { rim: '#3E5A82', edge: '#3E5A82', tick: 'rgba(255,255,255,.35)', face: '#3E5A82', ring: '#9DB0C9', glyph: '#FFFFFF', dash: 'none' },
     locked: { rim: '#FFFFFF', edge: '#DCE2E9', tick: '#E3E8EF', face: '#F4F6F9', ring: '#B4BFCD', glyph: '#9AA8BB', dash: '3 3' }
   };
+  var MEDAL_COAST = {
+    mastered: { rim: 'url(#cx-rim)', edge: '#FFD23F', tick: 'rgba(255,255,255,.6)', face: 'url(#cx-night)', ring: '#22E4E0', glyph: '#FFE45C', dash: 'none' },
+    earned: { rim: 'url(#cx-teal)', edge: '#0E8A8F', tick: 'rgba(255,255,255,.5)', face: 'url(#cx-sunset)', ring: 'rgba(255,255,255,.7)', glyph: '#FFFFFF', dash: 'none' },
+    locked: { rim: '#FFFFFF', edge: '#E4DCF5', tick: '#EFE8FA', face: '#F7F3FD', ring: '#C9BEEA', glyph: '#9C8FC4', dash: '3 3' }
+  };
   function Medal(p) {
-    var c = MEDAL[p.state] || MEDAL.locked, s = p.size || 64;
-    if (p.onNavy && p.state === 'mastered') c = Object.assign({}, c, { rim: '#0B1A30', edge: '#C9D1DC' });
+    var set = SKIN ? MEDAL_COAST : MEDAL, c = set[p.state] || set.locked, s = p.size || 64;
+    if (p.onNavy && p.state === 'mastered' && !SKIN) c = Object.assign({}, c, { rim: '#0B1A30', edge: '#C9D1DC' });
     return html`<svg class="medal" width=${s} height=${s} viewBox="0 0 88 88" aria-hidden="true">
       <circle cx="44" cy="44" r="42" fill=${c.rim} stroke=${c.edge} stroke-width="1.5"></circle>
       <circle cx="44" cy="44" r="38" fill="none" stroke=${c.tick} stroke-width="3" stroke-dasharray="1.2 2.6"></circle>
@@ -1589,12 +1679,13 @@
     </svg>`;
   }
   function Ring(p) {
-    var s = p.size || 58, w = p.w || 4, r = s / 2 - w, c = 2 * Math.PI * r, mid = s / 2;
+    var s = p.size || 58, w = p.w || 4, r = s / 2 - w, c = 2 * Math.PI * r, mid = s / 2, sk = !!SKIN;
     return html`<svg class="ring" width=${s} height=${s} viewBox=${'0 0 ' + s + ' ' + s} aria-hidden="true">
-      <circle cx=${mid} cy=${mid} r=${r} fill=${p.fill || 'none'} stroke=${p.track || '#E3E8EF'} stroke-width=${w}></circle>
-      <circle class="ring-arc" cx=${mid} cy=${mid} r=${r} fill="none" stroke=${p.color || '#0F2340'} stroke-width=${w} stroke-linecap="round"
+      <circle cx=${mid} cy=${mid} r=${r} fill=${p.fill || 'none'} stroke=${p.track || (sk ? '#EEE6FB' : '#E3E8EF')} stroke-width=${w}></circle>
+      <circle class="ring-arc" cx=${mid} cy=${mid} r=${r} fill="none" stroke=${p.color || (sk ? 'url(#cx-arc)' : '#0F2340')} stroke-width=${w} stroke-linecap="round"
         stroke-dasharray=${(c * clamp(p.pct, 0.012, 1)).toFixed(1) + ' ' + c.toFixed(1)} transform=${'rotate(-90 ' + mid + ' ' + mid + ')'}></circle>
-      <text x=${mid} y=${mid + s * 0.125} text-anchor="middle" font-family="Newsreader, Georgia, serif" font-size=${Math.round(s * 0.36)} fill=${p.ink || '#0F2340'}>${p.n}</text>
+      ${sk ? html`<text x=${mid - s * 0.01} y=${mid + s * 0.13} text-anchor="middle" font-family="Kanit, 'IBM Plex Sans', sans-serif" font-style="italic" font-weight="800" font-size=${Math.round(s * 0.36)} fill=${p.ink || '#24124F'}>${p.n}</text>`
+        : html`<text x=${mid} y=${mid + s * 0.125} text-anchor="middle" font-family="Newsreader, Georgia, serif" font-size=${Math.round(s * 0.36)} fill=${p.ink || '#0F2340'}>${p.n}</text>`}
     </svg>`;
   }
   var TICK = html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>`;
@@ -1631,7 +1722,8 @@
     if (!d) return null;
     var it = d.item, done = d.done, X = LP.X;
     var src = d.unit ? d.book.short + ' · ' + d.unit.label : d.book ? d.book.short + ' · sample question' : 'Sample question';
-    return html`<section class=${'panel-navy on-navy daily' + (p.compact ? ' compact' : '')} aria-labelledby=${'dq-h' + (p.compact ? 'c' : '')}>
+    return html`<section class=${'panel-navy on-navy daily' + (SKIN ? ' ' + SKIN : '') + (p.compact ? ' compact' : '')} aria-labelledby=${'dq-h' + (p.compact ? 'c' : '')}>
+      ${p.compact && SKIN ? html`<div class="cs-band"><${Scene} cls="mini" /></div>` : null}
       <div class="dq-head"><h2 id=${'dq-h' + (p.compact ? 'c' : '')} class="card-k">Question of the day</h2>${LM.streak ? html`<span class="dq-streak">${FLAME}${LM.streak} ${plural(LM.streak, 'day')} running</span>` : null}</div>
       <span class="dq-type">${it.tf ? 'True or false' : LP.tiers[it.tier - 1].name}</span>
       <p class="dq-q">${it.q}</p>
@@ -1767,7 +1859,7 @@
       : u.wait ? html`<span class="pill off wide">Next try tomorrow</span>`
       : html`<button class="pill wide" data-autofocus onClick=${function () { A.startQuiz('check', u.id); }}>${u.passed ? 'Retake for full marks' : 'Take the check'}</button>`;
     var tag = u.state === 'perfect' ? html`<${Tag} text="Full marks" tone="ok" />` : u.state === 'passed' ? html`<${Tag} text="Passed" tone="ok" />` : u.state === 'locked' ? html`<${Tag} text="Locked" tone="quiet" />` : html`<${Tag} text="Open" tone="when" />`;
-    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label=${u.label + ': ' + u.title}>
+    return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label=${u.label + ': ' + u.title}>
       <div class="sheet-head"><span class="when">${bk.title}${u.module ? ' · ' + u.module : ''}</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
         <span class="card-k">${u.label}</span>
@@ -1803,7 +1895,7 @@
 
   function BadgesSheet(p) {
     var LM = p.LM, LP = p.LP;
-    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Badges">
+    return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label="Badges">
       <div class="sheet-head"><span class="when">${LM.earned} of ${LM.badges.length} earned</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body" tabindex="0" aria-label="All badges">
         <h2 class="sheet-title">Badges</h2>
@@ -1832,7 +1924,7 @@
     </div></div>`;
   }
   function CertSheet(p) {
-    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label=${'Certificate: ' + p.book.title}>
+    return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label=${'Certificate: ' + p.book.title}>
       <div class="sheet-head"><span class="when">Certificate</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body"><${Certificate} LP=${p.LP} book=${p.book} role=${p.role} best=${p.f.best} size=${p.f.size} at=${p.f.passed} />
         <button class="pill wide" onClick=${p.share}>Share my progress</button></div>
@@ -1845,7 +1937,7 @@
       function pick() { var el = ref.current; if (el) { el.focus(); el.select(); } }
       try { navigator.clipboard.writeText(p.code).then(function () { setCopied(true); }, pick); } catch (e) { pick(); }
     }
-    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Move your progress">
+    return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label="Move your progress">
       <div class="sheet-head"><span class="when">Backup code</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
         <h2 class="sheet-title">Move your progress</h2>
@@ -1914,6 +2006,7 @@
       if (q.i < items.length - 1) return set2({ i: q.i + 1, pick: -1, report: false });
       live.current.done = true;
       var ev = A.learnFinish(spec, q.answers);
+      if (ev && (ev.level || (ev.passed && spec.kind !== 'review'))) Fx.play(ev.level ? 'level' : 'pass');
       set2({ phase: ev && ev.level ? 'level' : 'done', ev: ev });
     }
     function close() {
@@ -1970,7 +2063,8 @@
       content = html`<div class="qz-level on-navy">
         <div class="ql-in">
           <span class="ql-k">${spec.kind === 'promo' ? 'Promotion review passed · ' + ev.score + ' of ' + ev.size : 'Both book finals passed'}</span>
-          <${Ring} size=${124} w=${6} pct=${1} n=${lvl.n} color="#FFFFFF" track="rgba(255,255,255,.14)" fill="rgba(255,255,255,.06)" ink="#FFFFFF" />
+          ${SKIN ? html`<div class="ql-emblem"><svg class="ql-sun" viewBox="0 0 200 200" aria-hidden="true"><use href="#cx-sunfull"></use></svg><${Ring} size=${124} w=${6} pct=${1} n=${lvl.n} color="url(#cx-gold)" track="rgba(255,255,255,.18)" fill="#1A0A40" ink="#FFFFFF" /></div>`
+            : html`<${Ring} size=${124} w=${6} pct=${1} n=${lvl.n} color="#FFFFFF" track="rgba(255,255,255,.14)" fill="rgba(255,255,255,.06)" ink="#FFFFFF" />`}
           <span class="ql-eyebrow">Level up</span>
           <h2 class="ql-name" ref=${head} tabindex="-1">${lvl.name}</h2>
           <p class="ql-note">${opened != null ? LP.tiers[opened].name + ' questions are now open' + (LP.tiers[opened].note ? ': ' + LP.tiers[opened].note.charAt(0).toLowerCase() + LP.tiers[opened].note.slice(1) : '') + '.' : 'Checks now mix in harder questions.'}</p>
@@ -1997,7 +2091,8 @@
         : 'You need ' + e.pass + ' of ' + e.size + '. Missed questions are in your review deck' + (LP.R.retry === 'nextDay' ? '; your next try opens tomorrow.' : '.');
       content = html`<div class="qz-body" ref=${body}>
         <div class="qr-score">
-          <${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} color=${e.passed || spec.kind === 'review' ? '#0F2340' : '#3E5A82'} />
+          ${SKIN ? html`<${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} color=${spec.kind === 'review' ? '#22E4E0' : e.passed ? 'url(#cx-gold)' : 'url(#cx-arc)'} track="rgba(255,255,255,.16)" fill="rgba(26,10,64,.55)" ink="#FFFFFF" />`
+            : html`<${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} color=${e.passed || spec.kind === 'review' ? '#0F2340' : '#3E5A82'} />`}
           <div><h2 class="qr-title" ref=${head} tabindex="-1">${title}</h2><span class="qr-of tnum">${e.score} of ${e.size} right${spec.kind === 'review' ? '' : ' · pass with ' + e.pass}</span></div>
         </div>
         ${note ? html`<p class="qr-note">${note}</p>` : null}
@@ -2007,9 +2102,12 @@
       </div>
       <div class="qz-foot">${e.cert ? html`<button class="qz-go" onClick=${function () { set2({ phase: 'cert' }); }}>See your certificate</button>` : html`<button class="qz-go" onClick=${p.onClose}>Done</button>`}</div>`;
     }
-    return html`<div class="qz-wrap">
+    var won = q.phase === 'done' && q.ev && q.ev.passed && spec.kind !== 'review';
+    var deco = !SKIN ? '' : q.phase === 'level' ? 'level' : won ? 'sunrise' : 'night';
+    return html`<div class=${'qz-wrap' + (SKIN ? ' ' + SKIN : '')}>
       <div class="scrim" onClick=${q.phase === 'q' ? null : p.onClose}></div>
-      <div ref=${box} class=${'quiz' + (q.phase === 'level' ? ' navy' : '')} role="dialog" aria-modal="true" aria-label=${label + ': ' + spec.title} onKeyDown=${onKey}>
+      <div ref=${box} class=${'quiz' + (SKIN ? ' ' + SKIN : '') + (q.phase === 'level' ? ' navy' : '') + (won && SKIN ? ' sunrise' : '')} role="dialog" aria-modal="true" aria-label=${label + ': ' + spec.title} onKeyDown=${onKey}>
+        ${deco ? html`<div key=${deco} class=${'qz-deco ' + deco} aria-hidden="true" dangerouslySetInnerHTML=${{ __html: COAST[deco] }}></div>` : null}
         ${q.phase === 'level' ? null : top}
         ${content}
       </div>
@@ -2218,6 +2316,14 @@
       set({ changes: { member: m.id, snap: cur, items: items, noticeId: showNotice ? N.id : '',
         title: showNotice ? (N.title || 'Notice') : 'Dates changed since your last visit', text: showNotice ? N.text : '' } });
     }, [st.P, st.mi]);
+
+    // Learn's skin reaches the edges of the screen too: the page behind the bounce, the status bar and the browser bar
+    var skinKey = !SKIN ? '' : st.sheet && st.sheet.kind === 'quiz' ? 'quiz' : st.tab === 'learn' && st.P ? 'learn' : '';
+    useEffect(function () {
+      var de = document.documentElement, mt = document.querySelector('meta[name="theme-color"]');
+      if (SKIN) de.classList.toggle(SKIN + '-on', !!skinKey);
+      if (mt) mt.setAttribute('content', skinKey === 'quiz' ? '#120A2E' : skinKey ? '#1A0A40' : '#0F2340');
+    }, [skinKey]);
 
     if (st.err) return html`<div class="boot">The dates could not load (${st.err}). Check your connection, then reload the page.</div>`;
     if (!st.P) return html`<div class="boot">Loading the members’ dashboard…</div>`;
@@ -2469,9 +2575,9 @@
       else {
         var lvc = html`<${LevelCard} key="lv" LM=${LM} LP=${LP} A=${A} role=${m.role} />`, dqc = html`<${DailyCard} key="dq" LM=${LM} LP=${LP} A=${A} />`;
         var bks = LM.books.map(function (x) { return html`<${BookCard} key=${'bk' + x.b.id} bk=${x} LP=${LP} A=${A} open=${!!st.bookOpen[x.b.id]} />`; });
-        var rest = [html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, html`<${ReviewCard} key="rv" LM=${LM} A=${A} />`, html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, html`<${ProgressCard} key="pg" A=${A} />`,
+        var rest = [html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, html`<${ReviewCard} key="rv" LM=${LM} A=${A} />`, html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, html`<${ProgressCard} key="pg" A=${A} />`, html`<${FxCard} key="fx" />`,
           window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null];
-        content = phone ? [lvc, dqc].concat(bks, rest) : cols([lvc].concat(bks, [rest[0], rest[2]]), [dqc, rest[1], rest[3], rest[4]]);
+        content = phone ? [lvc, dqc].concat(bks, rest) : cols([lvc].concat(bks, [rest[0], rest[2]]), [dqc, rest[1], rest[3], rest[4], rest[5]]);
       }
     } else if (tab === 'you') {
       var rc = roleCards(M, A);
@@ -2490,11 +2596,13 @@
         : cols([html`<${NextCard} key="nx" M=${M} A=${A} />`], [html`<${NextMeet} key="nm" M=${M} A=${A} />`, html`<${Queue} key="q" M=${M} />`, dailyToday], changes ? [html`<div key="chw" class="wide">${changes}</div>`] : []);
     }
 
-    return html`<div class=${'app ' + (phone ? 'has-tabbar' : 'has-rail')}>
+    var skinPage = tab === 'learn' && SKIN;
+    return html`<div class=${'app ' + (phone ? 'has-tabbar' : 'has-rail') + (skinPage ? ' ' + SKIN + '-page' : '')}>
+      <${SkinDefs} />
       ${phone ? null : html`<${Rail} M=${M} A=${A} tab=${tab} />`}
       ${head}
       ${phone && lensTab ? html`<div class="lens-dock" role="region" aria-label="View"><${LensSwitch} M=${M} A=${A} /></div>` : null}
-      <main key=${tab + M.m.id + M.lens} class=${'board tabbed fade ' + animRef.current + ' t-' + tab + (phone ? ' stack' : '')}>
+      <main key=${tab + M.m.id + M.lens} class=${'board tabbed fade ' + animRef.current + ' t-' + tab + (phone ? ' stack' : '') + (skinPage ? ' ' + SKIN : '')}>
         ${content}
       </main>
       <${Footer} M=${M} A=${A} st=${st} />
