@@ -1207,8 +1207,8 @@ button.bk-nm:hover{background:var(--mist)}
    each question type has its colour (recall teal, concept marigold, applied tangerine), passed chapters fill teal and full
    marks marigold, a pass breaks the stripes out of their range, and a level-up redraws the climb. Burgundy is the action
    colour; red is kept for wrong answers and falling behind. Michroma for the big titles, Fraunces (soft) for headings and
-   scores, IBM Plex Sans for questions. In October and November Pretoria's jacarandas flower in the header and fall when a
-   member passes. Dark espresso is used for the two feature surfaces: the question of the day and the level-up. */
+   scores, IBM Plex Sans for questions. Pretoria's jacarandas flower in the header and fall when a member passes. Dark
+   espresso is used for the two feature surfaces: the question of the day and the level-up. */
 .board.stripes,.sheet.stripes,.quiz.stripes{
   --navy:#2A1A1F; --navy-2:#1E1416; --slate:#007078; --slate-2:#5FA3A6;
   --ink:#2A1A1F; --muted:#6B5A55; --past:#7A6862;
@@ -1293,8 +1293,6 @@ html.stripes-on body::before{background:#811638}
 .board.stripes .pc-gap{top:0;bottom:0}
 .board.stripes .g-ic{background:#F8E6DA;color:#811638}
 .board.stripes .grow:hover,.board.stripes button.bk-nm:hover,.board.stripes .u-row:hover,.board.stripes .bk-all:hover{background:#FBF1E3}
-.lt-skins{margin-top:-4px}
-.lt-skins button[aria-pressed="true"]{background:var(--ink);color:#FFFFFF;border-color:var(--ink)}
 
 /* the question of the day: an espresso card with the stripes climbing across its top */
 .panel-navy.daily.stripes{background:radial-gradient(110% 80% at 100% 0%,rgba(129,22,56,.55),rgba(129,22,56,0) 60%),#2A1A1F;border:0;border-radius:14px;box-shadow:0 10px 26px rgba(42,26,31,.28)}
@@ -1415,4 +1413,29 @@ html.stripes-on body::before{background:#811638}
 @media (prefers-reduced-motion:reduce){
   .st-draw path,.st-drift .st-petal,.qz-deco .st-petal{animation:none!important}
   .st-drift,.qz-deco .st-petal{display:none}
+}
+
+/* ---------- phones on their side (auto-rotate on) and other short windows ----------
+   The check fills the screen with its footer on one line, and headers are shorter, so content starts on the first screen. */
+@media (max-height:560px) and (orientation:landscape){
+  .qz-wrap{align-items:stretch}
+  .quiz{width:100vw;height:100%;max-height:none;border-radius:0;animation:slideU 320ms var(--ease)}
+  .qz-top{padding:4px max(16px, env(safe-area-inset-right, 0px)) 2px max(16px, env(safe-area-inset-left, 0px))}
+  .qz-bar{padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px))}
+  .qz-body{padding:10px max(24px, env(safe-area-inset-right, 0px)) 14px max(24px, env(safe-area-inset-left, 0px));gap:10px}
+  .qz-q{font-size:19px}
+  .qz-opt{min-height:46px;padding:7px 14px}
+  .qz-foot{flex-direction:row-reverse;justify-content:space-between;align-items:center;gap:12px;padding:8px max(20px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px))}
+  .qz-go{width:auto;min-width:220px;min-height:44px;padding:0 24px}
+  .qz-leave{flex-direction:row;align-items:center;justify-content:space-between}
+  .qz-leave p{text-align:left}
+  .qz-leave div{display:flex;gap:8px}
+  .qz-leave .pill{min-height:44px;padding:0 20px}
+  .qz-level{padding-top:16px}
+  .mast-inner{gap:20px;padding-block:calc(10px + var(--safe-top)) 84px}
+  .page-head .hero{gap:6px}
+  .page-head .hero h1{font-size:34px}
+  .page-head.stripes .mast-inner{padding-bottom:140px}
+  .st-climb{height:170px}
+  .st-branch{width:200px;height:127px}
 }

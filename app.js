@@ -1569,8 +1569,8 @@
   // ---------- learn: pieces ----------
   // ---------- Learn looks ----------
   // Learn has two looks. "stripes" (the default): 1970s racing stripes on cream, where the stripes carry meaning (a climb with
-  // one step per level, a colour per question type, a breakout on a pass) and Pretoria's jacarandas flower in October and
-  // November. "society": the app's own navy and silver. Each member chooses with the switch at the bottom of the Learn page;
+  // one step per level, a colour per question type, a breakout on a pass) and Pretoria's jacarandas in flower. "society":
+  // the app's own navy and silver. Each member chooses with the switch at the bottom of the Learn page;
   // the choice stays on their device. Everything a look changes hangs off SK and its block in app.css, so another look slots
   // in without touching the rest. The certificate keeps the Society look either way.
   var SKIN_DEFAULT = 'stripes';
@@ -1636,11 +1636,6 @@
     for (var k = 1; k <= n; k++) { x += s; y -= s; pts.push([x, y]); if (k < n) { x += p; pts.push([x, y]); } }
     pts.push([600, y]);
     return (stCache['s' + n] = stBundle(pts, 16, 6, 1.5, ST.cols));
-  }
-  function inBloom(day) {
-    if (window.TRS_LEARN) { var o = read('trs-bloom'); if (o === 'on' || o === 'off') return o === 'on'; }
-    var m = new Date(day).getUTCMonth() + 1;
-    return m === 10 || m === 11; // Pretoria's jacarandas: October and November
   }
   var MEDAL_STRIPES = {
     mastered: { rim: 'url(#st-rim-m)', edge: '#B9821A', tick: 'rgba(255,255,255,.7)', face: 'url(#st-face-m)', ring: '#FCB632', glyph: '#FCB632', dash: 'none' },
@@ -1942,7 +1937,6 @@
         <button onClick=${function () { A.learnDemo('promo'); }}>Promotion due</button>
         <button onClick=${function () { A.learnDemo('day'); }}>Next day</button>
       </div>
-      ${SKIN === 'stripes' ? html`<div class="lt-btns lt-skins"><button aria-pressed=${p.bloom ? 'true' : 'false'} onClick=${function () { A.learnBloom(!p.bloom); }}>Jacarandas</button></div>` : null}
     </section>`;
   }
 
@@ -2436,7 +2430,7 @@
     var list = M.groups.reduce(function (a, g) { return a.concat(g.items); }, []);
     // Learn: this role's record on this device, and what the screens show for it today
     var LP = st.LP, learnDay = st.asOf + (st.learnShift || 0) * DAY, lctx = { id: M.m.id, cycle: M.m.cycle, dates: {} };
-    var bloom = SKIN === 'stripes' && inBloom(learnDay);
+    var bloom = SKIN === 'stripes'; // the jacarandas come with the stripes look
     P.analyst.forEach(function (e) { lctx.dates[e.key] = e.ms; });
     function getLS(id) { if (!learnRef.current[id]) learnRef.current[id] = LearnStore.load(id) || freshLearn(); return learnRef.current[id]; }
     var LM = null;
@@ -2602,7 +2596,6 @@
         return { ok: true, text: 'Restored: Level ' + o.s.level + ', ' + num(o.s.xp) + ' XP' + (mi !== M.mi ? ', for the ' + P.members[mi].role : '') + '.' };
       },
       setLook: function (v) { setSkin(v); set(function (prev) { return { learnTick: prev.learnTick + 1 }; }); },
-      learnBloom: function (on) { store('trs-bloom', on ? 'on' : 'off'); location.reload(); },
       learnDemo: function (kind) {
         if (kind === 'day') { set(function (prev) { return { learnShift: (prev.learnShift || 0) + 1 }; }); return; }
         var S = learnDemo(LP, kind, learnDay, lctx), id = M.m.id;
@@ -2677,7 +2670,7 @@
         var lvc = html`<${LevelCard} key="lv" LM=${LM} LP=${LP} A=${A} role=${m.role} />`, dqc = html`<${DailyCard} key="dq" LM=${LM} LP=${LP} A=${A} />`;
         var bks = LM.books.map(function (x) { return html`<${BookCard} key=${'bk' + x.b.id} bk=${x} LP=${LP} A=${A} open=${!!st.bookOpen[x.b.id]} />`; });
         var rest = [html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, html`<${ReviewCard} key="rv" LM=${LM} A=${A} />`, html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, html`<${ProgressCard} key="pg" A=${A} />`, html`<${FxCard} key="fx" />`,
-          window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} bloom=${bloom} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null];
+          window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null];
         content = phone ? [lvc, dqc].concat(bks, rest) : cols([lvc].concat(bks, [rest[0], rest[2]]), [dqc, rest[1], rest[3], rest[4], rest[5]]);
         content = content.concat([html`<div key="lk" class="wide"><${LookBar} A=${A} /></div>`]);
       }
@@ -2699,6 +2692,8 @@
     }
 
     var skinPage = tab === 'learn' && SKIN;
+    // messages wait while a check is open: they would cover its buttons, and a refresh mid-check would count as a try
+    var inCheck = !!(st.sheet && st.sheet.kind === 'quiz');
     return html`<div class=${'app ' + (phone ? 'has-tabbar' : 'has-rail') + (skinPage ? ' ' + SKIN + '-page' : '')}>
       <${SkinDefs} />
       ${phone ? null : html`<${Rail} M=${M} A=${A} tab=${tab} />`}
@@ -2709,8 +2704,8 @@
       </main>
       <${Footer} M=${M} A=${A} st=${st} />
       ${phone ? html`<${TabBar} M=${M} A=${A} tab=${tab} />` : null}
-      ${st.updateReady && !st.toast ? html`<div class="toast" role="status"><span><b>A new version is ready</b></span><button onClick=${function () { location.reload(); }}>Refresh</button></div>` : null}
-      ${st.toast ? html`<div class="toast" role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span>${st.toast.info ? null : html`<button onClick=${A.undo}>Undo</button>`}</div>` : null}
+      ${st.updateReady && !st.toast && !inCheck ? html`<div class="toast" role="status"><span><b>A new version is ready</b></span><button onClick=${function () { location.reload(); }}>Refresh</button></div>` : null}
+      ${st.toast && !inCheck ? html`<div class="toast" role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span>${st.toast.info ? null : html`<button onClick=${A.undo}>Undo</button>`}</div>` : null}
       ${sheet}
     </div>`;
   }
