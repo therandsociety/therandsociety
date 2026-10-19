@@ -1,7 +1,7 @@
 /* Offline support for the Rand Society app.
-   The app shell is cached on install. data.json is fetched fresh whenever the network allows and falls back to the
-   last good copy, so an edit with a typo never blanks the dashboard. */
-var VERSION = 'a549f2861f';
+   The app shell is cached on install. data.json (dates) and learn.json (the reading programme) are fetched fresh
+   whenever the network allows and fall back to the last good copy, so an edit with a typo never blanks the app. */
+var VERSION = 'a10c8f0fea';
 var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 var SHELL_CACHE = 'trs-shell-' + VERSION;
 var DATA_CACHE = 'trs-data';
@@ -24,10 +24,10 @@ function timeout(ms, p) {
   });
 }
 
-function freshData(request) {
+function freshData(request, name) {
   return caches.open(DATA_CACHE).then(function (cache) {
     var lastGood = function () {
-      return cache.match('data.json').then(function (hit) {
+      return cache.match(name).then(function (hit) {
         if (!hit) return hit;
         var h = new Headers(hit.headers); h.set('x-trs-source', 'cache');
         return hit.blob().then(function (b) { return new Response(b, { status: 200, headers: h }); });
@@ -37,7 +37,7 @@ function freshData(request) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.clone().text().then(function (text) {
         try { JSON.parse(text); } catch (e) { return lastGood().then(function (hit) { return hit || res; }); }
-        return cache.put('data.json', res.clone()).then(function () { return res; });
+        return cache.put(name, res.clone()).then(function () { return res; });
       });
     }).catch(function (err) {
       return lastGood().then(function (hit) { if (hit) return hit; throw err; });
@@ -60,7 +60,8 @@ self.addEventListener('fetch', function (event) {
     }));
     return;
   }
-  if (/\/data\.json$/.test(url.pathname)) { event.respondWith(freshData(req)); return; }
+  var json = /\/(data|learn)\.json$/.exec(url.pathname);
+  if (json) { event.respondWith(freshData(req, json[1] + '.json')); return; }
   if (/\/check\.html$/.test(url.pathname)) return;
   if (req.mode === 'navigate') {
     event.respondWith(caches.match('index.html', { cacheName: SHELL_CACHE }).then(function (hit) {

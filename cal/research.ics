@@ -11,7 +11,7 @@ REFRESH-INTERVAL;VALUE=DURATION:PT6H
 X-PUBLISHED-TTL:PT6H
 BEGIN:VEVENT
 UID:notice-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:November exam notice due (if writing)
 DESCRIPTION:Writing a November exam? By 17:00\, notify the Society through 
  the official WhatsApp\, Teams or email channel and state your final-exam d
@@ -34,7 +34,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:nov6-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Research Standards Manual outline
 DESCRIPTION:Complete the outline of the Investment Research and Thesis Stan
  dards Manual.\n\nOpen the app: https://therandsociety.github.io/therandsoc
@@ -57,7 +57,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:tl1-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: First drafts and Traffic-Light Review 1
 DESCRIPTION:File your first operating-pack drafts for Traffic-Light Review 
  1.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#resea
@@ -81,7 +81,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:nov20-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Cross-role consistency review
 DESCRIPTION:Research\, portfolio\, records\, publication\, access and appro
  val dependencies tested on paper.\n\nOpen the app: https://therandsociety.
@@ -103,7 +103,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:rm-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Research Standards Manual draft
 DESCRIPTION:Controlled draft of the Investment Research and Thesis Standard
  s Manual with its correction register\, circulated in the controlled IC pr
@@ -127,7 +127,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ic1-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 1
 DESCRIPTION:Operating-pack review\, provisional workflow-test decisions\, c
  orrection owners and deadlines. You lead the research discussion.\n\nAs an
@@ -146,7 +146,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:wft-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: End-to-end workflow test
 DESCRIPTION:One sample idea run through registration\, pre-clearance\, rese
  arch review\, version control\, circulation\, decision recording and publi
@@ -164,7 +164,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls1-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 1: How financial services companies make money · 
  You support
 DESCRIPTION:One-page brief\, facilitated discussion and an application exer
@@ -184,7 +184,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:fclose-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Foundation phase closes
 DESCRIPTION:Your Research Standards Manual is approved and live.\n\nOpen th
  e app: https://therandsociety.github.io/therandsociety/#research
@@ -205,7 +205,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-scope-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Sector scope and source map filed
 DESCRIPTION:File your initial Financials scope and source map\, ready for J
  anuary sector work.\n\nOpen the app: https://therandsociety.github.io/ther
@@ -227,7 +227,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan5-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Full production resumes
 DESCRIPTION:Research queue\, owners\, review slots and January workload con
  firmed.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#
@@ -244,7 +244,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan15-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Theme primer in\, sector briefs to review
 DESCRIPTION:Submit the Financials theme primer. The other analysts’ brief
  s and watchlists come to you for quality review: accepted or revision-requ
@@ -269,7 +269,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-brief-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Theme primer and watchlist submitted
 DESCRIPTION:Submit the Financials theme primer\, which counts as your secto
  r brief\, with a watchlist of five to ten companies.\n\nOpen the app: http
@@ -291,7 +291,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ic2-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 2
 DESCRIPTION:Sector readiness\, theme primer\, watchlist quality\, portfolio
   capacity and corrective actions.\n\nAs an analyst: Sector readiness: your
@@ -309,7 +309,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-cand-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Thesis candidate pre-cleared
 DESCRIPTION:Your brief and watchlist are accepted. Register your preferred 
  candidate with a primary source pack and get Portfolio Manager pre-clearan
@@ -332,7 +332,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls2-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 2: Valuing financial companies · You support
 DESCRIPTION:Compare two JSE-listed financial companies and defend the valua
  tion premium or discount.\n\nOpen the app: https://therandsociety.github.i
@@ -349,7 +349,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan29-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Interim report inputs
 DESCRIPTION:Submit your Interim Progress Report inputs and corrective-actio
  n proposals.\n\nOpen the app: https://therandsociety.github.io/therandsoci
@@ -371,7 +371,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan31-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 3: Interim Progress Report
 DESCRIPTION:Traffic-Light Review 2\, Interim Progress Report approval\, can
  didate readiness and February sequencing.\n\nAs an analyst: Candidate read
@@ -389,7 +389,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb5-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Level 2 draft and Cycle A theses
 DESCRIPTION:Submit your Level 2 full draft for independent review. Pitch Cy
  cle A theses and models arrive for your research review.\n\nOpen the app: 
@@ -412,7 +412,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-thesisA-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Level 2 draft to independent review
 DESCRIPTION:Your Level 2 full draft\, which counts as your thesis\, goes to
   the independent reviewer appointed by the Members.\n\nOpen the app: https
@@ -434,7 +434,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls3-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 3: Technology\, competition and financial inclusio
  n · You support
 DESCRIPTION:Assess whether a selected strategy improves revenue\, cost\, ri
@@ -453,7 +453,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb9-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Cycle A research feedback
 DESCRIPTION:Return research feedback on Cycle A theses\, with evidence-base
  d correction requirements.\n\nOpen the app: https://therandsociety.github.
@@ -475,7 +475,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-fbA-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Review comments back
 DESCRIPTION:Comments come back with written reasons. Address each one or gi
  ve reasoned written disagreement.\n\nOpen the app: https://therandsociety.
@@ -497,7 +497,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-preA-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Final pre-read circulated
 DESCRIPTION:Your final version passes COO format control and goes out as th
  e controlled pre-read by 17:00.\n\nOpen the app: https://therandsociety.gi
@@ -519,7 +519,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:pica-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 4: Pitch IC A · You pitch
 DESCRIPTION:Pitch Cycle A presentations and simulated investment decisions.
   You lead the research discussion.\n\nAs an analyst: Present your thesis f
@@ -538,7 +538,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb15-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Cycle B research feedback
 DESCRIPTION:Return research feedback on Cycle B theses\, with correction re
  quirements.\n\nOpen the app: https://therandsociety.github.io/therandsocie
@@ -560,7 +560,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb19h-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Draft handovers due
 DESCRIPTION:Submit your draft handover by 17:00\, ahead of the handover-dra
  ft review at Formal IC 5.\n\nOpen the app: https://therandsociety.github.i
@@ -582,7 +582,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-second-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Secondary contribution and development
 DESCRIPTION:Your secondary output (a company update\, valuation comparison\
  , catalyst or monitoring note) and your professional-development evidence\
@@ -605,7 +605,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:picb-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 5: Pitch IC B · You support
 DESCRIPTION:Pitch Cycle B presentations and votes\, the final portfolio rev
  iew and the handover-draft review. You lead the research discussion.\n\nOp
@@ -622,7 +622,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb23-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Head of Research: Level 2 report final\, report inputs submitted
 DESCRIPTION:Your Level 2 Equity Research Report is finalised and accepted t
  hrough independent review. Submit your Term-End Report inputs.\n\nOpen the
@@ -646,7 +646,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-l2-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Level 2 report final
 DESCRIPTION:Your Level 2 Equity Research Report is finalised and accepted t
  hrough independent review.\n\nOpen the app: https://therandsociety.github.
@@ -668,7 +668,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:close-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 6 and H1 close
 DESCRIPTION:Traffic-Light Review 3\, scorecard\, H2 recommendations\, final
   approvals and the closing resolution.\n\nAs an analyst: Scorecard\, H2 re
@@ -687,7 +687,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-close-hor@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Handover note and peer evaluation
 DESCRIPTION:Both are filed by the H1 close. The peer-evaluation pack goes o
  ut with the Term-End pack on 26 February.\n\nOpen the app: https://therand

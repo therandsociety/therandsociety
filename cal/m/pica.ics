@@ -1,0 +1,24 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//The Rand Society//Members app//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:pica-meeting@therandsociety
+DTSTAMP:20261019T000000Z
+SUMMARY:Rand Society · Formal IC 4: Pitch IC A
+DESCRIPTION:Pitch Cycle A research presentations and simulated investment d
+ ecisions.\n\nPre-reads by Saturday 13 February\, 17:00.\n\nMinutes by Tues
+ day 16 February\, 17:00.\n\nOpen the app: https://therandsociety.github.io
+ /therandsociety/#meetings
+DTSTART:20270214T150000Z
+DTEND:20270214T163000Z
+LOCATION:Microsoft Teams
+URL:https://therandsociety.github.io/therandsociety/#meetings
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Formal IC 4: Pitch IC A
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+END:VCALENDAR

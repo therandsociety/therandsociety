@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build one calendar feed per member (cal/<link>.ics) from data.json: deadlines and meetings from both roles, with reminders.
+Also writes one file per meeting (cal/m/<key>.ics) for the app's Add to calendar button.
 
 Runs automatically on GitHub whenever data.json changes (.github/workflows/calendar.yml), and needs nothing beyond Python 3.
 The rules mirror the app: a member gets the Society dates they lead or attend, and the analyst dates for their pitch cycle."""
@@ -101,6 +102,28 @@ def build(data, member, site_url, stamp):
     lines.append('END:VCALENDAR')
     return '\r\n'.join(fold(l) for l in lines) + '\r\n', len(events)
 
+def longday(d):
+    return d.strftime('%A ') + str(d.day) + d.strftime(' %B')
+
+def build_meeting(data, e, site_url, stamp):
+    """One meeting on its own (cal/m/<key>.ics), for the app's Add to calendar button."""
+    d0 = day(e['date'])
+    link = e.get('link') or (data.get('site') or {}).get('teams') or ''
+    app = site_url.rstrip('/') + '/#meetings'
+    desc = str(e.get('detail') or '')
+    if e.get('preread'):
+        desc += '\n\nPre-reads by ' + longday(day(e['preread'])) + ', 17:00.'
+    desc += '\n\nMinutes by ' + longday(d0 + dt.timedelta(days=2)) + ', 17:00.'
+    if link:
+        desc += '\n\nJoin on Teams: ' + link
+    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//The Rand Society//Members app//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+             'BEGIN:VEVENT', 'UID:' + e['key'] + '-meeting@therandsociety', 'DTSTAMP:' + stamp,
+             'SUMMARY:' + esc('Rand Society · ' + e.get('title', 'Meeting')), 'DESCRIPTION:' + esc(desc + '\n\nOpen the app: ' + app),
+             'DTSTART:' + utc(d0, '17:00'), 'DTEND:' + utc(d0, '18:30'), 'LOCATION:' + esc(link or 'Microsoft Teams'), 'URL:' + (link or app),
+             'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(e.get('title', 'Meeting')), 'TRIGGER:-PT1H', 'END:VALARM',
+             'END:VEVENT', 'END:VCALENDAR']
+    return '\r\n'.join(fold(l) for l in lines) + '\r\n'
+
 def main():
     with open(os.path.join(ROOT, 'data.json'), encoding='utf-8') as f:
         data = json.load(f)
@@ -116,6 +139,20 @@ def main():
         with open(os.path.join(ROOT, 'cal', m['link'] + '.ics'), 'w', encoding='utf-8', newline='') as f:
             f.write(text)
         print('cal/%s.ics: %d events' % (m['link'], n))
+    # one file per meeting; files for meetings no longer in data.json are removed
+    mdir = os.path.join(ROOT, 'cal', 'm')
+    os.makedirs(mdir, exist_ok=True)
+    keep = set()
+    for e in data.get('society', []):
+        if e.get('type') == 'meeting' and e.get('key') and e.get('date'):
+            name = e['key'] + '.ics'
+            keep.add(name)
+            with open(os.path.join(mdir, name), 'w', encoding='utf-8', newline='') as f:
+                f.write(build_meeting(data, e, site, stamp))
+    for name in os.listdir(mdir):
+        if name.endswith('.ics') and name not in keep:
+            os.remove(os.path.join(mdir, name))
+    print('cal/m/: %d meetings' % len(keep))
 
 if __name__ == '__main__':
     main()

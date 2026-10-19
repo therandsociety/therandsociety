@@ -11,7 +11,7 @@ REFRESH-INTERVAL;VALUE=DURATION:PT6H
 X-PUBLISHED-TTL:PT6H
 BEGIN:VEVENT
 UID:notice-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:November exam notice due (if writing)
 DESCRIPTION:Writing a November exam? By 17:00\, notify the Society through 
  the official WhatsApp\, Teams or email channel and state your final-exam d
@@ -34,7 +34,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:nov6-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Portfolio Framework current-state review
 DESCRIPTION:Complete the current-state review of the Portfolio Framework\, 
  with its gap record.\n\nOpen the app: https://therandsociety.github.io/the
@@ -58,7 +58,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:tl1-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: First drafts and Traffic-Light Review 1
 DESCRIPTION:File your first operating-pack drafts for Traffic-Light Review 
  1.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#portf
@@ -82,7 +82,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:nov20-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Cross-role consistency review
 DESCRIPTION:Research\, portfolio\, records\, publication\, access and appro
  val dependencies tested on paper.\n\nOpen the app: https://therandsociety.
@@ -104,7 +104,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:pf-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Portfolio Framework validated
 DESCRIPTION:Gap assessment and controlled version\, circulated in the contr
  olled IC pre-read with the templates\, tracker and open corrections.\n\nOp
@@ -126,7 +126,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ic1-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 1
 DESCRIPTION:Operating-pack review\, provisional workflow-test decisions\, c
  orrection owners and deadlines. You present the portfolio and mandate upda
@@ -146,7 +146,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:wft-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: End-to-end workflow test
 DESCRIPTION:One sample idea run through registration\, pre-clearance\, rese
  arch review\, version control\, circulation\, decision recording and publi
@@ -164,7 +164,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls1-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 1: How financial services companies make money
 DESCRIPTION:One-page brief\, facilitated discussion and an application exer
  cise: compare a bank\, an insurer and an asset manager\, and how each earn
@@ -182,7 +182,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:fclose-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Foundation phase closes
 DESCRIPTION:Your Portfolio Framework\, tracker and registers are approved a
  nd live.\n\nOpen the app: https://therandsociety.github.io/therandsociety/
@@ -204,7 +204,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-scope-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Sector scope and source map filed
 DESCRIPTION:File your initial TMT scope and source map\, ready for January 
  sector work.\n\nOpen the app: https://therandsociety.github.io/therandsoci
@@ -226,7 +226,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan5-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Full production resumes
 DESCRIPTION:Research queue\, owners\, review slots and January workload con
  firmed.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#
@@ -243,7 +243,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-brief-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Sector brief and watchlist submitted
 DESCRIPTION:Submit your TMT initiation brief (value chain\, listed universe
  \, profit drivers\, risks\, legislation and indicators) and a focused watc
@@ -266,7 +266,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ic2-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 2
 DESCRIPTION:Sector readiness\, theme primer\, watchlist quality\, portfolio
   capacity and corrective actions.\n\nAs an analyst: Sector readiness: your
@@ -284,7 +284,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan22-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Thesis candidates pre-cleared
 DESCRIPTION:Pre-clear every other analyst’s candidate within two working 
  days of complete information. A Member appointed by the IC verifies your o
@@ -307,7 +307,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-cand-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Thesis candidate pre-cleared
 DESCRIPTION:Your brief and watchlist are accepted. Register your preferred 
  candidate with a primary source pack. A Member appointed by the IC verifie
@@ -330,7 +330,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls2-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 2: Valuing financial companies
 DESCRIPTION:Compare two JSE-listed financial companies and defend the valua
  tion premium or discount.\n\nOpen the app: https://therandsociety.github.i
@@ -347,7 +347,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan29-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Interim report inputs
 DESCRIPTION:Submit your Interim Progress Report inputs and corrective-actio
  n proposals.\n\nOpen the app: https://therandsociety.github.io/therandsoci
@@ -369,7 +369,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan31-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 3: Interim Progress Report
 DESCRIPTION:Traffic-Light Review 2\, Interim Progress Report approval\, can
  didate readiness and February sequencing.\n\nAs an analyst: Candidate read
@@ -387,7 +387,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-thesisA-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Thesis and model to review
 DESCRIPTION:Submit your complete thesis and model to the Head of Research\,
   five working days before Pitch IC A.\n\nOpen the app: https://therandsoci
@@ -409,7 +409,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls3-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 3: Technology\, competition and financial inclusio
  n
 DESCRIPTION:Assess whether a selected strategy improves revenue\, cost\, ri
@@ -428,7 +428,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-fbA-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Review comments back
 DESCRIPTION:Comments come back with written reasons. Address each one or gi
  ve reasoned written disagreement.\n\nOpen the app: https://therandsociety.
@@ -450,7 +450,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-preA-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Final pre-read circulated
 DESCRIPTION:Your final version passes COO format control and goes out as th
  e controlled pre-read by 17:00.\n\nOpen the app: https://therandsociety.gi
@@ -472,7 +472,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:pica-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 4: Pitch IC A · You pitch
 DESCRIPTION:Pitch Cycle A presentations and simulated investment decisions.
   You record approved paper trades within 48 hours.\n\nAs an analyst: Prese
@@ -491,7 +491,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb19h-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Draft handovers due
 DESCRIPTION:Submit your draft handover by 17:00\, ahead of the handover-dra
  ft review at Formal IC 5.\n\nOpen the app: https://therandsociety.github.i
@@ -513,7 +513,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-second-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Secondary contribution and development
 DESCRIPTION:Your secondary output (a company update\, valuation comparison\
  , catalyst or monitoring note) and your professional-development evidence\
@@ -536,7 +536,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:picb-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 5: Pitch IC B · You support
 DESCRIPTION:Pitch Cycle B presentations and votes\, the final portfolio rev
  iew and the handover-draft review. You record approved paper trades within
@@ -554,7 +554,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb23-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Report inputs submitted
 DESCRIPTION:Submit your Term-End Report inputs.\n\nOpen the app: https://th
  erandsociety.github.io/therandsociety/#portfolio
@@ -575,7 +575,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb24-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Portfolio Manager: Portfolio data and evidence locked
 DESCRIPTION:Portfolio decisions\, portfolio data\, the evidence register an
  d performance attribution locked.\n\nOpen the app: https://therandsociety.
@@ -599,7 +599,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:close-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 6 and H1 close
 DESCRIPTION:Traffic-Light Review 3\, scorecard\, H2 recommendations\, final
   approvals and the closing resolution.\n\nAs an analyst: Scorecard\, H2 re
@@ -618,7 +618,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-close-pm@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Handover note and peer evaluation
 DESCRIPTION:Both are filed by the H1 close. The peer-evaluation pack goes o
  ut with the Term-End pack on 26 February.\n\nOpen the app: https://therand

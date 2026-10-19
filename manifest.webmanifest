@@ -34,9 +34,9 @@
       ]
     },
     {
-      "name": "Guide",
-      "short_name": "Guide",
-      "url": "./#guide",
+      "name": "Required reading",
+      "short_name": "Learn",
+      "url": "./#learn",
       "icons": [
         {
           "src": "icons/icon-192.png",

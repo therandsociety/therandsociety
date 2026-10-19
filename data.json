@@ -1,6 +1,6 @@
 {
   "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD and times HH:MM (SAST). After saving, open check.html on the site to confirm the file is valid. README.md explains every field.",
-  "updated": "2026-10-17",
+  "updated": "2026-10-19",
   "site": {
     "url": "https://therandsociety.github.io/therandsociety/",
     "teams": ""
@@ -118,7 +118,8 @@
           "name": "Research lead at each IC",
           "when": "Six meetings"
         }
-      ]
+      ],
+      "abbr": "HoR"
     },
     {
       "id": "pres",
@@ -158,7 +159,8 @@
           "name": "Interim and Term-End reports",
           "when": "31 Jan · 26 Feb"
         }
-      ]
+      ],
+      "abbr": "Pres"
     },
     {
       "id": "pm",
@@ -198,7 +200,8 @@
           "name": "Portfolio data lock",
           "when": "24 Feb"
         }
-      ]
+      ],
+      "abbr": "PM"
     },
     {
       "id": "coo",
@@ -238,7 +241,8 @@
           "name": "Handovers collected",
           "when": "26 Feb"
         }
-      ]
+      ],
+      "abbr": "COO"
     }
   ],
   "reviewQueues": {
@@ -418,6 +422,7 @@
     {
       "key": "ic1",
       "date": "2026-12-06",
+      "preread": "2026-12-04",
       "type": "meeting",
       "ic": 1,
       "title": "Formal IC 1",
@@ -707,6 +712,7 @@
     {
       "key": "pica",
       "date": "2027-02-14",
+      "preread": "2027-02-13",
       "type": "meeting",
       "ic": 4,
       "title": "Formal IC 4: Pitch IC A",
@@ -792,6 +798,7 @@
     {
       "key": "picb",
       "date": "2027-02-21",
+      "preread": "2027-02-20",
       "type": "meeting",
       "ic": 5,
       "title": "Formal IC 5: Pitch IC B",
@@ -1098,7 +1105,7 @@
         "id": "meet",
         "title": "Meetings and quorum",
         "chip": "Sun 17:00",
-        "body": "Sundays 17:00 to 18:30 on Teams. Agenda by Friday 17:00, pre-reads by Saturday 17:00, minutes by Tuesday 17:00. Three of the four Members make quorum; without it, the meeting moves to the next Sunday with quorum."
+        "body": "Sundays 17:00 to 18:30 on Teams. Agenda by Friday 17:00 and minutes by Tuesday 17:00. Pre-reads go out by Saturday 17:00 before a Pitch IC, and on 4 December for IC 1. Three of the four Members make quorum; without it, the meeting moves to the next Sunday with quorum."
       },
       {
         "id": "colours",
@@ -1129,5 +1136,105 @@
         "body": "Review does not transfer authorship: you keep responsibility for your sources, reasoning and conclusions. No analyst holds a personal capital allocation."
       }
     ]
-  }
+  },
+  "checklists": [
+    {
+      "id": "brief",
+      "for": [
+        "a-brief"
+      ],
+      "title": "Sector brief and watchlist",
+      "source": "Term Plan v1.1, sections 4.5 and 5.1",
+      "items": [
+        "Value chain",
+        "Listed universe",
+        "Profitability drivers",
+        "Risks",
+        "Legislation",
+        "Indicators",
+        "Watchlist of five to ten companies",
+        "Ownership, screening notes and monitoring fields for each company"
+      ]
+    },
+    {
+      "id": "candidate",
+      "for": [
+        "a-cand"
+      ],
+      "title": "Thesis candidate",
+      "source": "Term Plan v1.1, sections 11.1 and 17.3, and Constitution Schedule A4",
+      "items": [
+        "Idea registered: company, sector, rationale, data availability and potential overlap",
+        "Credible primary source pack",
+        "Within the permitted universe: JSE-listed or global listed shares or ETFs",
+        "Complete information sent for pre-clearance (two working days)"
+      ]
+    },
+    {
+      "id": "thesis",
+      "for": [
+        "a-thesisA",
+        "a-thesisB"
+      ],
+      "title": "Documented thesis",
+      "source": "Constitution Schedule A9 and A10, and Term Plan v1.1, section 11.2",
+      "items": [
+        "Company or instrument overview",
+        "Investment rationale",
+        "Valuation or analytical basis",
+        "Key risks",
+        "Expected catalysts or monitoring points",
+        "Proposed position size, within the 20% limit",
+        "Time horizon or review period",
+        "Source list",
+        "Recommendation: initiate, avoid, hold, increase, reduce or exit",
+        "Facts, assumptions, estimates, opinions and conclusions kept distinct",
+        "Model attached"
+      ]
+    },
+    {
+      "id": "preread",
+      "for": [
+        "a-preA",
+        "a-preB"
+      ],
+      "title": "Final pre-read",
+      "source": "Term Plan v1.1, sections 11.1 to 11.3",
+      "items": [
+        "Every review comment addressed, or reasoned written disagreement given",
+        "Approved template, version and classification confirmed with the COO",
+        "Final controlled pre-read circulated by Saturday 17:00"
+      ]
+    },
+    {
+      "id": "secondary",
+      "for": [
+        "a-second"
+      ],
+      "title": "Secondary contribution and development",
+      "source": "Term Plan v1.1, sections 5.1 and 13.6",
+      "items": [
+        "One company update, valuation comparison, catalyst note, monitoring note or equivalent",
+        "Professional-development evidence (Bloomberg Market Concepts recommended)"
+      ]
+    },
+    {
+      "id": "handover",
+      "for": [
+        "a-close"
+      ],
+      "title": "Handover and peer evaluation",
+      "source": "Term Plan v1.1, sections 23.1 and 23.4",
+      "items": [
+        "Completed work",
+        "Incomplete work",
+        "Key files",
+        "Access",
+        "Recurring processes",
+        "Open risks",
+        "Lessons and recommendations",
+        "Peer evaluation submitted"
+      ]
+    }
+  ]
 }

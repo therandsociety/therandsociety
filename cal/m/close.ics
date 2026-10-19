@@ -1,0 +1,24 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//The Rand Society//Members app//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:close-meeting@therandsociety
+DTSTAMP:20261019T000000Z
+SUMMARY:Rand Society · Formal IC 6 and H1 close
+DESCRIPTION:Traffic-Light Review 3\, scorecard\, H2 recommendations\, final
+  approvals and the closing resolution.\n\nMinutes by Tuesday 2 March\, 17:
+ 00.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#meet
+ ings
+DTSTART:20270228T150000Z
+DTEND:20270228T163000Z
+LOCATION:Microsoft Teams
+URL:https://therandsociety.github.io/therandsociety/#meetings
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Formal IC 6 and H1 close
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+END:VCALENDAR

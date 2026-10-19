@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Dates File Check</title>
+<title>Data Check</title>
 <style>
 :root{--navy:#0F2340;--ink:#13203A;--muted:#56667C;--line:#DCE2E9;--page:#EEF1F5;--ok:#1E6B4A;--bad:#A3262A;--warn:#8A5A00}
 body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
@@ -22,10 +22,11 @@ a{color:var(--navy)}
 </head>
 <body>
 <main>
-  <h1>Dates file check</h1>
-  <p class="lead">Checks <code>data.json</code> after you edit it. Problems listed here are what members would otherwise miss.</p>
+  <h1>Data check</h1>
+  <p class="lead">Checks <code>data.json</code> (dates and wording) and <code>learn.json</code> (the reading programme) after you edit them. Problems listed here are what members would otherwise miss.</p>
   <button id="run" type="button">Check again</button>
   <div id="out" class="box" aria-live="polite">Checking…</div>
+  <div id="learn" class="box" aria-live="polite">Checking the reading programme…</div>
   <p class="lead" style="margin-top:20px">GitHub can take a few minutes to publish an edit. If a fix doesn't show yet, wait a minute and check again. <a href="./">Open the dashboard</a></p>
 </main>
 <script>
@@ -57,7 +58,7 @@ a{color:var(--navy)}
     if (D.site && D.site.teams && !/^https:\/\//.test(D.site.teams)) errs.push('<code>site.teams</code> must be a full https:// Teams link.');
     Object.keys(D.photos || {}).forEach(function (k) {
       var v = D.photos[k], src = typeof v === 'string' ? v : v && v.src, okp = /^img\/[\w.\-\/]+\.(webp|jpe?g|png|avif)$/i;
-      if (['plan', 'meetings', 'role', 'guide'].indexOf(k) < 0) warns.push('<code>photos.' + esc(k) + '</code> is not a section (use plan, meetings, role or guide).');
+      if (['plan', 'meetings', 'learn', 'you', 'role', 'guide'].indexOf(k) < 0) warns.push('<code>photos.' + esc(k) + '</code> is not a section (use plan, meetings, learn or you).');
       if (!okp.test(src || '')) errs.push('<code>photos.' + esc(k) + '</code> must point to a picture in the img folder, such as <code>img/plan.webp</code>.');
       if (v && v.phone && !okp.test(v.phone)) errs.push('<code>photos.' + esc(k) + '.phone</code> must point to a picture in the img folder.');
     });
@@ -84,8 +85,22 @@ a{color:var(--navy)}
         if (!e.who && !Object.keys(e.roles || {}).length) warns.push(at + ' has no <code>who</code> and no <code>roles</code>, so nobody sees it.');
         Object.keys(e.status || {}).forEach(function (r) {
           if (!ids[r]) warns.push(at + ': <code>status</code> names <code>' + esc(r) + '</code>, which is not a member id.');
-          if (['accepted', 'revise'].indexOf(e.status[r]) < 0) errs.push(at + ': <code>status</code> for <code>' + esc(r) + '</code> must be accepted or revise.');
+          if (['accepted', 'minor', 'revise', 'incomplete'].indexOf(e.status[r]) < 0) errs.push(at + ': <code>status</code> for <code>' + esc(r) + '</code> must be accepted, minor, revise or incomplete.');
         });
+        if (e.link && !/^https:\/\//.test(e.link)) errs.push(at + ': <code>link</code> must be a full https:// address.');
+        if (e.links != null) {
+          if (!Array.isArray(e.links)) errs.push(at + ': <code>links</code> must be a list.');
+          else {
+            e.links.forEach(function (l, j) { if (!l || !l.label || !/^https:\/\/\S+$/.test(l.url || '')) errs.push(at + ': link ' + (j + 1) + ' needs a <code>label</code> and a full https:// <code>url</code>.'); });
+            if (e.links.length > 4) warns.push(at + ' has ' + e.links.length + ' links; the app shows the first four.');
+          }
+        }
+        if (e.preread != null) {
+          var pr = day(e.preread);
+          if (e.type !== 'meeting') warns.push(at + ': <code>preread</code> only shows on meetings.');
+          if (isNaN(pr)) errs.push(at + ': <code>preread</code> must be a real date written YYYY-MM-DD.');
+          else if (!isNaN(s) && pr >= s) errs.push(at + ': <code>preread</code> must be before the meeting date.');
+        }
       });
       return list.length;
     }
@@ -109,9 +124,103 @@ a{color:var(--navy)}
         });
       });
     });
+    // readiness checklists: each names the date keys it belongs to
+    var ck = {};
+    if (D.checklists != null && !Array.isArray(D.checklists)) errs.push('<code>checklists</code> must be a list.');
+    (Array.isArray(D.checklists) ? D.checklists : []).forEach(function (c, i) {
+      var at = 'checklists item ' + (i + 1) + (c && c.id ? ' (<code>' + esc(c.id) + '</code>)' : '');
+      if (!c || !c.id) { errs.push(at + ' has no <code>id</code>.'); return; }
+      if (ck[c.id]) errs.push(at + ' reuses the id <code>' + esc(c.id) + '</code>.'); ck[c.id] = true;
+      if (!c.title) warns.push(at + ' has no <code>title</code>.');
+      if (!Array.isArray(c.items) || !c.items.length) errs.push(at + ' needs a list of <code>items</code>.');
+      if (!Array.isArray(c.for) || !c.for.length) errs.push(at + ' needs <code>for</code>: the date keys it belongs to.');
+      else c.for.forEach(function (k) { if (!keys[k] && !Object.keys(D.cycles || { A: 1 }).some(function (cy) { return keys[String(k).replace('{cycle}', cy)]; })) errs.push(at + ': <code>for</code> names <code>' + esc(k) + '</code>, which is not a date key.'); });
+    });
+    if (D.library != null && !Array.isArray(D.library)) errs.push('<code>library</code> must be a list.');
+    (Array.isArray(D.library) ? D.library : []).forEach(function (l, i) { if (!l || !l.title || !/^https:\/\/\S+$/.test(l.url || '')) errs.push('library item ' + (i + 1) + ' needs a <code>title</code> and a full https:// <code>url</code>.'); });
     return { errs: errs, warns: warns, ns: ns, na: na, nm: (D.members || []).length };
   }
+  // learn.json: books, chapters, levels, rules and the question bank
+  function checkLearn(L) {
+    var errs = [], warns = [], units = {}, books = {}, ids = {}, per = {}, tiers = [0, 0, 0], R = L.rules || {}, size = R.checkSize || 8;
+    if (!Array.isArray(L.books) || !L.books.length) errs.push('<code>books</code> must be a list with at least one book.');
+    (L.books || []).forEach(function (b, i) {
+      if (!b || !b.id) { errs.push('Book ' + (i + 1) + ' has no <code>id</code>.'); return; }
+      books[b.id] = true;
+      if (!Array.isArray(b.units) || !b.units.length) errs.push('Book <code>' + esc(b.id) + '</code> has no <code>units</code> (chapters).');
+      (b.units || []).forEach(function (u, j) {
+        if (!u || !u.id) { errs.push('Book <code>' + esc(b.id) + '</code> chapter ' + (j + 1) + ' has no <code>id</code>.'); return; }
+        if (units[u.id]) errs.push('Chapter id <code>' + esc(u.id) + '</code> is used twice.');
+        units[u.id] = b.id; per[u.id] = 0;
+        if (!u.title) warns.push('Chapter <code>' + esc(u.id) + '</code> has no <code>title</code>.');
+        if (u.mins != null && !(+u.mins > 0)) errs.push('Chapter <code>' + esc(u.id) + '</code>: <code>mins</code> must be a number of minutes.');
+        if (u.ideas != null && !Array.isArray(u.ideas)) errs.push('Chapter <code>' + esc(u.id) + '</code>: <code>ideas</code> must be a list.');
+      });
+    });
+    if (!Array.isArray(L.levels) || !L.levels.length) errs.push('<code>levels</code> must be a list.');
+    (L.levels || []).forEach(function (l, i, a) {
+      if (!Array.isArray(l.mix) || l.mix.length !== 3) errs.push('Level ' + (i + 1) + ' (' + esc(l.name || '?') + '): <code>mix</code> must list three numbers (recall, concept, applied).');
+      if (i && !(+l.xp > +a[i - 1].xp)) errs.push('Level ' + (i + 1) + ' (' + esc(l.name || '?') + ') needs more <code>xp</code> than the level before.');
+    });
+    if (R.checkPass > size) errs.push('<code>rules.checkPass</code> is more than <code>rules.checkSize</code>.');
+    if (R.reviewPass > R.reviewSize) errs.push('<code>rules.reviewPass</code> is more than <code>rules.reviewSize</code>.');
+    if (R.finalPass > R.finalSize) errs.push('<code>rules.finalPass</code> is more than <code>rules.finalSize</code>.');
+    var pg = L.programme || {}, st = day(pg.start), du = day(pg.due);
+    if (isNaN(st) || isNaN(du) || du <= st) errs.push('<code>programme.start</code> and <code>programme.due</code> must be YYYY-MM-DD dates, start first.');
+    (Array.isArray(pg.pauses) ? pg.pauses : []).forEach(function (x, i) {
+      var a = day(x && x.from), b = day(x && x.to), at = 'programme.pauses item ' + (i + 1);
+      if (isNaN(a) || isNaN(b) || b < a) errs.push('<code>' + at + '</code>: <code>from</code> and <code>to</code> must be YYYY-MM-DD dates, from first.');
+      else if (!isNaN(st) && !isNaN(du) && (a < st || b > du)) warns.push('<code>' + at + '</code> falls outside the programme dates.');
+    });
+    (L.questions || []).forEach(function (q, i) {
+      var at = 'Question ' + (q && q.id ? '<code>' + esc(q.id) + '</code>' : (i + 1));
+      if (!q || !q.id) { errs.push(at + ' has no <code>id</code>.'); return; }
+      if (ids[q.id]) errs.push(at + ': the id is used twice.'); ids[q.id] = true;
+      if (!units[q.unit] && !(q.sample && books[q.book])) errs.push(at + ': <code>unit</code> must be a chapter id.');
+      if ([1, 2, 3].indexOf(q.tier) < 0) errs.push(at + ': <code>tier</code> must be 1, 2 or 3.');
+      else tiers[q.tier - 1]++;
+      if (!q.q) errs.push(at + ' has no question text (<code>q</code>).');
+      if (!q.why) warns.push(at + ' has no explanation (<code>why</code>).');
+      if (q.type === 'tf') { if (typeof q.answer !== 'boolean') errs.push(at + ': a true/false <code>answer</code> must be true or false.'); }
+      else if (q.type === 'mcq') {
+        var o = q.options;
+        if (!Array.isArray(o) || o.length < 2) errs.push(at + ' needs at least two <code>options</code>.');
+        else {
+          if (!(q.answer >= 0 && q.answer < o.length && q.answer % 1 === 0)) errs.push(at + ': <code>answer</code> must be the number of the right option, counting from 0.');
+          if (o.some(function (x, k) { return o.indexOf(x) !== k; })) errs.push(at + ' repeats an option.');
+        }
+      } else errs.push(at + ': <code>type</code> must be tf or mcq.');
+      if (units[q.unit]) per[q.unit]++;
+    });
+    Object.keys(per).forEach(function (u) {
+      if (!per[u]) warns.push('Chapter <code>' + esc(u) + '</code> has no questions yet; members see “Questions coming soon”.');
+      else if (per[u] < size) warns.push('Chapter <code>' + esc(u) + '</code> has ' + per[u] + ' questions; a check asks ' + size + '.');
+    });
+    (L.facts || []).forEach(function (f, i) { if (!f || !f.text || !(units[f.unit] || books[f.book])) errs.push('Fact ' + (i + 1) + ' needs <code>text</code> and a chapter <code>unit</code> or a <code>book</code>.'); });
+    return { errs: errs, warns: warns, nb: (L.books || []).length, nu: Object.keys(units).length, nq: Object.keys(ids).length, tiers: tiers };
+  }
+  function runLearn() {
+    var box = document.getElementById('learn');
+    box.textContent = 'Checking the reading programme…';
+    fetch('learn.json?fresh=' + Date.now(), { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('learn.json could not be fetched (HTTP ' + r.status + ').');
+      return r.text();
+    }).then(function (text) {
+      var L;
+      try { L = JSON.parse(text); } catch (e) {
+        var w = where(text, e);
+        box.innerHTML = '<p class="bad">learn.json is not valid JSON' + (w ? ' near ' + w : '') + '.</p><p style="margin-top:8px">Members keep the last good copy until it is fixed.</p>';
+        return;
+      }
+      var r = checkLearn(L), h = '';
+      if (!r.errs.length) h += '<p class="ok">Reading programme: all good. ' + r.nb + ' books, ' + r.nu + ' chapters, ' + r.nq + ' questions (recall ' + r.tiers[0] + ', concept ' + r.tiers[1] + ', applied ' + r.tiers[2] + ').</p>';
+      else h += '<p class="bad">Reading programme: ' + r.errs.length + (r.errs.length === 1 ? ' problem' : ' problems') + ' to fix:</p><ul>' + r.errs.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
+      if (r.warns.length) h += '<p class="warn" style="margin-top:12px">Worth a look:</p><ul>' + r.warns.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
+      box.innerHTML = h;
+    }).catch(function (e) { box.innerHTML = '<p class="bad">' + esc(e.message) + '</p>'; });
+  }
   function run() {
+    runLearn();
     out.textContent = 'Checking…';
     fetch('data.json?fresh=' + Date.now(), { cache: 'no-store' }).then(function (r) {
       if (!r.ok) throw new Error('data.json could not be fetched (HTTP ' + r.status + ').');

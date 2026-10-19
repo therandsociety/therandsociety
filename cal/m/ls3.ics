@@ -1,0 +1,26 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//The Rand Society//Members app//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:ls3-meeting@therandsociety
+DTSTAMP:20261019T000000Z
+SUMMARY:Rand Society · Learning Session 3: Technology\, competition and fi
+ nancial inclusion
+DESCRIPTION:Assess whether a selected strategy improves revenue\, cost\, ri
+ sk\, customer value or valuation.\n\nMinutes by Tuesday 9 February\, 17:00
+ .\n\nOpen the app: https://therandsociety.github.io/therandsociety/#meetin
+ gs
+DTSTART:20270207T150000Z
+DTEND:20270207T163000Z
+LOCATION:Microsoft Teams
+URL:https://therandsociety.github.io/therandsociety/#meetings
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Learning Session 3: Technology\, competition and financial incl
+ usion
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+END:VCALENDAR

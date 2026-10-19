@@ -11,7 +11,7 @@ REFRESH-INTERVAL;VALUE=DURATION:PT6H
 X-PUBLISHED-TTL:PT6H
 BEGIN:VEVENT
 UID:linkedin-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: LinkedIn founding announcement
 DESCRIPTION:In your first active week\, confirm the LinkedIn page is live a
  nd publish the founding announcement\, or record it if already done.\n\nOp
@@ -28,7 +28,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:notice-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:November exam notice due (if writing)
 DESCRIPTION:Writing a November exam? By 17:00\, notify the Society through 
  the official WhatsApp\, Teams or email channel and state your final-exam d
@@ -51,7 +51,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:nov6-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Publication Manual outline begins
 DESCRIPTION:Begin the outline of the Brand\, Document and Publication Stand
  ards Manual.\n\nOpen the app: https://therandsociety.github.io/therandsoci
@@ -73,7 +73,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:tl1-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: First drafts and Traffic-Light Review 1
 DESCRIPTION:File your first operating-pack drafts for Traffic-Light Review 
  1.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#coo
@@ -94,7 +94,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:nov20-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Cross-role consistency review
 DESCRIPTION:Research\, portfolio\, records\, publication\, access and appro
  val dependencies tested on paper.\n\nOpen the app: https://therandsociety.
@@ -116,7 +116,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:bm-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Brand and Publication Manual draft
 DESCRIPTION:Controlled draft of the Brand\, Document and Publication Standa
  rds Manual with its correction register\, circulated in the controlled IC 
@@ -139,7 +139,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ic1-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 1 · You minute
 DESCRIPTION:Operating-pack review\, provisional workflow-test decisions\, c
  orrection owners and deadlines. You file the minutes and resolutions by Tu
@@ -159,7 +159,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:wft-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: End-to-end workflow test
 DESCRIPTION:One sample idea run through registration\, pre-clearance\, rese
  arch review\, version control\, circulation\, decision recording and publi
@@ -177,7 +177,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls1-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 1: How financial services companies make money
 DESCRIPTION:One-page brief\, facilitated discussion and an application exer
  cise: compare a bank\, an insurer and an asset manager\, and how each earn
@@ -195,7 +195,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:fclose-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Foundation phase closes
 DESCRIPTION:Your Brand Manual\, templates and asset pack are approved and l
  ive.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#coo
@@ -216,7 +216,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-scope-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Sector scope and source map filed
 DESCRIPTION:File your initial Metals and Mining scope and source map\, read
  y for January sector work.\n\nOpen the app: https://therandsociety.github.
@@ -238,7 +238,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-brief-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Sector brief and watchlist submitted
 DESCRIPTION:Submit your Metals and Mining initiation brief (value chain\, l
  isted universe\, profit drivers\, risks\, legislation and indicators) and 
@@ -261,7 +261,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ic2-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 2 · You minute
 DESCRIPTION:Sector readiness\, theme primer\, watchlist quality\, portfolio
   capacity and corrective actions. You file the minutes and resolutions by 
@@ -280,7 +280,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-cand-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Thesis candidate pre-cleared
 DESCRIPTION:Your brief and watchlist are accepted. Register your preferred 
  candidate with a primary source pack and get Portfolio Manager pre-clearan
@@ -302,7 +302,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls2-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 2: Valuing financial companies
 DESCRIPTION:Compare two JSE-listed financial companies and defend the valua
  tion premium or discount.\n\nOpen the app: https://therandsociety.github.i
@@ -319,7 +319,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan29-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Interim report inputs
 DESCRIPTION:Submit your Interim Progress Report inputs and corrective-actio
  n proposals.\n\nOpen the app: https://therandsociety.github.io/therandsoci
@@ -341,7 +341,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan31-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 3: Interim Progress Report · You minute
 DESCRIPTION:Traffic-Light Review 2\, Interim Progress Report approval\, can
  didate readiness and February sequencing. You file the minutes and resolut
@@ -360,7 +360,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls3-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 3: Technology\, competition and financial inclusio
  n
 DESCRIPTION:Assess whether a selected strategy improves revenue\, cost\, ri
@@ -379,7 +379,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-thesisB-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Thesis and model to review
 DESCRIPTION:Submit your complete thesis and model to the Head of Research f
  or Pitch IC B.\n\nOpen the app: https://therandsociety.github.io/therandso
@@ -401,7 +401,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb13-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Pitch A pre-reads circulated
 DESCRIPTION:Circulate the final controlled\, version-numbered pre-reads for
   Pitch Cycle A by 17:00.\n\nOpen the app: https://therandsociety.github.io
@@ -423,7 +423,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:pica-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 4: Pitch IC A · You minute
 DESCRIPTION:Pitch Cycle A presentations and simulated investment decisions.
   You file the minutes and resolutions by Tuesday 17:00.\n\nOpen the app: h
@@ -440,7 +440,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-fbB-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Review comments back
 DESCRIPTION:Comments come back with written reasons. Address each one or gi
  ve reasoned written disagreement.\n\nOpen the app: https://therandsociety.
@@ -462,7 +462,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb19-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Evidence register: secondary work and development
 DESCRIPTION:Every Member’s secondary analytical contribution and professi
  onal-development evidence is substantially complete. You keep the evidence
@@ -487,7 +487,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb19h-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Draft handovers due
 DESCRIPTION:Submit your draft handover by 17:00\, ahead of the handover-dra
  ft review at Formal IC 5.\n\nOpen the app: https://therandsociety.github.i
@@ -509,7 +509,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-second-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Secondary contribution and development
 DESCRIPTION:Your secondary output (a company update\, valuation comparison\
  , catalyst or monitoring note) and your professional-development evidence\
@@ -532,7 +532,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb20-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Pitch B pre-reads circulated
 DESCRIPTION:Circulate the final controlled\, version-numbered pre-reads for
   Pitch Cycle B by 17:00.\n\nOpen the app: https://therandsociety.github.io
@@ -554,7 +554,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-preB-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Final pre-read circulated
 DESCRIPTION:Your final version passes COO format control and goes out as th
  e controlled pre-read by 17:00.\n\nOpen the app: https://therandsociety.gi
@@ -576,7 +576,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:picb-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 5: Pitch IC B · You minute · You pitch
 DESCRIPTION:Pitch Cycle B presentations and votes\, the final portfolio rev
  iew and the handover-draft review. You file the minutes and resolutions by
@@ -596,7 +596,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb23-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Report inputs submitted
 DESCRIPTION:Submit your Term-End Report inputs.\n\nOpen the app: https://th
  erandsociety.github.io/therandsociety/#coo
@@ -617,7 +617,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb24-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Portfolio data and evidence locked
 DESCRIPTION:Portfolio decisions\, portfolio data\, the evidence register an
  d performance attribution locked.\n\nOpen the app: https://therandsociety.
@@ -639,7 +639,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb26-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:COO: Term-End pack circulated
 DESCRIPTION:Term-End Report\, final handovers and the peer-evaluation pack 
  circulated for approval.\n\nOpen the app: https://therandsociety.github.io
@@ -661,7 +661,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:close-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 6 and H1 close · You minute
 DESCRIPTION:Traffic-Light Review 3\, scorecard\, H2 recommendations\, final
   approvals and the closing resolution. You file the minutes and resolution
@@ -681,7 +681,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-close-coo@therandsociety
-DTSTAMP:20261017T000000Z
+DTSTAMP:20261019T000000Z
 SUMMARY:Analyst: Handover note and peer evaluation
 DESCRIPTION:Both are filed by the H1 close. The peer-evaluation pack goes o
  ut with the Term-End pack on 26 February.\n\nOpen the app: https://therand
