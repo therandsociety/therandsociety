@@ -164,7 +164,7 @@ The Learn section turns the two required books (The Intelligent Investor and Inv
 
 **Fixing a question.** Members can tap **Report this question**; the message carries its `id` (such as `ib3-28`). Find that line in `learn.json`, correct it, commit, then open `check.html`. Options are shuffled in the app, so the right answer can sit anywhere in the list; `answer` just points to it.
 
-**Learn's look.** Learn deliberately breaks from the Society palette with its own skin, "coast": an original 1980s Miami-coast look (a sunset over an Art Deco shoreline on the Learn page, neon night inside a check, a sunrise when a member passes, the sun behind a level-up). It reaches the question card on Today and the Learn tab, but nothing else; the certificate keeps the Society look. Headings and scores use Kanit and the neon titles Michroma (both in `fonts/`, Learn only); questions stay in IBM Plex Sans. Everything hangs off one line in `app.js`, `var SKIN = 'coast';`, and the "Learn skin: coast" block at the end of `app.css`. Set `SKIN = ''` to return Learn to navy and silver; a new skin is a new CSS block under its own name. Members can turn on **Sound effects** (a short synth sting on a pass or a level-up; off by default) and **Vibration** (on supported phones; on by default) under **Effects** on the Learn page; both settings stay on their device. Motion stops for anyone with reduced motion turned on.
+**Learn's look.** Learn deliberately breaks from the Society palette with a skin of its own, set by one line in `app.js`: `var SKIN_DEFAULT = 'stripes';`. **Stripes** (1970s racing stripes on cream) makes the stripes carry meaning: the Learn header climbs one step for every level reached; each question type has a colour (recall teal, concept marigold, applied tangerine); passed chapters fill teal and full marks marigold; a pass breaks the stripes out of their range; a level-up climbs to the new level's ring. Burgundy is the action colour and red is kept for wrong answers and falling behind. In October and November Pretoria's jacarandas flower in the header and fall when a member passes. **Coast** (a 1980s Miami-coast look) is the alternative, and `''` returns Learn to navy and silver. Each skin is a block at the end of `app.css` plus its entry in the skin registry in `app.js`, so a new skin slots in without touching anything else. The certificate keeps the Society look. Fonts for Learn only: Fraunces and Michroma (Stripes), Kanit and Michroma (Coast); questions stay in IBM Plex Sans. Members can turn on **Sound effects** (a chime on a pass and an opening bell on a level-up with Stripes; a synth sting with Coast; off by default) and **Vibration** (on supported phones; on by default) under **Effects** on the Learn page; both settings stay on their device. Motion stops for anyone with reduced motion turned on. The preview build's "Preview only" card switches between the skins and turns the jacarandas on or off.
 
 ## Role links
 
@@ -178,7 +178,7 @@ Each link opens straight to that role. Add `-analyst` to open the analyst view.
 - `data.json`: all dates and wording
 - `learn.json`: the reading programme and question bank
 - `index.html`, `app.js`, `app.css`: the app (no build step)
-- `fonts/`: IBM Plex Sans and Newsreader for the app; Kanit and Michroma for Learn only
+- `fonts/`: IBM Plex Sans and Newsreader for the app; Fraunces, Kanit and Michroma for Learn only
 - `sw.js`: offline support
 - `manifest.webmanifest`, `icons/`: home-screen install
 - `check.html`: the checker for both files
