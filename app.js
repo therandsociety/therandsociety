@@ -1416,7 +1416,20 @@
   function unitSpec(u, dp) { return u === 'Rm' ? 'R' + dp + 'm' : u === 'Rbn' ? 'R' + dp + 'bn' : u === 'R' ? 'R' + dp : u === 'm' ? dp + 'm' : u === 'x' ? dp + 'x' : u === '%' ? dp + '%' : String(dp); }
   function showNum(v, u, dp) { return TPL.fmt(v, unitSpec(u || '', dp || 0)); }
   // the typed number in the answer's own terms (per cent answers are typed as 12.9, kept as 0.129)
-  function typedValue(text, u) { var n = TPL.parseNum(text); return u === '%' ? n / 100 : u === 'Rbn' ? n * 1000 : n; }
+  function typedValue(text, u) {
+    var n = TPL.parseNum(text), t = String(text || '').replace(/\s+$/, ''), bn = /bn$/i.test(t), mil = !bn && /\d\s*m$/i.test(t);
+    if (u === '%') return n / 100;
+    if (u === 'Rbn') return mil ? n : n * 1000;          // "8,426m" typed for an answer in R billion
+    if ((u === 'Rm' || u === 'm') && bn) return n * 1000;  // "R1.2bn" typed for an answer in R million
+    return n;
+  }
+  // A comma before exactly three digits ("0,875", "1,125") could be a decimal comma or a thousands separator: both readings
+  // are offered, and the one nearer the answer is marked.
+  function typedValues(text, u) {
+    var a = typedValue(text, u), t = String(text || '').trim();
+    if (/^[^\d,.]*\d{1,3},\d{3}(?!\d)[^\d,.]*$/.test(t)) { var b = typedValue(t.replace(',', '.'), u); if (b !== a) return [a, b]; }
+    return [a];
+  }
   function nearIn(v, truth, u, dp, tol) { var k = u === '%' ? 100 : u === 'Rbn' ? 0.001 : 1; return TPL.near(v * k, truth * k, dp, tol); }
 
   var QTYPES = { tf: 1, mcq: 1, num: 3, est: 3, err: 3, order: 2, dir: 2, two: 2, sort: 2 };
@@ -1687,9 +1700,9 @@
   function gradeItem(it, d) {
     var out = { right: false, typed: false, val: NaN, diag: '' };
     function numeric(text, truth, u, dp, tol) {
-      var x = typedValue(text, u);
-      out.val = x; out.typed = true;
-      return nearIn(x, truth, u, dp, tol);
+      var xs = typedValues(text, u), ok = xs.filter(function (x) { return nearIn(x, truth, u, dp, tol); });
+      out.val = ok.length ? ok[0] : xs[xs.length > 1 && Math.abs(xs[1] - truth) < Math.abs(xs[0] - truth) ? 1 : 0]; out.typed = true;
+      return ok.length > 0;
     }
     switch (it.type) {
       case 'tf': case 'mcq': out.right = !!(it.opts[d.pick] && it.opts[d.pick].right); break;
@@ -1700,8 +1713,8 @@
         if (!out.right && it.mode !== 'fade') it.errs.some(function (e) { if (nearIn(out.val, e.v, it.unit, it.dp, it.tol)) { out.diag = e.why; return true; } return false; });
         break;
       case 'est':
-        out.val = typedValue(d.v, it.unit); out.typed = true;
-        out.right = isFinite(out.val) && out.val >= it.band[0] - 1e-9 && out.val <= it.band[1] + 1e-9;
+        var ev = typedValues(d.v, it.unit), inBand = ev.filter(function (x) { return isFinite(x) && x >= it.band[0] - 1e-9 && x <= it.band[1] + 1e-9; });
+        out.val = inBand.length ? inBand[0] : ev[0]; out.typed = true; out.right = inBand.length > 0;
         out.slow = d.secs > it.secs;
         break;
       case 'order': out.right = (d.order || []).every(function (x, i) { return x === i; }); break;
@@ -1735,8 +1748,10 @@
     var X = LP.X, base = 0, bonus = 0, pen = 0, nb = 0, np = 0, seen = {};
     answers.forEach(function (a) {
       var pts = X[a.xpk] || 0;
-      if (a.right && !spec.paid[a.id] && !seen[a.id]) { base += pts; seen[a.id] = 1; }
-      if (spec.conf && a.sure === true) { if (a.right) { bonus += Math.round(pts * X.sure); nb++; } else { pen += pts; np++; } }
+      var fresh = !spec.paid[a.id] && !seen[a.id];
+      if (a.right && fresh) { base += pts; seen[a.id] = 1; }
+      // Sure changes the XP of questions not yet got right; on the rest it only feeds the calibration measure
+      if (spec.conf && a.sure === true && fresh) { if (a.right) { bonus += Math.round(pts * X.sure); nb++; } else { pen += pts; np++; } }
     });
     pen = Math.min(pen, base + bonus);
     return { base: base, bonus: bonus, pen: pen, nb: nb, np: np, net: base + bonus - pen };
@@ -1772,7 +1787,22 @@
   }
 
   // Everything the Learn screens show, worked out from the questions file, a member's record and the day.
+  // Every skill of a passed chapter is on the review schedule, including ones the check didn't draw or that were missed
+  // (back the day after the pass) and ones from chapters passed before skills existed. Anchored to the pass day, so it
+  // works out the same on every load.
+  function planSkills(LP, S) {
+    Object.keys(LP.unitSkills).forEach(function (uid) {
+      var u = S.units[uid];
+      if (!u || !u.passed) return;
+      LP.unitSkills[uid].forEach(function (id) {
+        var sk = S.skills[id] || (S.skills[id] = { n: 0, days: [] });
+        if (!sk.start) { sk.start = u.passed; sk.box = 0; sk.due = u.passed + (sk.days && sk.days.length ? LP.SC.skill[0] : 1) * DAY; }
+      });
+    });
+    return S;
+  }
   function learnModel(LP, S, day, ctx) {
+    planSkills(LP, S);
     var R = LP.R, lv = levelInfo(LP, S), passedAll = 0, totalAll = 0;
     var books = LP.books.map(function (b) {
       var prev = true, next = null, passed = 0;
@@ -1909,7 +1939,7 @@
   // One step of progress: answering the question of the day, finishing a check, review, deal file, promotion or final, or
   // ticking a section as read. Returns the new record and what to celebrate.
   function learnApply(LP, S0, act, day, ctx) {
-    var S = fillLearn(JSON.parse(JSON.stringify(S0))), X = LP.X, R = LP.R, SC = LP.SC, L = LP.levels, before = levelInfo(LP, S0);
+    var S = planSkills(LP, fillLearn(JSON.parse(JSON.stringify(S0)))), X = LP.X, R = LP.R, SC = LP.SC, L = LP.levels, before = levelInfo(LP, S0);
     var ev = { lines: [], xp: 0, badges: [], level: null, promo: null, cert: null, notes: [], secure: [], desks: [], tomb: null };
     S.flags = S.flags || {}; S.streak = S.streak || { n: 0, last: 0, best: 0 };
     function gain(what, n) { if (!n) return; S.xp += n; ev.xp += n; ev.lines.push({ what: what, xp: n }); }
@@ -2035,6 +2065,7 @@
       Object.keys(LP.unitSkills).forEach(function (uid) { if (!desksBefore[uid] && unitDesk(LP, S, uid)) { ev.desks.push(uid); note('desk1'); } });
       if (S.cal.s >= 30 && S.cal.sr / S.cal.s >= 0.85) note('judge');
     }
+    planSkills(LP, S);
     var top = L[L.length - 1];
     if (!R.promotions) { L.forEach(function (l) { if (S.xp >= l.xp && S.level < l.n) S.level = l.n; }); }
     else if (S.level === top.n - 1 && S.xp >= top.xp && LP.books.every(function (b) { return S.finals[b.id] && S.finals[b.id].passed; })) S.level = top.n;
@@ -2954,7 +2985,7 @@
           ${U.pre ? html`<span class="qz-ad" aria-hidden="true">${U.pre}</span>` : null}
           <input id=${id} type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"
             value=${d.v} disabled=${answered} aria-describedby=${id + '-h'} aria-invalid=${state === 'bad' ? 'true' : null}
-            onInput=${function (e) { draft({ v: e.currentTarget.value }); }} onKeyDown=${function (e) { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} />
+            onInput=${function (e) { draft({ v: e.currentTarget.value }); }} onKeyDown=${function (e) { if (e.key === 'Enter') { e.preventDefault(); var nx = box.current && box.current.querySelector('.qz-conf-b .qz-go:not([disabled]), .qz-foot > .qz-go:not([disabled])'); if (nx) nx.focus(); else e.currentTarget.blur(); } }} />
           ${U.suf ? html`<span class=${'qz-ad' + (U.box ? ' w' : '')} aria-hidden="true">${U.box || U.suf}</span>` : null}
         </div>
         <small id=${id + '-h'} class="qz-hint">${hint}</small>
@@ -3029,7 +3060,8 @@
       var g = q.res, ok = g.right, pts = X[it.xpk] || 0, extra = [];
       var first = ok && !spec.paid[it.id] && !q.answers.slice(0, -1).some(function (a) { return a.id === it.id && a.right; });
       if (spec.grade && first) extra.push('+' + pts + ' XP');
-      if (spec.conf && g.sure === true) extra.push(ok ? '+' + Math.round(pts * X.sure) + ' for being sure' : '−' + pts + ' XP for being sure');
+      var unpaid = !spec.paid[it.id] && !q.answers.slice(0, -1).some(function (a) { return a.id === it.id && a.right; });
+      if (spec.conf && g.sure === true && unpaid) extra.push(ok ? '+' + Math.round(pts * X.sure) + ' for being sure' : '−' + pts + ' XP for being sure');
       var answerLine = null, work = [];
       if (it.type === 'num' || it.type === 'est') {
         var tgt = it.mode === 'fade' ? it.target : { v: it.ans, unit: it.unit, dp: it.dp };
@@ -3099,7 +3131,7 @@
           ${q.leave ? html`<div class="qz-leave" role="alert"><p>Leave now and this counts as a try. ${LP.R.retry === 'nextDay' ? 'You can try again tomorrow.' : ''}</p><div><button class="pill ghost" onClick=${function () { set2({ leave: false }); }}>Stay</button><button class="pill" onClick=${p.onClose}>Leave</button></div></div>`
             : answered ? html`<button class="qz-go" onClick=${next}>${q.i < items.length - 1 ? 'Next question' : 'See results'}</button>
               <button class="qz-report" onClick=${function () { set2({ report: !q.report }); }}>${q.report ? 'Hide' : 'Report this question'}</button>`
-            : spec.conf ? html`<div class="qz-conf"><span class="qz-conf-k" id="qz-conf-k">How sure are you?<small> Sure: +${Math.round(pts * X.sure)} if right, −${pts} if wrong</small></span>
+            : spec.conf ? html`<div class="qz-conf"><span class="qz-conf-k" id="qz-conf-k">How sure are you?<small>${spec.paid[it.id] ? ' Counts towards how often your Sure is right' : ' Sure: +' + Math.round(pts * X.sure) + ' if right, −' + pts + ' if wrong'}</small></span>
                 <div class="qz-conf-b" role="group" aria-labelledby="qz-conf-k"><button class="qz-go ghost" disabled=${!done} onClick=${function () { submit(false); }}>Not sure</button><button class="qz-go" disabled=${!done} onClick=${function () { submit(true); }}>Sure</button></div></div>`
             : html`<button class="qz-go" disabled=${!done} onClick=${function () { submit(null); }}>Check my answer</button>`}
         </div>`;
