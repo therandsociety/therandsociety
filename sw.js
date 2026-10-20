@@ -1,14 +1,28 @@
 /* Offline support for the Rand Society app.
    The app shell is cached on install. data.json (dates) and learn.json (the reading programme) are fetched fresh
-   whenever the network allows and fall back to the last good copy, so an edit with a typo never blanks the app. */
-var VERSION = 'ebccc640c3';
+   whenever the network allows and fall back to the last good copy, so an edit with a typo never blanks the app.
+   Opening the app asks the network first and falls back to the saved copy after a few seconds, so a slow or stuck
+   connection never leaves Safari waiting until it gives up ("the server stopped responding"). */
+var VERSION = 'ef76c48c78';
 var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "fonts/michroma.woff2", "fonts/fraunces-soft.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 var SHELL_CACHE = 'trs-shell-' + VERSION;
 var DATA_CACHE = 'trs-data';
 var MEDIA_CACHE = 'trs-media';
 
+// Each shell file is fetched past the browser's own cache (so a new version never stores an old file) and stored as a
+// clean copy: Safari refuses to open a page the service worker serves from a response that followed a redirect, which
+// GitHub Pages sends once the site moves to its own domain.
+function shellCopy(url) {
+  return fetch(url, { cache: 'reload' }).then(function (res) {
+    if (!res.ok) throw new Error(url + ': HTTP ' + res.status);
+    return res.blob().then(function (b) { return new Response(b, { status: 200, headers: { 'Content-Type': res.headers.get('Content-Type') || '' } }); });
+  });
+}
+
 self.addEventListener('install', function (event) {
-  event.waitUntil(caches.open(SHELL_CACHE).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
+  event.waitUntil(caches.open(SHELL_CACHE).then(function (c) {
+    return Promise.all(SHELL.map(function (url) { return shellCopy(url).then(function (r) { return c.put(url, r); }); }));
+  }).then(function () { return self.skipWaiting(); }));
 });
 
 self.addEventListener('activate', function (event) {
@@ -50,6 +64,20 @@ function freshData(request, name) {
   });
 }
 
+// Opening the app: the network's copy when it answers within four seconds (always the latest version), otherwise the saved
+// copy; with no saved copy yet, keep waiting for the network.
+function savedPage() {
+  return caches.open(SHELL_CACHE).then(function (c) { return c.match('index.html'); }).then(function (hit) {
+    return hit || caches.match('index.html');
+  }).catch(function () { return null; });
+}
+function openPage(req) {
+  var net = fetch(req);
+  return timeout(4000, net).catch(function () {
+    return savedPage().then(function (hit) { if (hit) { net.catch(function () {}); return hit; } return net; });
+  });
+}
+
 self.addEventListener('fetch', function (event) {
   var req = event.request;
   if (req.method !== 'GET') return;
@@ -68,11 +96,6 @@ self.addEventListener('fetch', function (event) {
   var json = /\/(data|learn)\.json$/.exec(url.pathname);
   if (json) { event.respondWith(freshData(req, json[1] + '.json')); return; }
   if (/\/check\.html$/.test(url.pathname)) return;
-  if (req.mode === 'navigate') {
-    event.respondWith(caches.match('index.html', { cacheName: SHELL_CACHE }).then(function (hit) {
-      return hit || fetch(req);
-    }).catch(function () { return fetch(req); }));
-    return;
-  }
-  event.respondWith(caches.match(req, { ignoreSearch: true }).then(function (hit) { return hit || fetch(req); }));
+  if (req.mode === 'navigate') { event.respondWith(openPage(req)); return; }
+  event.respondWith(caches.match(req, { ignoreSearch: true }).then(function (hit) { return hit || fetch(req); }, function () { return fetch(req); }));
 });
