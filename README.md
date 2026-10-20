@@ -153,7 +153,7 @@ Plan, Meetings, Learn and You open on a plain navy band. To give one a photo, as
 
 ## Learn
 
-The Learn section turns the two required books (The Intelligent Investor and Investment Banking, by 28 February 2027) into chapter checks, levels, badges and, for Investment Banking, banking skills and deal files. Everything it shows comes from **`learn.json`**. Progress stays on each member's phone (localStorage key `trs-learn`); members can move it to a new phone with a backup code, and share a summary with **Share my progress**. The design rests on the research report in the project docs (*Learn: evidence-based question and practice design*).
+The Learn section turns the two required books (The Intelligent Investor and Investment Banking, by 28 February 2027) into chapter checks, levels, badges and, for Investment Banking, banking skills and deal files. Everything it shows comes from **`learn.json`**. Progress lives on each member's phone (localStorage key `trs-learn`) and, once **Progress online** is set up (below), in the Society's Google Sheet too; members can also move it with a backup code, and share a summary with **Share my progress**. The design rests on the research report in the project docs (*Learn: evidence-based question and practice design*).
 
 ### How a member learns
 
@@ -163,7 +163,8 @@ The Learn section turns the two required books (The Intelligent Investor and Inv
 - **Spaced practice.** Missed questions come back after 1, 3, 7 and 16 days (confident misses first). Every banking skill of a passed chapter comes back 2, 7, 16 and 35 days after the pass (the next day if the check didn't show it right), with new figures, until it is **secure**: right on three days at least a week apart, one of them typed. A chapter is **desk-ready** when every skill in it is secure and its deal file is closed. There is a weekly mix of six questions from passed chapters, a short warm-up after a break, and a pre-thesis review of Comps and DCF in the week before each Pitch Cycle's thesis is due (it reads `a-thesisA` or `a-thesisB` from `data.json`). Practice pauses with the programme.
 - **Before you read.** Each Investment Banking chapter opens with three unmarked questions to try before reading; guessing first makes the reading stick.
 - **Deal files and tombstones.** Each Investment Banking chapter has one fictional company, a page of facts in rands and six linked questions; each gives the result it needs, so one slip doesn't sink the rest. Closing it (5 of 6) adds a tombstone to the member's Deal book, showing the figure they worked out. Commendations mark a first desk-ready chapter, a clean deal file, a month of weekly mixes and sound judgement.
-- **Shared progress, later.** `learnSummary()` in `app.js` already produces what a shared store would hold for the President's view (level, chapters, skills by state, deal files, how often Sure is right; no answers).
+- **Paper LBO sprint.** Once Chapter 4 is passed, three quick LBO estimates against one clock, with a personal best (`schedule.sprint`).
+- **Checked chapters.** Each chapter's questions are signed off by the Head of Research before members rely on them (see **Chapter sign-off**). Members see "Checked by the Head of Research on 6 November 2026" on the chapter.
 
 ### The file
 
@@ -179,12 +180,13 @@ The Learn section turns the two required books (The Intelligent Investor and Inv
 | `cases` | Deal files: `id`, `unit`, `title` (the company), `deal` (the tombstone's deal type), `lead`, `vars`, `let`, `when`, `facts` (label and value pairs), `tomb` (`value`, `line`), `pass`, `items` (the linked questions) |
 | `questions` | One per line: `id`, `unit`, `tier`, `type`, `skill`, `q`, `why`, `src` (where to reread), `pre: true` for a before-you-read question, and the fields for its type (below) |
 | `facts`, `badges` | Fun facts per chapter or book, and the badge shelf (`kind: "desk"` badges need their chapters desk-ready) |
+| `signoff` | `by` (the role that signs off: `hor`) and `chapters`: one entry per checked chapter, `{"by": "hor", "on": "2026-11-06", "print": "a6ada2dd"}`. Paste the line the review page gives you; don't type the `print` by hand |
 
 | `type` | Fields |
 |---|---|
 | `tf` | `answer`: true or false |
 | `mcq` | `options`, `answer` (the number of the right option, counting from 0), `miss` (optional: what each wrong option shows, `null` for the right one) |
-| `two` | Answer and reason: `options` and `answer`, then `reason` with `q`, `options` and `answer`; `aq` labels the first part |
+| `two` | Answer and reason: `options` and `answer`, then `reason` with `q`, `options` and `answer`; `aq` labels the first part. `keep: true` keeps the options in the order written (used for True / False, then why) |
 | `num` | A calculation: `ans` (its formula), `in` (`R`, `Rm`, `Rbn`, `m`, `x`, `%` or none), `dp`, `tol`, `work` (the working shown after), `errs` (likely slips, each a formula `v` and a `why`), `steps` (for the worked example and the blank step: `t`, `v`, `in`, `dp`, `key`), `ask`, `hint`, `signed` |
 | `est` | An estimate in the head: `ans`, `band` (lowest and highest accepted), `secs` (target time), `in`, `dp` |
 | `err` | Find the mistake: `lines`, `bad` (the wrong line), `fix` with `q`, `options` and `answer` |
@@ -198,7 +200,39 @@ The Learn section turns the two required books (The Intelligent Investor and Inv
 
 **Fixing a question.** Members can tap **Report this question**; the message carries its `id` (such as `ib3-28`). Find that line in `learn.json`, correct it, commit, then open `check.html`. It checks the structure and then draws every question the way members see it, with the app's own engine: those with changing figures 120 times each, confirming the answer as displayed is marked right, that no listed slip would be marked right, and that no figure comes out broken. Options are shuffled in the app, so `answer` just points to the right one.
 
+### Chapter sign-off
+
+Work is complete when it passes the quality gate, and the question bank is no different. The **Head of Research** checks each chapter before members rely on it:
+
+1. Open **`review.html`** on the site (the Head of Research also gets a **Review and sign off** button on each chapter in Learn). It lists every question in the chapter with its answer, reason, working, common slips and source, and the deal file with its facts.
+2. Anything wrong: tap **Flag for a fix** on the question and say what. Flags stay on that device. **Copy the fixes** gives a list to send to the President.
+3. Nothing flagged: tick the declaration and tap **Sign off this chapter**. Send the line it gives to the President.
+4. The President pastes the line into `learn.json` under `signoff` → `chapters`, commits, and opens `check.html`.
+
+The line carries the chapter's **fingerprint**: a short code worked out from its questions exactly as written. Edit any question in a signed-off chapter and the fingerprint changes: members then see "Questions updated since the Head of Research checked them", and `check.html` lists the chapter until it is checked again. Chapters not yet checked show nothing to members.
+
 **Learn's look.** Learn has two looks, and each member chooses with the **Society look** switch at the bottom of the Learn page (the choice stays on their device). **Stripes** is the default: 1970s racing stripes on cream, where the stripes carry meaning. The Learn header climbs one step for every level reached; each question type has a colour (recall teal, concept marigold, applied tangerine); passed chapters fill teal and full marks marigold; banking skills fill teal when secure and marigold when desk-ready; tombstones are espresso slabs with the stripes across the top; a pass breaks the stripes out of their range; a level-up climbs to the new level's ring. Burgundy is the action colour and red is kept for wrong answers and falling behind. Pretoria's jacarandas flower in the header and fall when a member passes. The **Society look** shows Learn in the app's own navy and silver, with navy tombstones carrying the TRS monogram. The default is one line in `app.js` (`var SKIN_DEFAULT = 'stripes';`); the look's artwork, medals and rings sit in `makeSkin()` and its styles in the "Learn skin: stripes" block of `app.css`, so another look can slot in without touching the rest. The certificate keeps the Society look either way. Learn-only fonts: Michroma (big titles) and Fraunces (headings and scores); questions stay in IBM Plex Sans. Members can turn on **Sound effects** (off by default) and **Vibration** (on by default) under **Effects** on the Learn page. Motion stops for anyone with reduced motion turned on.
+
+## Progress online
+
+Without it, everything stays on each phone. With it, a member's Learn progress and "submitted" marks save to a Google Sheet on the Society's account a few seconds after each change, so a lost phone loses nothing, and the President sees the team: each role's level, chapters, streak and last activity, which questions the team misses most, and who has marked a deadline as submitted. Members never sign in to Google. Each role picks a six-digit PIN the first time it saves; the PIN never leaves the phone (the app sends a hash of it, and the sheet keeps only a salted hash of that). Five wrong PINs pause that role for 15 minutes. Rows are roles; no names are stored.
+
+**Setting it up (once, about ten minutes):**
+
+1. Signed in to the Society's Google account, create a new Google Sheet called "TRS progress".
+2. In the sheet: **Extensions → Apps Script**. Delete what's there and paste in the whole of `tools/sync/Code.gs`. Save.
+3. Choose `setup` in the function list and press **Run**. Google asks for permission once: it only needs this one spreadsheet. The sheet gets three tabs: **Members**, **State** and **Missed**.
+4. **Deploy → New deployment →** type **Web app**. Execute as: **Me**. Who has access: **Anyone**. Deploy, and copy the **Web app URL** (it ends in `/exec`).
+5. In `data.json`, paste it into `site.sync`, commit, and open `check.html`.
+6. On your phone: Learn → **Progress online** → choose a PIN. The **Team** card appears on your Learn page.
+
+**Day to day.** **Members** shows each role's level, XP, chapters, streak and last save. **Missed** lists the questions missed most across the team (worth a look before a chapter's sign-off). Don't edit **State**: it holds each member's saved record.
+
+**A forgotten PIN.** In **Members**, clear that role's **PIN check** cell. Their progress stays; the next time they open the app it asks them to choose a new PIN. (Do the same if a role was ever claimed by someone it shouldn't have been.)
+
+**Changing the script.** Paste the new code, then **Deploy → Manage deployments →** edit the web app → **New version**. The address stays the same.
+
+**Turning it off.** Empty `site.sync`. Phones keep everything they have.
 
 ## Role links
 
@@ -216,5 +250,7 @@ Each link opens straight to that role. Add `-analyst` to open the analyst view.
 - `sw.js`: offline support
 - `manifest.webmanifest`, `icons/`: home-screen install
 - `check.html`: the checker for both files (it loads `app.js` to draw every Learn question with the app's own engine)
+- `review.html`: the chapter review and sign-off page for the Head of Research
+- `tools/sync/Code.gs`: the Apps Script behind Progress online (pasted into the Society's Google Sheet; see above)
 - `cal/`: calendar feeds, one per member, and `cal/m/`, one file per meeting (built automatically; don't edit by hand)
 - `tools/build_ics.py`, `.github/workflows/calendar.yml`: what rebuilds the feeds

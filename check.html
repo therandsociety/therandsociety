@@ -63,6 +63,7 @@ a{color:var(--navy)}
     if (D.notice && (!D.notice.id || !D.notice.text)) errs.push('<code>notice</code> needs both an <code>id</code> and a <code>text</code>.');
     if (D.site && D.site.url && !/^https:\/\//.test(D.site.url)) errs.push('<code>site.url</code> must start with https://');
     if (D.site && D.site.teams && !/^https:\/\//.test(D.site.teams)) errs.push('<code>site.teams</code> must be a full https:// Teams link.');
+    if (D.site && D.site.sync && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(D.site.sync)) errs.push('<code>site.sync</code> must be the web app address from Apps Script, ending in <code>/exec</code> (see README, Progress online). Until it is right, progress stays on each phone.');
     Object.keys(D.photos || {}).forEach(function (k) {
       var v = D.photos[k], src = typeof v === 'string' ? v : v && v.src, okp = /^img\/[\w.\-\/]+\.(webp|jpe?g|png|avif)$/i;
       if (['plan', 'meetings', 'learn', 'you', 'role', 'guide'].indexOf(k) < 0) warns.push('<code>photos.' + esc(k) + '</code> is not a section (use plan, meetings, learn or you).');
@@ -287,8 +288,23 @@ a{color:var(--navy)}
       else if (per[u] < size) warns.push('Chapter <code>' + esc(u) + '</code> has ' + per[u] + ' questions; a check asks ' + size + '.');
     });
     (L.facts || []).forEach(function (f, i) { if (!f || !f.text || !(units[f.unit] || books[f.book])) errs.push('Fact ' + (i + 1) + ' needs <code>text</code> and a chapter <code>unit</code> or a <code>book</code>.'); });
+    // sign-offs: each records the fingerprint of the chapter it checked; an edit since then asks for a new check
+    var sign = { ok: 0, by: 'hor' }, SO = L.signoff, E0 = window.TRS_ENGINE;
+    if (SO != null && (typeof SO !== 'object' || Array.isArray(SO))) errs.push('<code>signoff</code> must have <code>by</code> (a member id) and <code>chapters</code>.');
+    else if (SO) {
+      sign.by = SO.by || 'hor';
+      Object.keys(SO.chapters || {}).forEach(function (u) {
+        var x = SO.chapters[u], at = '<code>signoff.chapters.' + esc(u) + '</code>';
+        if (!units[u]) { errs.push(at + ': <code>' + esc(u) + '</code> is not a chapter id.'); return; }
+        if (!x || isNaN(day(x.on))) { errs.push(at + ': <code>on</code> must be a YYYY-MM-DD date.'); return; }
+        if (!/^[0-9a-f]{8}$/.test(x.print || '')) { errs.push(at + ': <code>print</code> must be the eight-character fingerprint from the chapter review page.'); return; }
+        if (!E0) return;
+        if (E0.chapterPrint(L, u) === x.print) sign.ok++;
+        else warns.push('Chapter <code>' + esc(u) + '</code> has changed since it was signed off on ' + esc(x.on) + '. Members see “Questions updated since…” until it is checked again: <a href="review.html#' + esc(u) + '">review it</a>.');
+      });
+    }
     var drawn = drawAll(L, errs, warns, flagged);
-    return { errs: errs, warns: warns, nb: (L.books || []).length, nu: Object.keys(units).length, nq: (L.questions || []).length, nd: Object.keys(ids).length - (L.questions || []).length - nCase, tiers: tiers, types: types, ns: Object.keys(skills).length, nc: nCase, drawn: drawn };
+    return { sign: sign, errs: errs, warns: warns, nb: (L.books || []).length, nu: Object.keys(units).length, nq: (L.questions || []).length, nd: Object.keys(ids).length - (L.questions || []).length - nCase, tiers: tiers, types: types, ns: Object.keys(skills).length, nc: nCase, drawn: drawn };
   }
   // every question as members will see it: templates drawn many times, each typed answer marked, each listed slip kept out
   function drawAll(L, errs, warns, flagged) {
@@ -351,6 +367,7 @@ a{color:var(--navy)}
       if (!r.errs.length) h += '<p class="ok">Reading programme: all good. ' + r.nb + ' books, ' + r.nu + ' chapters, ' + r.nq + ' questions (recall ' + r.tiers[0] + ', concept ' + r.tiers[1] + ', applied ' + r.tiers[2] + '), '
         + r.ns + ' skills and ' + r.nc + ' deal files with ' + r.nd + ' linked questions.</p><p style="margin-top:6px;color:var(--muted)">' + kinds + '.' + (r.drawn ? ' Every question was drawn the way members see it: the ' + r.drawn.t + ' with changing figures ' + DRAWS + ' times each, ' + r.drawn.n.toLocaleString('en-ZA') + ' in all, and each answer marked.' : '') + '</p>';
       else h += '<p class="bad">Reading programme: ' + r.errs.length + (r.errs.length === 1 ? ' problem' : ' problems') + ' to fix:</p><ul>' + r.errs.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
+      h += '<p style="margin-top:6px;color:var(--muted)">Signed off and unchanged: ' + r.sign.ok + ' of ' + r.nu + ' chapters. <a href="review.html">Open the chapter review</a></p>';
       if (r.warns.length) h += '<p class="warn" style="margin-top:12px">Worth a look:</p><ul>' + r.warns.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
       box.innerHTML = h;
     }).catch(function (e) { box.innerHTML = '<p class="bad">' + esc(e.message) + '</p>'; });

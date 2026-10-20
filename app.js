@@ -37,6 +37,7 @@
   function dShort(ms) { return D(ms).getUTCDate() + NB + mon(ms); }
   function dMonth(ms) { return D(ms).getUTCDate() + NB + MONTHS[D(ms).getUTCMonth()]; }
   function wk(ms) { return WEEK[D(ms).getUTCDay()]; }
+  function dYear(ms) { return dMonth(ms) + ' ' + D(ms).getUTCFullYear(); }
   function dLong(ms) { return wk(ms) + ' ' + dMonth(ms) + ' ' + D(ms).getUTCFullYear(); }
   function nbsp(s) { return String(s == null ? '' : s).replace(MONTH_RX, '$1' + NB); }
   function plural(n, one, many) { return n === 1 ? one : (many || one + 's'); }
@@ -150,7 +151,9 @@
       library: (Array.isArray(raw.library) ? raw.library : []).filter(function (l) { return l && l.title && /^https:\/\/\S+$/.test(l.url || ''); }),
       notice: raw.notice && raw.notice.id && raw.notice.text ? raw.notice : null,
       teams: (raw.site && /^https:\/\//.test(raw.site.teams || '') && raw.site.teams) || '',
-      siteUrl: (raw.site && raw.site.url) || ''
+      siteUrl: (raw.site && raw.site.url) || '',
+      // progress online: the Society's Apps Script web app (see tools/sync); empty keeps everything on the device
+      cloud: (raw.site && /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(raw.site.sync || '') && raw.site.sync) || ''
     };
   }
 
@@ -581,6 +584,7 @@
               : it.band === 'nc' ? 'Recorded as not completed. It goes to the traffic-light review with a revised date.'
               : it.submitted ? 'Saved on this device. Tap again to undo.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
           </div>` : null}
+        ${p.team && p.team.length ? html`<p class="team-done"><span class="u-sign-ic" aria-hidden="true">${TICK}</span>Marked as submitted by the ${p.team.join(', the ')}.</p>` : null}
         ${p.check ? html`<${Checklist} c=${p.check} state=${p.checkState} toggle=${p.toggleCheck} />` : null}
         <${LinkRow} links=${it.links} />
         ${it.type === 'meeting' && !it.past ? html`<${MeetActions} it=${it} A=${p.A} />` : null}
@@ -697,15 +701,15 @@
   }
 
   function InstallCard(p) {
-    var A = p.A, st = p.st;
+    var A = p.A, st = p.st, way = installWay(st);
     return html`<section class="card install-card" aria-labelledby="in-h">
       <div class="in-mark" aria-hidden="true"><${Logo} size=${30} /></div>
       <div class="in-text">
         <h2 id="in-h">Keep the app on your home screen</h2>
-        ${st.canInstall ? html`<p>One tap opens it full screen, even offline.</p>` : html`<p>Tap <b>Share</b>${html`<svg class="share-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"></path></svg>`}, then <b>Add to Home Screen</b>.</p>`}
+        <p>${way === 'prompt' ? 'One tap opens it full screen, even offline.' : html`<${InstallSteps} way=${way} />`}</p>
       </div>
       <div class="in-actions">
-        ${st.canInstall ? html`<button class="install" onClick=${A.install}>Install</button>` : null}
+        ${way === 'prompt' ? html`<button class="install" onClick=${A.install}>Install</button>` : null}
         <button class="in-later" onClick=${A.dismissInstall}>Not now</button>
       </div>
     </section>`;
@@ -897,7 +901,8 @@
     file: html`<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path>`,
     sound: html`<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path>`,
     buzz: html`<rect x="8" y="3.5" width="8" height="17" rx="2"></rect><path d="M4.5 8.5v7M19.5 8.5v7M2 10.5v3M22 10.5v3"></path>`,
-    send: html`<path d="M21 3 10.5 13.5"></path><path d="M21 3l-6.5 18-4-7.5L3 9.5z"></path>`
+    send: html`<path d="M21 3 10.5 13.5"></path><path d="M21 3l-6.5 18-4-7.5L3 9.5z"></path>`,
+    cloud: html`<path d="M7.2 18.5h10.3a4 4 0 0 0 .5-7.97 6 6 0 0 0-11.4-.9A4.5 4.5 0 0 0 7.2 18.5z"></path><path d="m9.5 13.6 1.8 1.8 3.4-3.4"></path>`
   };
   function Ico(p) {
     var I = ICONS[p.n];
@@ -1249,7 +1254,7 @@
   }
   function GuideList(p) {
     var M = p.M, A = p.A, st = p.st, sync = p.sync;
-    var inst = standalone() ? null : st.canInstall ? { v: 'One tap opens it full screen, even offline', go: A.install } : isIOS() ? { v: 'Tap Share, then Add to Home Screen' } : null;
+    var way = installWay(st), inst = way === 'prompt' ? { v: 'One tap opens it full screen, even offline', go: A.install } : way === 'ios' ? { v: 'Tap Share, then Add to Home Screen' } : way === 'android' ? { v: 'Browser menu ⋮, then Install app' } : null;
     function row(k, ic, label, value, go) {
       var inner = [html`<span key="i" class="g-ic" aria-hidden="true"><${Ico} n=${ic} s=${20} /></span>`, html`<span key="t" class="g-t"><b>${label}</b><small>${value}</small></span>`, go ? html`<${Arrow} key="a" />` : html`<span key="a"></span>`];
       return html`<li key=${k}>${go ? html`<button class="grow" onClick=${go}>${inner}</button>` : html`<div class="grow">${inner}</div>`}</li>`;
@@ -1262,6 +1267,7 @@
         ${row('sr', 'search', 'Search', 'Any date, meeting or rule', A.openSearch)}
         ${inst ? row('in', 'phone', 'Install the app', inst.v, inst.go) : null}
         ${row('up', 'send', 'Send my update', 'Your week in one message, ready for WhatsApp, Teams or email', A.openUpdate)}
+        ${p.cloud ? row('ol', 'cloud', 'Progress online', p.cloud.text, A.openCloud) : null}
         ${row('src', 'file', 'Where the dates come from', M.term.source + (M.updated ? '. Updated ' + M.updated + '.' : '.'), null)}
       </ul>
       ${sync ? html`<div class=${'sync ' + sync.state} aria-live="polite"><i aria-hidden="true"></i><span>${sync.text}</span><button onClick=${A.refresh} disabled=${sync.busy}>${sync.busy ? 'Checking…' : 'Refresh'}</button></div>` : null}
@@ -1284,11 +1290,39 @@
     kind: 'device',
     all: function () { try { return JSON.parse(read('trs-learn') || '{}') || {}; } catch (e) { return {}; } },
     load: function (id) { var s = LearnStore.all()[id]; return s && s.v === 1 ? fillLearn(s) : null; },
-    save: function (id, s) { var all = LearnStore.all(); all[id] = s; store('trs-learn', JSON.stringify(all)); }
+    save: function (id, s) { var all = LearnStore.all(); all[id] = s; store('trs-learn', JSON.stringify(all)); if (LearnStore.after) LearnStore.after(id); },
+    after: null
   };
+
+  // ---------- progress online ----------
+  // With site.sync set in data.json (the Society's Google Apps Script web app: tools/sync/Code.gs), a member can keep their
+  // progress online: the Learn record and their "submitted" marks, saved a few seconds after each change. The PIN never
+  // leaves the phone: it becomes a key here, and only the key is sent and kept. The President's team view reads a summary
+  // of each member (level, chapters, streak) and which questions the team misses, never their answers.
+  var TEAM_VIEW = ['pres'];
+  var CloudStore = {
+    all: function () { try { return JSON.parse(read('trs-cloud') || '{}') || {}; } catch (e) { return {}; } },
+    get: function (id) { return CloudStore.all()[id] || null; },
+    put: function (id, o) { var a = CloudStore.all(); if (o) a[id] = o; else delete a[id]; store('trs-cloud', JSON.stringify(a)); }
+  };
+  function pinKey(role, pin) {
+    try {
+      return crypto.subtle.digest('SHA-256', new TextEncoder().encode('trs:' + role + ':' + pin)).then(function (b) {
+        return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+      });
+    } catch (e) { return Promise.reject(new Error('nocrypto')); }
+  }
+  function cloudCall(url, body, keep) {
+    var text = JSON.stringify(body);
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: text, redirect: 'follow', cache: 'no-store', keepalive: !!keep && text.length < 60000 })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  }
+  function weakPin(pin) { return /^(\d)\1{5}$/.test(pin) || '0123456789012'.indexOf(pin) >= 0 || '9876543210987'.indexOf(pin) >= 0; }
+  function readBoard() { try { var b = JSON.parse(read('trs-board') || 'null'); return b && Array.isArray(b.members) ? b : null; } catch (e) { return null; } }
+  function isoOf(ms) { var d = D(ms); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
   function freshLearn() {
     return { v: 1, xp: 0, level: 1, units: {}, paid: {}, review: {}, daily: null, streak: { n: 0, last: 0, best: 0 }, badges: {}, promos: {}, finals: {}, flags: {},
-      skills: {}, cases: {}, cal: { n: 0, s: 0, sr: 0 }, notes: {}, weekly: { wk: -1, run: 0 }, seen: {}, ret: { n: 0, r: 0 } };
+      skills: {}, cases: {}, cal: { n: 0, s: 0, sr: 0 }, notes: {}, weekly: { wk: -1, run: 0 }, seen: {}, ret: { n: 0, r: 0 }, sprint: { n: 0, best: 0 }, qs: {} };
   }
   // records saved before skills, deal files and confidence existed pick up the new fields as they load
   function fillLearn(S) { var f = freshLearn(); Object.keys(f).forEach(function (k) { if (S[k] == null) S[k] = f[k]; }); return S; }
@@ -1436,8 +1470,8 @@
   function learnPrep(raw) {
     if (!raw || !Array.isArray(raw.books) || !raw.books.length || !Array.isArray(raw.levels) || !raw.levels.length) throw new Error('learn.json needs books and levels.');
     var R = Object.assign({ checkSize: 8, checkPass: 6, reviewSize: 10, reviewPass: 8, finalSize: 20, finalPass: 16, finalMix: [2, 8, 10], retry: 'nextDay', inOrder: true, promotions: true, samples: false, confidence: true }, raw.rules || {});
-    var X = Object.assign({ t1: 10, t2: 20, t3: 40, calc: 40, err: 40, 'case': 40, deal: 100, pass: 100, perfect: 50, daily: 15, streak7: 100, reviewClear: 30, weekly: 30, warm: 30, pret: 30, sure: 0.5 }, raw.xp || {});
-    var SC = Object.assign({ skill: [2, 7, 16, 35], miss: [1, 3, 7, 16], after: 14, weekly: 6, reviewMax: 12, preThesis: null }, raw.schedule || {});
+    var X = Object.assign({ t1: 10, t2: 20, t3: 40, calc: 40, err: 40, 'case': 40, deal: 100, pass: 100, perfect: 50, daily: 15, streak7: 100, reviewClear: 30, weekly: 30, warm: 30, pret: 30, sprint: 30, sure: 0.5 }, raw.xp || {});
+    var SC = Object.assign({ skill: [2, 7, 16, 35], miss: [1, 3, 7, 16], after: 14, weekly: 6, reviewMax: 12, preThesis: null, sprint: null }, raw.schedule || {});
     var levels = raw.levels.map(function (l, i) {
       return { n: i + 1, name: l.name || 'Level ' + (i + 1), xp: +l.xp || 0, mix: Array.isArray(l.mix) && l.mix.length === 3 ? l.mix.map(Number) : [R.checkSize, 0, 0] };
     });
@@ -1519,12 +1553,30 @@
     (raw.facts || []).forEach(function (f) { var k = f && f.text && (f.unit || f.book); if (k) (facts[k] = facts[k] || []).push(f.text); });
     var pg = raw.programme || {};
     return { R: R, X: X, SC: SC, levels: levels, books: books, units: units, qs: qs, samples: samples, byId: byId, facts: facts, pres: pres, cases: cases, caseOf: caseOf,
-      skills: skills, unitSkills: unitSkills, bookCfg: bookCfg, left: bad,
+      skills: skills, unitSkills: unitSkills, bookCfg: bookCfg, left: bad, sign: signPrep(raw, units),
       tiers: Array.isArray(raw.tiers) && raw.tiers.length === 3 ? raw.tiers : [{ name: 'Recall' }, { name: 'Concept' }, { name: 'Applied' }],
       badges: (raw.badges || []).filter(function (b) { return b && b.id && b.name; }), groups: raw.badgeGroups || [],
       title: pg.title || 'Required reading', term: pg.term || '', start: parseDay(pg.start), due: parseDay(pg.due),
       pauses: (Array.isArray(pg.pauses) ? pg.pauses : []).map(function (x) { return { a: parseDay(x && x.from), b: parseDay(x && x.to), label: (x && x.label) || 'Break' }; })
         .filter(function (x) { return !isNaN(x.a) && !isNaN(x.b) && x.b >= x.a; }) };
+  }
+  // A chapter's fingerprint: its questions and deal files exactly as written. A sign-off records the fingerprint it checked,
+  // so any later edit to the chapter shows as "updated since it was checked" until it is checked again.
+  function chapterPrint(raw, unit) {
+    var parts = [];
+    (raw.questions || []).forEach(function (q) { if (q && q.unit === unit) parts.push(q); });
+    (raw.cases || []).forEach(function (c) { if (c && c.unit === unit) parts.push(c); });
+    var s = JSON.stringify(parts), h = 2166136261;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return ('0000000' + (h >>> 0).toString(16)).slice(-8);
+  }
+  function signPrep(raw, units) {
+    var SO = raw.signoff || {}, by = SO.by || 'hor', ch = {}, list = SO.chapters || {};
+    Object.keys(units).forEach(function (id) {
+      var s = list[id], on = s ? parseDay(s.on) : NaN, print = chapterPrint(raw, id);
+      ch[id] = { print: print, by: (s && s.by) || by, on: on, has: !isNaN(on), current: !isNaN(on) && !!s && s.print === print };
+    });
+    return { by: by, ch: ch };
   }
   function bookOf(LP, id) { return LP.books.filter(function (b) { return b.id === id; })[0]; }
   // Days from a to b (both included) that count towards the reading pace: breaks such as the year-end recess don't.
@@ -1644,7 +1696,8 @@
     function v(x) { return TPL.val(x, env); }
     var it = { id: q.id, tier: q.tier, type: q.type, tf: q.tf, q: f(q.q), why: f(q.why), src: q.src, skill: q.skill, sample: q.sample, calc: q.calc, xpk: q.xpk, caseId: q.caseId, unit: q.unit, book: q.book, mode: 'solo' };
     if (q.type === 'tf' || q.type === 'mcq' || q.type === 'two') {
-      var idx = q.options.map(function (x, i) { return i; }), ord = q.tf ? idx : shuffled(idx, r);
+      var idx = q.options.map(function (x, i) { return i; }), ord = q.tf || raw.keep ? idx : shuffled(idx, r);
+      it.keep = !!raw.keep;
       it.opts = ord.map(function (i) { return { t: f(q.options[i]), right: i === q.answer, miss: raw.miss && raw.miss[i] ? f(raw.miss[i]) : '' }; });
       if (q.type === 'two') {
         var rs = raw.reason, ri = shuffled(rs.options.map(function (x, i) { return i; }), r);
@@ -1870,7 +1923,8 @@
     var warm = after && passedUnits.length && !((S.flags.warm || 0) > after.b) ? { label: after.label, from: after.b + DAY } : null;
     var pt = preThesis(LP, ctx), pret = null;
     if (pt && day >= pt.start && day <= pt.end && pt.units.some(function (u) { return S.units[u] && S.units[u].passed; })) pret = { done: S.flags.pret === pt.at, at: pt.at, units: pt.units };
-    var practice = { paused: pz, due: due, skills: skDue, n: due.length + skDue.length, deck: deck.length, sched: sched.length, next: upcoming, weekly: weekly, warm: warm, pret: pret };
+    var spc = LP.SC.sprint, sprint = spc && !pz && S.units[spc.opens] && S.units[spc.opens].passed ? { best: (S.sprint || {}).best || 0, n: (S.sprint || {}).n || 0, size: spc.n || 3 } : null;
+    var practice = { paused: pz, due: due, skills: skDue, n: due.length + skDue.length, deck: deck.length, sched: sched.length, next: upcoming, weekly: weekly, warm: warm, pret: pret, sprint: sprint };
     // the banker's desk: skills by chapter, deal files, and how well "Sure" matches being right
     var desk = { units: [], total: 0, secure: 0, desks: 0 }, deals = [];
     books.forEach(function (x) {
@@ -1984,6 +2038,8 @@
         if (a.calc) { calcN++; if (a.right) calcR++; }
         if (a.right && !S.paid[a.id]) S.paid[a.id] = 1;
         if (a.right && a.tier === 3) S.flags.t3 = S.flags.t3 || day;
+        // per question: times asked and times missed, so the President's team view can show which questions members miss
+        var qn = S.qs[a.id] = S.qs[a.id] || [0, 0]; qn[0]++; if (!a.right) qn[1]++;
         if (sp.conf && (a.sure === true || a.sure === false)) { S.cal.n++; if (a.sure) { S.cal.s++; sureN++; if (a.right) { S.cal.sr++; sureR++; } } }
         // long-term recall: answers on a skill (or a question) first met three weeks or more before
         var seenKey = a.skill || a.id, dn = Math.round(day / DAY), first = S.seen[seenKey];
@@ -2051,6 +2107,14 @@
       } else if (sp.kind === 'warm' && ans.length) {
         if (!(S.flags.warm >= day - 3 * DAY)) gain('Warm-up done', X.warm);
         S.flags.warm = day;
+      } else if (sp.kind === 'sprint' && ans.length) {
+        var spr = S.sprint = S.sprint || { n: 0, best: 0 }, secsAll = 0;
+        ans.forEach(function (a) { secsAll += a.secs || 0; });
+        var allIn = ans.length === sp.size && right === sp.size;
+        ev.sprint = { secs: secsAll, right: right, size: sp.size, best: spr.best || 0, newBest: false, first: false };
+        spr.n = (spr.n || 0) + 1; spr.last = day;
+        if (allIn && !act.abandoned && (!spr.best || secsAll < spr.best)) { ev.sprint.newBest = !!spr.best; ev.sprint.first = !spr.best; spr.best = secsAll; ev.sprint.best = secsAll; }
+        if (!act.abandoned && S.flags.sprintDay !== day) { S.flags.sprintDay = day; gain('Paper LBO sprint', X.sprint); }
       } else if (sp.kind === 'pret' && ans.length) {
         if (S.flags.pret !== sp.at) { S.flags.pret = sp.at; gain('Pre-thesis review done', X.pret); }
       }
@@ -2161,6 +2225,13 @@
       r = rnd();
       picked = spread(passedUnits(), SC.weekly, r); size = picked.length;
       kicker = kind === 'warm' ? 'Warm-up' : 'Weekly mix'; title = kind === 'warm' ? 'Back after the break' : 'From the chapters you’ve passed';
+    } else if (kind === 'sprint') {
+      // the paper LBO sprint: estimates from the LBO chapters, back to back, against one clock
+      var spc = LP.SC.sprint;
+      if (!spc) return null;
+      tries = (S.sprint || {}).n || 0; r = rnd();
+      picked = shuffled(poolOf(spc.units || []).filter(function (q) { return q.type === 'est'; }), r).slice(0, spc.n || 3); size = picked.length;
+      kicker = 'Paper LBO sprint'; title = 'Three estimates against the clock';
     } else if (kind === 'pret') {
       var pt = preThesis(LP, ctx);
       if (!pt) return null;
@@ -2181,7 +2252,7 @@
     var facts = factKey ? LP.facts[factKey] || [] : [];
     var scored = kind === 'check' || kind === 'promo' || kind === 'final' || kind === 'deal';
     return { kind: kind, ref: ref, book: book, items: items, size: items.length, pass: scored ? Math.ceil(items.length * pass / Math.max(1, size)) : 0, passCalc: passCalc,
-      conf: R.confidence !== false && kind !== 'pre', grade: kind !== 'pre', kicker: kicker, title: title, caseId: caseId, at: at, seed: base,
+      conf: R.confidence !== false && kind !== 'pre' && kind !== 'sprint', grade: kind !== 'pre', kicker: kicker, title: title, caseId: caseId, at: at, seed: base,
       fact: facts.length && r ? facts[Math.floor(r() * facts.length)] : '', paid: Object.assign({}, S.paid) };
   }
 
@@ -2230,14 +2301,32 @@
   function backupCode(id, S) {
     try { return 'TRS1.' + btoa(unescape(encodeURIComponent(JSON.stringify({ id: id, s: S })))); } catch (e) { return ''; }
   }
+  // Backup codes. TRS2 is the record compressed (about a fifth of the length of TRS1); TRS1, plain, is still read, and is
+  // what a browser without compression gets.
+  function b64u(bytes) { var t = ''; for (var i = 0; i < bytes.length; i += 0x8000) t += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(t).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(t) { t = t.replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; var x = atob(t), b = new Uint8Array(x.length); for (var i = 0; i < x.length; i++) b[i] = x.charCodeAt(i); return b; }
+  function pipeBytes(bytes, stream) { return new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(function (ab) { return new Uint8Array(ab); }); }
+  function packCode(id, S) {
+    if (typeof CompressionStream === 'undefined' || typeof TextEncoder === 'undefined') return Promise.resolve(backupCode(id, S));
+    try { return pipeBytes(new TextEncoder().encode(JSON.stringify({ id: id, s: S })), new CompressionStream('deflate')).then(function (b) { return 'TRS2.' + b64u(b); }, function () { return backupCode(id, S); }); }
+    catch (e) { return Promise.resolve(backupCode(id, S)); }
+  }
+  function okRecord(o) { return o && o.id && o.s && o.s.v === 1 && typeof o.s.xp === 'number' ? (fillLearn(o.s), o) : null; }
+  function unpackCode(text) {
+    var t = String(text || '').replace(/\s+/g, '');
+    if (t.indexOf('TRS2.') !== 0) return Promise.resolve(readBackup(t));
+    if (typeof DecompressionStream === 'undefined') return Promise.resolve({ old: true });
+    try { return pipeBytes(unb64u(t.slice(5)), new DecompressionStream('deflate')).then(function (b) { return okRecord(JSON.parse(new TextDecoder().decode(b))); }).catch(function () { return null; }); }
+    catch (e) { return Promise.resolve(null); }
+  }
   function readBackup(text) {
     var t = String(text || '').replace(/\s+/g, '');
     if (t.indexOf('TRS1.') !== 0) return null;
-    try { var o = JSON.parse(decodeURIComponent(escape(atob(t.slice(5))))); return o && o.id && o.s && o.s.v === 1 && typeof o.s.xp === 'number' ? (fillLearn(o.s), o) : null; } catch (e) { return null; }
+    try { return okRecord(JSON.parse(decodeURIComponent(escape(atob(t.slice(5)))))); } catch (e) { return null; }
   }
 
   // check.html loads this file to test learn.json with the app's own engine; it stops here, before anything is drawn
-  if (window.TRS_CHECK) { window.TRS_ENGINE = { TPL: TPL, learnPrep: learnPrep, instItem: instItem, gradeItem: gradeItem, draftDone: draftDone, showNum: showNum, nearIn: nearIn, seeded: seeded, QTYPES: QTYPES, UNITS: UNITS }; return; }
+  if (window.TRS_CHECK) { window.TRS_ENGINE = { TPL: TPL, learnPrep: learnPrep, chapterPrint: chapterPrint, instItem: instItem, gradeItem: gradeItem, draftDone: draftDone, showNum: showNum, nearIn: nearIn, seeded: seeded, QTYPES: QTYPES, UNITS: UNITS }; return; }
 
   // ---------- learn: pieces ----------
   // ---------- Learn looks ----------
@@ -2585,6 +2674,7 @@
       if (P.due.length) bits.push(P.due.length + ' missed ' + plural(P.due.length, 'question'));
       rows.push(row('rv', P.n + ' due today', bits.join(' and ') + '. Confident misses come first.', 'Review', function () { A.startQuiz('review', ''); }));
     } else if (P.deck || P.sched) rows.push(row('rv', 'Nothing due today', P.next ? 'Next due ' + dMonth(P.next) + '.' : 'Everything is on schedule.', null, null, true));
+    if (P.sprint) rows.push(row('sp', 'Paper LBO sprint', P.sprint.size + ' LBO estimates in your head, against one clock.' + (P.sprint.best ? ' Your best: ' + secsText(P.sprint.best) + '.' : ' Get all ' + P.sprint.size + ' in range to set a time.'), 'Start', function () { A.startQuiz('sprint', ''); }));
     if (P.pret) rows.push(row('pt', 'Pre-thesis review', 'Comps and DCF, mixed, in the week before your thesis is due.' + (P.pret.done ? ' Done; again any day this week.' : ''), P.pret.done ? 'Again' : 'Start', function () { A.startQuiz('pret', ''); }));
     if (P.weekly) rows.push(P.weekly.open
       ? row('wk', 'Weekly mix', 'Six questions across the chapters you’ve passed' + (P.weekly.run ? ' · ' + P.weekly.run + ' ' + plural(P.weekly.run, 'week') + ' running' : '') + '.', 'Start', function () { A.startQuiz('weekly', ''); })
@@ -2705,14 +2795,119 @@
   }
 
   function ProgressCard(p) {
-    var A = p.A;
+    var A = p.A, cl = p.cloud;
     return html`<section class="card glist-card" aria-labelledby="lp-h">
       <div class="card-head"><h2 id="lp-h" class="card-k">Your progress</h2></div>
       <ul class="glist">
         ${gRow('sh', 'send', 'Share my progress', 'Your level, chapters and badges in one message', A.shareProgress)}
-        ${gRow('bk', 'phone', 'Moving to a new phone', 'Copy a backup code, then paste it on the new phone', A.openBackup)}
-        ${gRow('sv', 'file', 'Saved on this device', 'Only you see your progress. Nothing is sent anywhere.', null)}
+        ${cl ? gRow('ol', 'cloud', 'Progress online', cl.text, A.openCloud) : null}
+        ${gRow('bk', 'phone', 'Moving to a new phone', cl && cl.on ? 'Sign in with your PIN on the new phone, or use a backup code' : 'Copy a backup code, then paste it on the new phone', A.openBackup)}
+        ${cl ? null : gRow('sv', 'file', 'Saved on this device', 'Only you see your progress. Nothing is sent anywhere.', null)}
       </ul>
+    </section>`;
+  }
+
+  // Progress online: turn it on with a PIN, sign in on a new phone, see when it last saved.
+  function CloudSheet(p) {
+    var A = p.A, on = !!p.c, u = useState({ step: on ? 'on' : 'check', pin: '', pin2: '', err: '', busy: false }), s = u[0], setS = u[1];
+    function put(o) { setS(function (prev) { return Object.assign({}, prev, o); }); }
+    useEffect(function () {
+      if (on) return;
+      A.cloudHello().then(function (res) {
+        put(!res || !res.ok ? { step: 'away' } : res.locked ? { step: 'locked', until: res.locked } : { step: res.claimed ? 'enter' : 'choose' });
+      });
+    }, [on]);
+    function go(ev) {
+      if (ev) ev.preventDefault();
+      if (s.busy) return;
+      var pin = s.pin.trim();
+      if (!/^\d{6}$/.test(pin)) { put({ err: 'Your PIN is six digits.' }); return; }
+      if (s.step === 'choose') {
+        if (weakPin(pin)) { put({ err: 'Pick a PIN that’s harder to guess.' }); return; }
+        if (pin !== s.pin2.trim()) { put({ err: 'The two PINs don’t match.' }); return; }
+      }
+      put({ busy: true, err: '' });
+      A.cloudJoin(pin, s.step === 'choose').then(function (res) {
+        if (res.ok) { put({ busy: false, pin: '', pin2: '', joined: res.adopted ? 'in' : 'on' }); return; }
+        var e = res.err;
+        put({ busy: false, pin: '', pin2: '',
+          err: e === 'pin' ? 'That PIN isn’t right.' + (res.left ? ' ' + res.left + (res.left === 1 ? ' try' : ' tries') + ' left before a 15-minute pause.' : '')
+            : e === 'locked' ? 'Too many wrong PINs. Try again after ' + clockSAST(res.until) + '.'
+            : e === 'claimed' ? 'This role went online from another phone a moment ago. Enter that PIN instead.'
+            : e === 'nocrypto' ? 'This browser can’t make a secure PIN code. Update it, or use Safari or Chrome.'
+            : 'Couldn’t reach the Society’s storage. Check your connection and try again.',
+          step: e === 'claimed' ? 'enter' : e === 'locked' ? 'locked' : s.step, until: res.until });
+      });
+    }
+    var st = p.status, c = p.c;
+    var line = !c ? '' : st === 'saving' ? 'Saving…' : st === 'offline' ? 'Offline. It saves when you’re back online.' : st === 'error' ? 'Couldn’t save just now. It tries again after your next change.'
+      : c.saved ? (c.dirty ? 'Changes waiting to save. ' : '') + 'Last saved ' + savedText(c.saved, p.asOf) + '.' : 'Not saved yet.';
+    function pinBox(id, label, val, key, auto) {
+      return html`<label class="cl-pin" for=${id}><span>${label}</span><input id=${id} type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" enterkeyhint="done"
+        value=${val} data-autofocus=${auto ? true : null} onInput=${function (e) { var o = {}; o[key] = e.target.value.replace(/\D/g, '').slice(0, 6); o.err = ''; put(o); }} /></label>`;
+    }
+    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Progress online">
+      <div class="sheet-head"><span class="when">${p.role}</span><${CloseBtn} onClose=${p.onClose} /></div>
+      <div class="sheet-body cl">
+        <h2 class="sheet-title">${c ? 'Saved online' : 'Keep your progress online'}</h2>
+        ${c ? html`<div class=${'cl-st ' + (st || 'ok')} role="status"><i aria-hidden="true"></i><span>${line}</span></div>
+          ${s.joined === 'in' ? html`<p class="cl-p cl-ok">Signed in. The progress you saved from your other phone is on this one now.</p>` : null}
+          <p class="cl-p">Your Learn progress and submitted marks save to the Society’s storage a few seconds after each change. On a new phone, choose your role and sign in with your PIN.</p>
+          <div class="cl-btns"><button class="pill" onClick=${A.cloudSaveNow} disabled=${st === 'saving'}>Save now</button><button class="pill ghost" onClick=${A.cloudOff}>Turn off on this phone</button></div>
+          <p class="cl-note">Turning it off keeps your progress on this phone and online. Forgot your PIN? The President can reset it.</p>`
+        : html`<p class="cl-p">Your Learn progress and submitted marks, saved to the Society’s storage after each change. Lose your phone and you pick up where you left off.</p>
+          <p class="cl-p cl-muted">Members see only their own progress. The President sees each member’s level, chapters and streak, and which questions the team misses most.</p>
+          ${s.step === 'check' ? html`<p class="cl-p cl-muted" role="status">Checking…</p>`
+          : s.step === 'away' ? html`<p class="cl-err" role="alert">Couldn’t reach the Society’s storage. Check your connection, then open this again.</p>`
+          : s.step === 'locked' ? html`<p class="cl-err" role="alert">Too many wrong PINs. Try again after ${clockSAST(s.until)}.</p>`
+          : html`<form class="cl-form" onSubmit=${go} noValidate>
+              ${s.step === 'enter' ? html`<p class="cl-p">This role is already online. Enter its PIN to sign in on this phone.</p>` : null}
+              ${pinBox('cl-a', s.step === 'choose' ? 'Choose a six-digit PIN' : 'Your PIN', s.pin, 'pin', true)}
+              ${s.step === 'choose' ? pinBox('cl-b', 'Type it again', s.pin2, 'pin2', false) : null}
+              ${s.err ? html`<p class="cl-err" role="alert">${s.err}</p>` : null}
+              <button class="pill wide" type="submit" disabled=${s.busy}>${s.busy ? 'One moment…' : s.step === 'choose' ? 'Turn on' : 'Sign in'}</button>
+              <p class="cl-note">${s.step === 'choose' ? 'Keep it to yourself. If you forget it, the President can reset it.' : 'Forgot it? Ask the President to reset it.'}</p>
+            </form>`}`}
+      </div>
+    </${Sheet}>`;
+  }
+  function savedText(ms, asOf) {
+    var day = parseDay(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date(ms))), gap = Math.round((asOf - day) / DAY);
+    return (gap === 0 ? 'today' : gap === 1 ? 'yesterday' : dShort(day)) + ' at ' + clockSAST(ms);
+  }
+  function activeText(iso, asOf) {
+    var d = parseDay(iso); if (isNaN(d)) return '';
+    var gap = Math.round((asOf - d) / DAY);
+    return gap <= 0 ? 'Active today' : gap === 1 ? 'Active yesterday' : gap < 7 ? 'Active ' + gap + ' days ago' : 'Last active ' + dShort(d);
+  }
+  // A question's text as members first meet it (its written example figures), for the team view
+  function qPlain(LP, id) {
+    var q = LP.byId[id];
+    if (!q) return '';
+    try { var c = q.caseId ? LP.cases[q.caseId] : null; return TPL.fill(q.q, TPL.build(q.raw, null, c ? TPL.build(c.def, null) : null)); } catch (e) { return q.q; }
+  }
+
+  // The President's team view: each member's progress and the questions the team misses most
+  function TeamCard(p) {
+    var b = p.board, LP = p.LP, A = p.A;
+    var missed = b ? (b.missed || []).filter(function (x) { return LP.byId[x.id]; }).slice(0, 5) : [];
+    return html`<section class="card team-card" aria-labelledby="tm-h">
+      <div class="card-head"><h2 id="tm-h" class="card-k">The team</h2><button class="txt-btn" onClick=${A.loadBoard} disabled=${p.busy}>${p.busy ? 'Updating…' : 'Update'}</button></div>
+      ${!b ? html`<p class="tm-empty" role="status">${p.err ? 'Couldn’t reach the Society’s storage. Try again when you’re online.' : 'Loading the team…'}</p>` : html`
+        <ul class="tm-list">${b.members.map(function (m) {
+          var x = m.role === p.me && p.mine ? p.mine : m.summary;  // your own row is always this phone's latest
+          return html`<li key=${m.role} class=${x ? '' : 'off'}>
+            <span class="tm-r"><b>${m.title}</b><small>${x ? 'Level ' + x.level + (x.levelName ? ' · ' + x.levelName : '') + ' · ' + num(x.xp) + ' XP' : m.online ? 'Online, nothing saved yet' : 'Not online yet'}</small></span>
+            ${x ? html`<span class="tm-n tnum"><b>${x.passed}<i> of ${x.total}</i></b><small>chapters</small></span>` : null}
+            ${x ? html`<span class="tm-a">${activeText(x.active, p.asOf)}${x.streak > 1 ? html`<small>${x.streak}-day streak</small>` : null}</span>` : null}
+          </li>`;
+        })}</ul>
+        ${missed.length ? html`<div class="tm-miss"><h3 class="card-k">Most missed</h3><ol>${missed.map(function (x) {
+          var q = LP.byId[x.id], u = q && LP.units[q.unit], bk = u && bookOf(LP, u.book), t = qPlain(LP, x.id);
+          return html`<li key=${x.id}><p>${t.length > 150 ? t.slice(0, 147).replace(/\s+\S*$/, '') + '…' : t}</p>
+            <small class="tnum">${x.missed} of ${x.asked} missed${u ? ' · ' + (bk ? bk.short + ', ' : '') + u.label : ''}${x.members > 1 ? ' · ' + x.members + ' members' : ''}${u ? html` · <a href=${'review.html#' + u.id} target="_blank" rel="noopener">See the answer</a>` : null}</small></li>`;
+        })}</ol></div>` : null}
+        <p class="tm-foot">${p.err ? 'Showing the last update, ' : 'Updated '}${savedText(b.at, p.asOf)}. Each member sees only their own progress.</p>`}
     </section>`;
   }
 
@@ -2741,6 +2936,13 @@
       : html`<button class="pill wide" data-autofocus onClick=${function () { A.startQuiz('check', u.id); }}>${u.passed ? 'Retake for full marks' : 'Take the check'}</button>`;
     var tag = u.desk ? html`<${Tag} text="Desk-ready" tone="ok" />` : u.state === 'perfect' ? html`<${Tag} text="Full marks" tone="ok" />` : u.state === 'passed' ? html`<${Tag} text="Passed" tone="ok" />` : u.state === 'locked' ? html`<${Tag} text="Locked" tone="quiet" />` : html`<${Tag} text="Open" tone="when" />`;
     var pool = (LP.qs[u.id] || []).length;
+    // the quality gate for questions: which role checked this chapter, and when; the checking role also gets the review page
+    var sg = LP.sign && LP.sign.ch[u.id], signer = sg ? p.roleOf(sg.by) : '', mine = !!sg && p.me === sg.by;
+    var signLine = sg && (sg.has || mine) ? html`<section class=${'u-sign' + (sg.has && !sg.current ? ' old' : '')} aria-label="Quality check">
+      ${sg.has ? html`<p>${sg.current ? html`<span class="u-sign-ic" aria-hidden="true">${TICK}</span>` : null}${sg.current ? 'Checked by the ' + signer + ' on ' + dYear(sg.on) + '.' : 'Questions updated since the ' + signer + ' checked them on ' + dYear(sg.on) + '.'}</p>`
+        : html`<p>Not yet checked. As ${signer}, you sign off each chapter’s questions before members rely on them.</p>`}
+      ${mine ? html`<a class="pill ghost" href=${'review.html#' + u.id} target="_blank" rel="noopener">${sg.current ? 'See the questions and answers' : 'Review and sign off'}</a>` : null}
+    </section>` : null;
     var checkText = cfg && cfg.passCalc
       ? R.checkSize + ' questions at your level, drawn from this chapter’s ' + pool + ', with calculations you type in. Pass with ' + cfg.pass + ', including at least ' + cfg.passCalc + ' calculations right. New levels bring harder questions and less help: worked examples first, then one step to fill, then none.'
       : R.checkSize + ' questions at your level' + (pool > R.checkSize ? ', drawn from this chapter’s ' + pool : '') + ', easiest first. Pass with ' + R.checkPass + '; all ' + R.checkSize + ' is full marks.';
@@ -2790,6 +2992,7 @@
           ${u.sample && u.ready ? html`<p class="u-note">Sample questions for now. This chapter’s own set is written from the book.</p>` : null}
           ${btn}
         </section>
+        ${signLine}
       </div>
     </${Sheet}>`;
   }
@@ -2834,21 +3037,24 @@
 
   function BackupSheet(p) {
     var s = useState(''), txt = s[0], setTxt = s[1], m = useState(null), msg = m[0], setMsg = m[1], c = useState(false), copied = c[0], setCopied = c[1], ref = useRef(null);
+    var k = useState(''), code = k[0], setCode = k[1], b = useState(false), busy = b[0], setBusy = b[1];
+    useEffect(function () { var live = true; p.make().then(function (v) { if (live) setCode(v); }); return function () { live = false; }; }, []);
     function copy() {
       function pick() { var el = ref.current; if (el) { el.focus(); el.select(); } }
-      try { navigator.clipboard.writeText(p.code).then(function () { setCopied(true); }, pick); } catch (e) { pick(); }
+      try { navigator.clipboard.writeText(code).then(function () { setCopied(true); }, pick); } catch (e) { pick(); }
     }
+    function restore() { setBusy(true); Promise.resolve(p.restore(txt)).then(function (r) { setBusy(false); setMsg(r); }); }
     return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label="Move your progress">
       <div class="sheet-head"><span class="when">Backup code</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
         <h2 class="sheet-title">Move your progress</h2>
         <p class="share-note">Your progress is saved on this device only. Copy this code and paste it into the app on your new phone or computer.</p>
-        <textarea ref=${ref} class="share-text bk-code" rows="4" readonly value=${p.code} aria-label="Your backup code"></textarea>
-        <div class="share-btns"><button class="share-btn primary" onClick=${copy}>${copied ? 'Copied' : 'Copy code'}</button></div>
+        <textarea ref=${ref} class="share-text bk-code" rows="3" readonly value=${code || 'Preparing your code…'} aria-label="Your backup code"></textarea>
+        <div class="share-btns"><button class="share-btn primary" disabled=${!code} onClick=${copy}>${copied ? 'Copied' : 'Copy code'}</button></div>
         <div class="bk-restore">
           <span class="card-k">Restore from a code</span>
-          <textarea class="share-text" rows="3" value=${txt} placeholder="Paste a code that starts with TRS1." onInput=${function (e) { setTxt(e.currentTarget.value); setMsg(null); }} aria-label="Paste a backup code"></textarea>
-          <div class="share-btns"><button class="share-btn" disabled=${!txt.trim()} onClick=${function () { setMsg(p.restore(txt)); }}>Restore</button></div>
+          <textarea class="share-text" rows="3" value=${txt} placeholder="Paste a code that starts with TRS" onInput=${function (e) { setTxt(e.currentTarget.value); setMsg(null); }} aria-label="Paste a backup code"></textarea>
+          <div class="share-btns"><button class="share-btn" disabled=${!txt.trim() || busy} onClick=${restore}>${busy ? 'Restoring…' : 'Restore'}</button></div>
           ${msg ? html`<p class=${'bk-msg ' + (msg.ok ? 'ok' : 'bad')} role="status">${msg.text}</p>` : null}
         </div>
       </div>
@@ -2861,7 +3067,7 @@
   var UP = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"></path></svg>`;
   var DOWN = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5.5 12.5 12 19l6.5-6.5"></path></svg>`;
   var DIRS = [['up', 'Up', 'M12 19V5M6 11l6-6 6 6'], ['down', 'Down', 'M12 5v14M6 13l6 6 6-6'], ['same', 'No change', 'M5 12h14']];
-  var KIND_LABEL = { check: 'Chapter check', promo: 'Promotion review', final: 'Book final', review: 'Review', deal: 'Deal file', weekly: 'Weekly mix', warm: 'Warm-up', pret: 'Pre-thesis review', pre: 'Before you read' };
+  var KIND_LABEL = { check: 'Chapter check', promo: 'Promotion review', final: 'Book final', review: 'Review', deal: 'Deal file', weekly: 'Weekly mix', warm: 'Warm-up', pret: 'Pre-thesis review', pre: 'Before you read', sprint: 'Paper LBO sprint' };
   function blankDraft(it) { return { pick: -1, v: '', neg: false, order: it && it.start ? it.start.slice() : [], line: -1, fix: -1, dirs: [], a: -1, b: -1, sort: [], ask: -1, t0: Date.now() }; }
   function hintFor(unit, dp) {
     var U = unitOf(unit), d = dp ? 'to ' + dp + ' decimal ' + (dp > 1 ? 'places' : 'place') : 'a whole number';
@@ -2919,7 +3125,19 @@
       if (el && q.phase === 'q' && live.current.started) { try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); } }
     }, [q.leave]);
     function onKey(ev) {
-      if (ev.key !== 'Tab' || !box.current) return;
+      if (!box.current) return;
+      // arrow keys: within a which-way or sort row they move and choose (radio buttons); in a list of answers or lines they
+      // move between them, and Space or Enter chooses
+      var k = ev.key, step = k === 'ArrowDown' || k === 'ArrowRight' ? 1 : k === 'ArrowUp' || k === 'ArrowLeft' ? -1 : 0, t = ev.target;
+      if (step && t && t.closest) {
+        var grp = t.closest('[role="radiogroup"]'), list = grp ? null : t.closest('.qz-opts, .qz-lines');
+        var items = grp ? grp.querySelectorAll('[role="radio"]:not([disabled])') : list ? list.querySelectorAll('.qz-opt:not([disabled]), .qz-line:not([disabled])') : null;
+        if (items && items.length) {
+          var arr = Array.prototype.slice.call(items), at = arr.indexOf(t), nx = arr[(at + step + arr.length) % arr.length];
+          if (at >= 0 && nx) { ev.preventDefault(); nx.focus(); if (grp) nx.click(); return; }
+        }
+      }
+      if (ev.key !== 'Tab') return;
       var f = box.current.querySelectorAll('button:not([disabled]), a[href], textarea, input:not([disabled])');
       if (!f.length) return;
       var a = f[0], z = f[f.length - 1];
@@ -2936,7 +3154,7 @@
       var dd = Object.assign({}, d, { secs: Math.round((Date.now() - d.t0) / 1000) });
       if (dd.neg && dd.v !== '') dd.v = '-' + String(dd.v).replace(/^[-−]/, '');
       var g = gradeItem(it, dd);
-      var a = { id: it.id, tier: it.tier, right: g.right, sure: spec.conf ? sure : null, calc: it.calc, skill: it.skill, typed: g.typed, xpk: it.xpk, mode: it.mode, type: it.type };
+      var a = { id: it.id, tier: it.tier, right: g.right, sure: spec.conf ? sure : null, calc: it.calc, skill: it.skill, typed: g.typed, xpk: it.xpk, mode: it.mode, type: it.type, secs: dd.secs };
       var answers = q.answers.concat([a]);
       live.current.started = true; live.current.answers = answers;
       set2({ res: Object.assign(g, { sure: a.sure, secs: dd.secs }), answers: answers, report: false });
@@ -3011,7 +3229,7 @@
       var g = q.res, state = answered ? (g.right ? 'ok' : 'bad') : '';
       switch (it.type) {
         case 'tf': case 'mcq': return optList(it.opts, d.pick, function (i) { draft({ pick: i }); }, 'Answers', it.tf);
-        case 'two': return html`<div class="qz-two"><p class="qz-sub">${it.aq}</p>${optList(it.opts, d.a, function (i) { draft({ a: i }); }, it.aq)}
+        case 'two': return html`<div class="qz-two"><p class="qz-sub">${it.aq}</p>${optList(it.opts, d.a, function (i) { draft({ a: i }); }, it.aq, it.keep && it.opts.length === 2)}
           <p class="qz-sub">${it.rq}</p>${optList(it.ropts, d.b, function (i) { draft({ b: i }); }, it.rq)}</div>`;
         case 'num':
           if (it.mode === 'fade') return html`<div class="qz-fade"><span class="card-k">The working, with one step for you</span>${stepList(it.steps, it.blank)}
@@ -3020,7 +3238,8 @@
         case 'est':
           var secs = answered ? g.secs : Math.round((Date.now() - d.t0) / 1000);
           return html`<div class="qz-est">${numBox('qz-in', 'Your estimate', it.unit, it.dp, state, it.hint || 'A rough answer is fine: anything in the accepted range counts.', it.signed)}
-            <p class=${'qz-clock tnum' + (secs > it.secs ? ' over' : '')} role="timer" aria-live="off"><b>${secsText(secs)}</b> · aim for ${secsText(it.secs)} or less, in your head</p></div>`;
+            ${spec.kind === 'sprint' ? html`<p class="qz-clock tnum sprint" role="timer" aria-live="off"><b>${secsText(q.answers.reduce(function (t, a) { return t + (a.secs || 0); }, 0) + secs)}</b> on the sprint clock · question ${q.i + 1} of ${items.length}${p.best ? ' · best ' + secsText(p.best) : ''}</p>`
+              : html`<p class=${'qz-clock tnum' + (secs > it.secs ? ' over' : '')} role="timer" aria-live="off"><b>${secsText(secs)}</b> · aim for ${secsText(it.secs)} or less, in your head</p>`}</div>`;
         case 'order': return html`<ol class="qz-order" aria-label="Put these in order, first at the top">${d.order.map(function (idx, pos) {
           var mark = answered ? (idx === pos ? ' ok' : ' bad') : '';
           return html`<li key=${idx} class=${mark}><span class="qz-ord-n tnum" aria-hidden="true">${pos + 1}</span><span class="qz-ord-t">${it.items[idx]}</span>
@@ -3040,7 +3259,8 @@
             return html`<div key=${k} class="qz-dir-row"><span class="qz-dir-n" id=${'qd-' + k}>${m.name}</span>
               <div class="qz-seg" role="radiogroup" aria-labelledby=${'qd-' + k}>${DIRS.map(function (x) {
                 var on = (d.dirs || [])[k] === x[0], st = !answered ? (on ? ' sel' : '') : m.dir === x[0] ? ' right' : on ? ' wrong' : ' dim';
-                return html`<button key=${x[0]} role="radio" aria-checked=${on ? 'true' : 'false'} class=${'qz-sg' + st} disabled=${answered}
+                var tab = on || (!(d.dirs || [])[k] && x[0] === 'up') ? 0 : -1;
+                return html`<button key=${x[0]} role="radio" aria-checked=${on ? 'true' : 'false'} tabindex=${tab} class=${'qz-sg' + st} disabled=${answered}
                   onClick=${function () { draft(function (dd) { var o = (dd.dirs || []).slice(); o[k] = x[0]; return { dirs: o }; }); }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${x[2]}></path></svg><span>${x[1]}</span></button>`;
               })}</div></div>`;
@@ -3049,7 +3269,8 @@
             return html`<li key=${i}><span class="qz-sort-t" id=${'qs-' + i}>${x.t}</span>
               <div class="qz-seg two" role="radiogroup" aria-labelledby=${'qs-' + i}>${it.cats.map(function (c, k) {
                 var on = (d.sort || [])[i] === k, st = !answered ? (on ? ' sel' : '') : x.c === k ? ' right' : on ? ' wrong' : ' dim';
-                return html`<button key=${k} role="radio" aria-checked=${on ? 'true' : 'false'} class=${'qz-sg' + st} disabled=${answered}
+                var tab = on || ((d.sort || [])[i] == null && k === 0) ? 0 : -1;
+                return html`<button key=${k} role="radio" aria-checked=${on ? 'true' : 'false'} tabindex=${tab} class=${'qz-sg' + st} disabled=${answered}
                   onClick=${function () { draft(function (dd) { var o = (dd.sort || []).slice(); o[i] = k; return { sort: o }; }); }}><span>${c}</span></button>`;
               })}</div></li>`;
           })}</ul>`;
@@ -3169,10 +3390,12 @@
       <div class="qz-foot"><button class="qz-go" onClick=${p.onClose}>Done</button><button class="qz-report" onClick=${A.shareProgress}>Share my progress</button></div>`;
     } else {
       var e = q.ev || { lines: [], badges: [], notes: [], secure: [], score: 0, size: items.length };
-      var title = !counts ? { review: 'Review done', weekly: 'Weekly mix done', warm: 'Warm-up done', pret: 'Pre-thesis review done', pre: 'Ready to read' }[spec.kind]
+      var title = !counts ? { review: 'Review done', weekly: 'Weekly mix done', warm: 'Warm-up done', pret: 'Pre-thesis review done', pre: 'Ready to read', sprint: 'Sprint done' }[spec.kind]
         : e.passed ? { check: 'Chapter passed', promo: 'Promoted', final: 'Book final passed', deal: 'Deal closed' }[spec.kind] : 'Not yet';
       var calcBit = e.calc && e.calc.need ? ' · calculations ' + e.calc.r + ' of ' + e.calc.n : '';
-      var note = spec.kind === 'pre' ? 'These come from the chapter you’re about to read. Look out for them, and for anything that surprised you.'
+      var spx = e.sprint;
+      var note = spec.kind === 'sprint' && spx ? spx.right + ' of ' + spx.size + ' in range in ' + secsText(spx.secs) + '. ' + (spx.newBest ? 'A new best.' : spx.first ? 'Your first time on the board.' : spx.best ? 'Your best: ' + secsText(spx.best) + '.' : 'Get all ' + spx.size + ' in range to set a time.')
+        : spec.kind === 'pre' ? 'These come from the chapter you’re about to read. Look out for them, and for anything that surprised you.'
         : spec.kind === 'review' ? (p.dueLeft ? p.dueLeft + ' still due today.' : 'Nothing else is due today.')
         : !counts ? 'Spacing practice like this is what makes it stick.'
         : e.passed ? (spec.kind === 'check' && e.score < e.size ? 'A retake with full marks makes this chapter’s badge mastered.' : spec.kind === 'deal' ? 'Its tombstone is in your Deal book.' : '')
@@ -3187,7 +3410,7 @@
         </div>
         ${note ? html`<p class="qr-note">${note}</p>` : null}
         ${e.tomb && c0 ? html`<div class="qr-tomb"><${Tombstone} c=${c0} r=${{ closed: p.day, seed: spec.seed }} role=${p.role} LP=${LP} /></div>` : null}
-        ${spec.grade ? (e.lines.length ? html`<ul class="qr-xp">${e.lines.map(function (l, i) { return html`<li key=${i} class=${l.xp < 0 ? 'neg' : ''}><span>${l.what}</span><b class="tnum">${l.xp < 0 ? '−' + Math.abs(l.xp) : '+' + l.xp} XP</b></li>`; })}${e.lines.length > 1 ? html`<li class="tot"><span>This ${label.toLowerCase()}</span><b class="tnum">${e.xp < 0 ? '−' : '+'}${Math.abs(e.xp)} XP</b></li>` : null}</ul>`
+        ${spec.grade ? (e.lines.length ? html`<ul class="qr-xp">${e.lines.map(function (l, i) { return html`<li key=${i} class=${l.xp < 0 ? 'neg' : ''}><span>${l.what}</span><b class="tnum">${l.xp < 0 ? '−' + Math.abs(l.xp) : '+' + l.xp} XP</b></li>`; })}${e.lines.length > 1 ? html`<li class="tot"><span>This ${label.charAt(0).toLowerCase() + label.slice(1)}</span><b class="tnum">${e.xp < 0 ? '−' : '+'}${Math.abs(e.xp)} XP</b></li>` : null}</ul>`
           : html`<p class="qr-note muted">No new XP this time: questions only pay the first time you get them right.</p>`) : null}
         ${e.sure && e.sure.n ? html`<p class="qr-note muted">You said Sure ${e.sure.n} ${plural(e.sure.n, 'time')} and were right on ${e.sure.r}.</p>` : null}
         ${e.secure && e.secure.length ? html`<div class="qr-promo"><span class="card-k">Now secure</span><b>${e.secure.join(', ')}</b><small>Right on three separate days, a week or more apart.</small></div>` : null}
@@ -3209,8 +3432,26 @@
     </div>`;
   }
 
-  function Footer() {
-    return html`<footer class="foot-slim"><span>Members only. Not for external circulation.</span></footer>`;
+  // How this visitor can install the app: the browser's own prompt where there is one, otherwise the steps for their phone.
+  function installWay(st) {
+    if (!PWA || standalone()) return null;
+    if (st.canInstall) return 'prompt';
+    if (isIOS()) return 'ios';
+    if (/Android/i.test(navigator.userAgent || '')) return 'android';
+    return null;
+  }
+  var SHARE_IC = html`<svg class="share-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"></path><path d="M20 15v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"></path></svg>`;
+  function InstallSteps(p) {
+    return p.way === 'ios' ? html`<span>On iPhone: tap <b>Share</b>${SHARE_IC}, then <b>Add to Home Screen</b>.</span>`
+      : p.way === 'android' ? html`<span>Open your browser’s <b>⋮</b> menu, then <b>Install app</b> or <b>Add to Home screen</b>.</span>` : null;
+  }
+  function Footer(p) {
+    var way = p.st ? installWay(p.st) : null;
+    return html`<footer class="foot-slim">
+      ${way === 'prompt' ? html`<button class="foot-install" onClick=${p.A.install}><${Logo} size=${16} color="currentColor" />Install the app</button>`
+        : way ? html`<p class="foot-how">${html`<${InstallSteps} way=${way} />`}</p>` : null}
+      <span>Members only. Not for external circulation.</span>
+    </footer>`;
   }
 
   // ---------- persistence and routing ----------
@@ -3278,6 +3519,29 @@
   var installEvt = null, installListeners = [];
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEvt = e; installListeners.forEach(function (f) { f(true); }); });
   function standalone() { try { return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches; } catch (e) { return false; } }
+  // Phones stay upright. The installed app asks for portrait where the platform allows it (Android); a phone turned on its
+  // side anyway (an iPhone, or any phone in the browser) gets a turn-upright screen, and nothing behind it is lost. Read from
+  // the screen, not the window, so an on-screen keyboard never trips it.
+  function phoneSideways() {
+    try {
+      var sc = window.screen || {}, small = Math.min(sc.width || 1e4, sc.height || 1e4) <= 500;
+      var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      var t = sc.orientation && sc.orientation.type, land = t ? t.indexOf('landscape') === 0 : Math.abs(+window.orientation || 0) === 90;
+      // the window must agree: wider than tall. The keyboard only ever shortens a portrait window, so it never trips this.
+      return !!(small && coarse && land && window.innerWidth > window.innerHeight);
+    } catch (e) { return false; }
+  }
+  function lockPortrait() { try { if (standalone() && screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(function () { /* not allowed here */ }); } catch (e) { /* no API */ } }
+  function TurnScreen() {
+    return html`<div class="turn" role="alertdialog" aria-modal="true" aria-labelledby="turn-h" aria-describedby="turn-p">
+      <div class="turn-in">
+        <svg class="turn-ic" width="56" height="56" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="15" y="6" width="18" height="34" rx="3.5"></rect><path d="M22 35h4"></path><path d="M38 14a14 14 0 0 1 2 8M40 22l2.5-3M40 22l-3.2-1.6"></path></svg>
+        <h2 id="turn-h">Turn your phone upright</h2>
+        <p id="turn-p">The app is made for portrait. Everything stays where you left it.</p>
+        <span class="turn-mark" aria-hidden="true"><${Logo} size=${22} /><span>THE RAND SOCIETY</span></span>
+      </div>
+    </div>`;
+  }
   function isIOS() { var ua = navigator.userAgent || ''; return /iP(hone|od|ad)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); }
 
   // ---------- app ----------
@@ -3285,12 +3549,13 @@
     var s = useState(function () {
       return { P: null, err: null, mi: 0, lens: read('trs-lens') === 'analyst' ? 'analyst' : 'society', all: false, showPast: false, sheet: null, open: {}, months: {},
         tab: tabFromHash() || 'today', showPastMeet: false, boardOpen: null, checks: readChecks(), asOf: todaySAST(), now: nowMs(todaySAST()), since: readSince(), source: '', syncBusy: false, updateReady: false, phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null,
-        LP: null, learnErr: '', learnTick: 0, learnShift: 0, bookOpen: {} };
+        LP: null, learnErr: '', learnTick: 0, learnShift: 0, bookOpen: {}, cloud: CloudStore.all(), cloudSt: {}, board: readBoard(), boardBusy: false, boardErr: false };
     });
     var st = s[0], setSt = s[1];
     function set(patch) { setSt(function (prev) { return Object.assign({}, prev, typeof patch === 'function' ? patch(prev) : patch); }); }
     var loadedAt = useRef(0), toastT = useRef(0), loadRef = useRef(null), sheetRef = useRef(null), ignorePop = useRef(false);
     var tabRef = useRef(st.tab), scrolls = useRef({}), animRef = useRef('from-l'), aRef = useRef(null), learnRef = useRef({}), quizGuard = useRef(null);
+    var cloudRef = useRef({ t: {}, busy: {}, again: {}, quiet: false, pulled: 0 });
 
     function load(first) {
       return loadData().then(function (res) {
@@ -3318,15 +3583,22 @@
       loadLearn().then(function (raw) { set({ LP: learnPrep(raw), learnErr: '' }); }).catch(function (e) { set({ learnErr: e && e.message ? e.message : 'unknown error' }); });
       // Opened on a tab link (#plan, #meetings, #role, #guide): Today sits underneath, so Back still lands there.
       if (tabRef.current !== 'today') { try { history.replaceState(null, '', location.pathname + location.search); history.pushState({ trsTab: tabRef.current }, ''); } catch (e) { /* not allowed here */ } }
-      // the install card appears from the second visit, for members who haven't installed the app, and can be put off for a month
+      // the install card appears from the first visit (after the role is chosen) for members who haven't installed the app, and
+      // can be put off for a month; the footer keeps the option on every page
       if (PWA && !standalone()) {
         var visits = (parseInt(read('trs-visits'), 10) || 0) + 1; store('trs-visits', String(visits));
         var later = parseInt(read('trs-install-later'), 10) || 0;
-        if (visits >= 2 && Date.now() - later > 30 * DAY) set({ showInstall: true });
+        if (visits >= 1 && Date.now() - later > 30 * DAY) set({ showInstall: true });
       }
       function tick() { var day = todaySAST(); set(function (prev) { return { asOf: day, now: nowMs(day) }; }); }
       var clock = setInterval(tick, 30000);
-      function onVis() { if (document.visibilityState !== 'visible') return; tick(); if (!window.TRS_DATA && Date.now() - loadedAt.current > 30 * 60000) load(false); }
+      // progress online: any change to a Learn record counts; leaving the app saves what's waiting, coming back checks for newer
+      LearnStore.after = function (id) { if (aRef.current) aRef.current.cloudTouch(id); };
+      function onVis() {
+        if (document.visibilityState !== 'visible') { if (aRef.current) aRef.current.cloudFlush(); return; }
+        tick(); if (!window.TRS_DATA && Date.now() - loadedAt.current > 30 * 60000) load(false);
+        if (aRef.current && Date.now() - cloudRef.current.pulled > 30000) aRef.current.cloudPullAll();
+      }
       document.addEventListener('visibilitychange', onVis);
       function onMq() { set({ phone: isPhone() }); }
       if (phoneQuery) { if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', onMq); else if (phoneQuery.addListener) phoneQuery.addListener(onMq); }
@@ -3361,7 +3633,7 @@
         if (t !== tabRef.current) { scrolls.current[tabRef.current] = window.scrollY; animRef.current = 'tab-in'; tabRef.current = t; set({ tab: t }); }
       }
       window.addEventListener('popstate', onPop);
-      function onOnline() { if (loadRef.current) loadRef.current(false); else set({}); }
+      function onOnline() { if (loadRef.current) loadRef.current(false); else set({}); if (navigator.onLine !== false && aRef.current) aRef.current.cloudPullAll(); }
       window.addEventListener('online', onOnline); window.addEventListener('offline', onOnline);
       function onUpdate() { set({ updateReady: true }); }
       window.addEventListener('trs-update', onUpdate);
@@ -3369,7 +3641,16 @@
       function onInstall(v) { set({ canInstall: v }); }
       installListeners.push(onInstall);
       if (installEvt) onInstall(true);
+      var lastSide = null;
+      function onTurn() { var sw = phoneSideways(); if (sw === lastSide) return; lastSide = sw; document.documentElement.classList.toggle('sideways', sw); set({ side: sw }); if (!sw) lockPortrait(); }
+      onTurn(); lockPortrait();
+      var so = window.screen && screen.orientation;
+      if (so && so.addEventListener) so.addEventListener('change', onTurn);
+      window.addEventListener('orientationchange', onTurn); window.addEventListener('resize', onTurn);
       return function () {
+        if (so && so.removeEventListener) so.removeEventListener('change', onTurn);
+        window.removeEventListener('orientationchange', onTurn); window.removeEventListener('resize', onTurn);
+        LearnStore.after = null;
         clearInterval(clock); document.removeEventListener('visibilitychange', onVis);
         window.removeEventListener('hashchange', onHash); window.removeEventListener('keydown', onKey); window.removeEventListener('popstate', onPop);
         window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOnline); window.removeEventListener('trs-update', onUpdate);
@@ -3378,6 +3659,15 @@
     }, []);
 
     useEffect(function () { if (st.P) hideSplash(false); }, [!!st.P]);
+
+    // progress online: once the dates and the reading programme are in, check for newer progress saved from another phone
+    useEffect(function () { if (st.P && st.LP && st.P.cloud && aRef.current) aRef.current.cloudPullAll(); }, [!!st.P, !!st.LP]);
+    // the President's team view refreshes when Learn opens, at most every ten minutes
+    useEffect(function () {
+      if (!st.P || !st.P.cloud || st.tab !== 'learn' || !aRef.current) return;
+      var me = st.P.members[clamp(st.mi, 0, st.P.members.length - 1)].id;
+      if (TEAM_VIEW.indexOf(me) >= 0 && st.cloud[me] && (!st.board || Date.now() - st.board.at > 10 * 60000)) aRef.current.loadBoard();
+    }, [st.tab, st.mi, !!(st.P && st.P.cloud), Object.keys(st.cloud).join()]);
 
     // Each open panel gets one history entry, so Back closes it; closing it any other way removes that entry again.
     useEffect(function () {
@@ -3441,7 +3731,54 @@
     if (LM && LM.daily && !LM.daily.done) M.badges.learn = 'q';
     // The questions for any session, drawn to the member's level (see learnSpec)
     function quizSpec(kind, ref) { return LP ? learnSpec(LP, getLS(M.m.id), LM, kind, ref, learnDay, lctx) : null; }
-    if (window.TRS_TEST) window.TRS_TEST.learn = { LP: LP, spec: quizSpec, S: function () { return LM ? getLS(M.m.id) : null; } };
+    // progress online, the parts that need this render's data
+    function cloudSet(id, v) { set(function (prev) { var o = Object.assign({}, prev.cloudSt); if (v != null) o[id] = v; return { cloudSt: o, cloud: CloudStore.all() }; }); }
+    function cloudSnap(id) {
+      var S = fillLearn(learnRef.current[id] || LearnStore.load(id) || freshLearn()), c = CloudStore.get(id) || {}, d = readDone(), pre = id + ':', done = {};
+      Object.keys(d).forEach(function (k) { if (k.indexOf(pre) === 0) done[k.slice(pre.length)] = d[k]; });
+      var mem = P.members.filter(function (x) { return x.id === id; })[0] || {}, sum = null;
+      try {
+        var L = learnModel(LP, S, learnDay, { id: id, cycle: mem.cycle, dates: lctx.dates }), b = learnSummary(LP, L);
+        sum = { level: b.level, levelName: L.lv.cur.name, xp: b.xp, passed: b.passed, total: b.total, secure: b.secure, skills: b.skills, deals: b.deals, sure: b.sure, held: b.held,
+          streak: L.streak, active: isoOf(st.asOf), done: done };
+      } catch (e) { sum = { done: done, active: isoOf(st.asOf) }; }
+      return packCode(id, S).then(function (code) {
+        return { state: { v: 1, at: c.at || Date.now(), learn: code, done: done, since: readSince()[id] || null }, summary: sum, stats: S.qs || {} };
+      });
+    }
+    function cloudAdopt(id, remote) {
+      return (remote && remote.learn ? unpackCode(remote.learn) : Promise.resolve(null)).then(function (o) {
+        if (o && o.old) { cloudSet(id, 'error'); return; }
+        var R = cloudRef.current; R.quiet = true;
+        try {
+          if (o && o.s && o.id === id) { learnRef.current[id] = o.s; LearnStore.save(id, o.s); }
+          var d = readDone(), pre = id + ':';
+          Object.keys(d).forEach(function (k) { if (k.indexOf(pre) === 0) delete d[k]; });
+          Object.keys(remote.done || {}).forEach(function (k) { d[pre + k] = remote.done[k]; });
+          store('trs-done', JSON.stringify(d));
+          var sn = readSince(); if (remote.since) { sn[id] = remote.since; store('trs-mark-since', JSON.stringify(sn)); }
+          var c = CloudStore.get(id); if (c) { c.at = remote.at || Date.now(); c.dirty = false; CloudStore.put(id, c); }
+          set(function (prev) { var cs = Object.assign({}, prev.cloudSt); cs[id] = ''; return { done: d, since: sn, learnTick: prev.learnTick + 1, cloud: CloudStore.all(), cloudSt: cs }; });
+        } finally { R.quiet = false; }
+      });
+    }
+    // another phone saved since this one last did: the newer change wins
+    function cloudMerge(id, res) {
+      var c = CloudStore.get(id), remote = res.state;
+      if (!c) return;
+      c.version = res.version; c.saved = res.saved; CloudStore.put(id, c);
+      if (remote && (!c.dirty || (remote.at || 0) > (c.at || 0))) return cloudAdopt(id, remote).then(function () { if (id === M.m.id) A.say('Brought in newer progress saved from another phone.'); });
+      if (aRef.current) aRef.current.cloudPush(id);
+    }
+    function cloudFail(id, res) {
+      if (res && (res.err === 'pin' || res.err === 'unclaimed')) {
+        CloudStore.put(id, null); cloudSet(id, '');
+        if (id === M.m.id) A.say('Your PIN was reset. Turn progress online back on with a new PIN.');
+        return;
+      }
+      cloudSet(id, 'error');
+    }
+    if (window.TRS_TEST) window.TRS_TEST.learn = { LP: LP, spec: quizSpec, S: function () { return LM ? getLS(M.m.id) : null; }, openUnit: function (u) { A.openUnit(u); } };
     var A = {
       openMembers: function () { set({ sheet: { kind: 'member' } }); },
       pick: function (i) { store('trs-member', P.members[i].id); clearRoleHash(P); animRef.current = 'from-l'; scrolls.current = {}; set({ mi: i, sheet: null, showPast: false }); revealBoard(); },
@@ -3507,6 +3844,7 @@
         clearTimeout(toastT.current);
         toastT.current = setTimeout(function () { set({ toast: null }); }, 5000);
         set({ done: o, toast: { text: on ? 'Marked as submitted' : 'No longer marked as submitted', title: title, key: k } });
+        A.cloudTouch(M.m.id);
       },
       say: function (text) { clearTimeout(toastT.current); toastT.current = setTimeout(function () { set({ toast: null }); }, 4000); set({ toast: { text: text, title: '', key: '', info: true } }); },
       undo: function () { var t = st.toast; if (t) A.toggleDone(t.key, t.title); set({ toast: null }); },
@@ -3523,6 +3861,91 @@
         set({ changes: null });
       },
       dismissInstall: function () { store('trs-install-later', String(Date.now())); set({ showInstall: false }); },
+      // ---- progress online ----
+      openCloud: function () { set({ sheet: { kind: 'cloud' } }); },
+      cloudTouch: function (id) {
+        var R = cloudRef.current, c = CloudStore.get(id);
+        if (!P.cloud || R.quiet || !c) return;
+        c.at = Date.now(); c.dirty = true; CloudStore.put(id, c);
+        clearTimeout(R.t[id]);
+        R.t[id] = setTimeout(function () { if (aRef.current) aRef.current.cloudPush(id); }, 2500);
+        cloudSet(id, null);
+      },
+      cloudPush: function (id, force, keep) {
+        var R = cloudRef.current, c = CloudStore.get(id);
+        if (!P.cloud || !c || !LP) return Promise.resolve();
+        if (R.busy[id]) { R.again[id] = true; return Promise.resolve(); }
+        if (navigator.onLine === false) { cloudSet(id, 'offline'); return Promise.resolve(); }
+        clearTimeout(R.t[id]);
+        cloudSet(id, 'saving');
+        var sentAt = c.at || 0;
+        R.busy[id] = cloudSnap(id).then(function (snap) {
+          return cloudCall(P.cloud, { action: 'save', role: id, key: c.key, base: c.version || 0, force: !!force, state: snap.state, summary: snap.summary, stats: snap.stats }, keep);
+        }).then(function (res) {
+          var c2 = CloudStore.get(id);
+          if (!c2) return;
+          if (res.ok) { c2.version = res.version; c2.saved = res.saved; if ((c2.at || 0) <= sentAt) c2.dirty = false; CloudStore.put(id, c2); cloudSet(id, ''); return; }
+          if (res.err === 'newer') return cloudMerge(id, res);
+          cloudFail(id, res);
+        }).catch(function () { cloudSet(id, navigator.onLine === false ? 'offline' : 'error'); }).then(function () {
+          R.busy[id] = null;
+          if (R.again[id]) { R.again[id] = false; if (aRef.current) aRef.current.cloudPush(id); }
+        });
+        return R.busy[id];
+      },
+      cloudPull: function (id) {
+        var c = CloudStore.get(id);
+        if (!P.cloud || !c || !LP || navigator.onLine === false) return Promise.resolve();
+        cloudRef.current.pulled = Date.now();
+        return cloudCall(P.cloud, { action: 'hello', role: id, key: c.key }).then(function (res) {
+          if (!res.ok) return cloudFail(id, res);
+          if (!res.mine) return cloudFail(id, { err: res.claimed ? 'pin' : 'unclaimed' });
+          if ((res.version || 0) > (c.version || 0)) return cloudCall(P.cloud, { action: 'load', role: id, key: c.key }).then(function (r2) { return r2.ok ? cloudMerge(id, r2) : cloudFail(id, r2); });
+          if (c.dirty) return aRef.current.cloudPush(id);
+          cloudSet(id, '');
+        }).catch(function () { cloudSet(id, navigator.onLine === false ? 'offline' : 'error'); });
+      },
+      cloudPullAll: function () { if (P.cloud && LP) Object.keys(CloudStore.all()).forEach(function (id) { A.cloudPull(id); }); },
+      cloudFlush: function () { Object.keys(CloudStore.all()).forEach(function (id) { var c = CloudStore.get(id); if (c && c.dirty) A.cloudPush(id, false, true); }); },
+      cloudHello: function () { return P.cloud ? cloudCall(P.cloud, { action: 'hello', role: M.m.id }).catch(function () { return null; }) : Promise.resolve(null); },
+      cloudJoin: function (pin, claim) {
+        var id = M.m.id;
+        return pinKey(id, pin).then(function (key) {
+          return cloudCall(P.cloud, { action: claim ? 'claim' : 'load', role: id, key: key }).then(function (res) {
+            if (!res.ok) return res;
+            var c = { key: key, version: res.version || 0, saved: res.saved || 0, at: Date.now(), dirty: true };
+            CloudStore.put(id, c);
+            var remote = !claim && res.state;
+            // signing in on another phone: bring in what's online, unless this phone is further along
+            var pick = !remote ? Promise.resolve(false) : unpackCode(remote.learn).then(function (o) {
+              var mine = getLS(id), theirs = o && o.s;
+              return !!theirs && (theirs.xp || 0) >= (mine.xp || 0);
+            }).catch(function () { return false; });
+            return pick.then(function (adopt) {
+              return (adopt ? cloudAdopt(id, remote) : A.cloudPush(id, !!remote)).then(function () { set({ cloud: CloudStore.all() }); return { ok: true, adopted: adopt }; });
+            });
+          });
+        }).catch(function (e) { return { ok: false, err: e && e.message === 'nocrypto' ? 'nocrypto' : 'net' }; });
+      },
+      cloudSaveNow: function () { A.cloudPush(M.m.id); },
+      cloudOff: function () {
+        var id = M.m.id; clearTimeout(cloudRef.current.t[id]);
+        CloudStore.put(id, null);
+        if (TEAM_VIEW.indexOf(id) >= 0) { store('trs-board', ''); }
+        set({ cloud: CloudStore.all(), sheet: null, board: TEAM_VIEW.indexOf(id) >= 0 ? null : st.board });
+        A.say('Progress online is off on this phone. Your progress stays here.');
+      },
+      loadBoard: function () {
+        var id = M.m.id, c = CloudStore.get(id);
+        if (!P.cloud || !c || TEAM_VIEW.indexOf(id) < 0) return;
+        set({ boardBusy: true });
+        cloudCall(P.cloud, { action: 'board', role: id, key: c.key }).then(function (res) {
+          if (!res.ok) { if (res.err === 'pin' || res.err === 'unclaimed') cloudFail(id, res); set({ boardBusy: false, boardErr: true }); return; }
+          var b = { at: Date.now(), members: res.members || [], missed: res.missed || [] };
+          store('trs-board', JSON.stringify(b));
+          set({ board: b, boardBusy: false, boardErr: false });
+        }).catch(function () { set({ boardBusy: false, boardErr: true }); });
+      },
       // ---- learn ----
       learnDo: function (act) {
         var id = M.m.id, res = learnApply(LP, getLS(id), act, learnDay, lctx);
@@ -3555,9 +3978,11 @@
       },
       learnFinish: function (spec, answers) { return A.learnDo({ kind: 'quiz', spec: spec, answers: answers }); },
       learnAbandon: function (spec, answers) { A.learnDo({ kind: 'quiz', spec: spec, answers: answers, abandoned: true }); },
-      restoreLearn: function (text) {
-        var o = readBackup(text), mi = -1;
-        if (!o) return { ok: false, text: 'That code isn’t valid. Copy the whole code, starting with TRS1.' };
+      restoreLearn: function (text) { return unpackCode(text).then(function (o) { return A.restoreRecord(o); }); },
+      restoreRecord: function (o) {
+        var mi = -1;
+        if (o && o.old) return { ok: false, text: 'This browser can’t open that code. Update it, or make a new code on the other device in Safari or Chrome.' };
+        if (!o) return { ok: false, text: 'That code isn’t valid. Copy the whole code, starting with TRS.' };
         P.members.forEach(function (x, j) { if (x.id === o.id) mi = j; });
         if (mi < 0) return { ok: false, text: 'That code is for a role this app doesn’t have.' };
         learnRef.current[o.id] = o.s; LearnStore.save(o.id, o.s);
@@ -3582,6 +4007,7 @@
     };
 
     aRef.current = A;
+    if (window.TRS_TEST) window.TRS_TEST.A = A; // browser tests only
     var sheet = null;
     if (st.sheet && st.sheet.kind === 'share') {
       sheet = html`<${ShareSheet} key=${'share' + st.sheet.subject} phone=${st.phone} onClose=${A.close} title=${st.sheet.title} kicker=${st.sheet.kicker} subject=${st.sheet.subject} text=${st.sheet.text} note=${st.sheet.note} rows=${st.sheet.rows} />`;
@@ -3592,11 +4018,11 @@
     } else if (st.sheet && st.sheet.kind === 'member') {
       sheet = html`<${MemberSheet} key="member" phone=${st.phone} members=${P.members} mi=${M.mi} pick=${A.pick} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'quiz' && LP) {
-      sheet = html`<${Quiz} key=${'quiz' + st.sheet.id} spec=${st.sheet.spec} LP=${LP} A=${A} onClose=${A.close} role=${M.m.role} day=${learnDay} dueLeft=${LM ? LM.practice.n : 0} guard=${quizGuard} bloom=${bloom} />`;
+      sheet = html`<${Quiz} key=${'quiz' + st.sheet.id} spec=${st.sheet.spec} LP=${LP} A=${A} onClose=${A.close} role=${M.m.role} day=${learnDay} dueLeft=${LM ? LM.practice.n : 0} best=${LM && LM.practice.sprint ? LM.practice.sprint.best : 0} guard=${quizGuard} bloom=${bloom} />`;
     } else if (st.sheet && st.sheet.kind === 'unit' && LM) {
       var uu = null;
       LM.books.forEach(function (x) { x.units.forEach(function (u) { if (u.id === st.sheet.unit) uu = u; }); });
-      if (uu) sheet = html`<${UnitSheet} key="unit" phone=${st.phone} u=${uu} LP=${LP} A=${A} onClose=${A.close} />`;
+      if (uu) sheet = html`<${UnitSheet} key="unit" phone=${st.phone} u=${uu} LP=${LP} A=${A} me=${M.m.id} roleOf=${function (id) { var x = P.members.filter(function (m) { return m.id === id; })[0]; return x ? x.role : 'Head of Research'; }} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'skills' && LM) {
       sheet = html`<${SkillsSheet} key="skills" phone=${st.phone} LM=${LM} LP=${LP} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'deals' && LM) {
@@ -3607,20 +4033,27 @@
       var fb = getLS(M.m.id).finals[st.sheet.book];
       if (fb && fb.passed) sheet = html`<${CertSheet} key="cert" phone=${st.phone} LP=${LP} book=${bookOf(LP, st.sheet.book)} role=${M.m.role} f=${fb} share=${A.shareProgress} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'backup' && LP) {
-      sheet = html`<${BackupSheet} key="backup" phone=${st.phone} code=${backupCode(M.m.id, getLS(M.m.id))} restore=${A.restoreLearn} onClose=${A.close} />`;
+      sheet = html`<${BackupSheet} key="backup" phone=${st.phone} make=${function () { return packCode(M.m.id, getLS(M.m.id)); }} restore=${A.restoreLearn} onClose=${A.close} />`;
+    } else if (st.sheet && st.sheet.kind === 'cloud' && P.cloud) {
+      sheet = html`<${CloudSheet} key="cloud" phone=${st.phone} A=${A} c=${st.cloud[M.m.id] || null} status=${st.cloudSt[M.m.id] || ''} role=${M.m.role} asOf=${st.asOf} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'item') {
       var seq = list.some(function (it) { return it.key === st.sheet.key; }) ? list : M.all;
       var idx = -1;
       seq.forEach(function (it, i) { if (it.key === st.sheet.key) idx = i; });
       if (idx >= 0) {
         var ck = M.checkFor(seq[idx].key);
-        sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close} toggleDone=${A.toggleDone} A=${A}
+        var teamDone = st.board && TEAM_VIEW.indexOf(M.m.id) >= 0 && st.cloud[M.m.id] ? st.board.members.filter(function (x) { return x.role !== M.m.id && x.summary && x.summary.done && x.summary.done[seq[idx].key]; }).map(function (x) { return x.title; }) : null;
+        sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close} toggleDone=${A.toggleDone} A=${A} team=${teamDone}
           check=${ck && seq[idx].part === 'lead' ? ck.c : null} checkState=${ck ? ck.state : null} toggleCheck=${A.toggleCheck}
           prev=${function () { if (idx > 0) A.openItem(seq[idx - 1].key); }} next=${function () { if (idx < seq.length - 1) A.openItem(seq[idx + 1].key); }} />`;
       }
     }
 
     var tab = st.tab, phone = st.phone, m = M.m;
+    var myCloud = st.cloud[m.id], mySt = st.cloudSt[m.id] || '';
+    var cloudRow = !P.cloud ? null : !myCloud ? { on: false, text: 'Off. Turn it on to keep your progress if you lose your phone' }
+      : { on: true, text: mySt === 'saving' ? 'Saving…' : mySt === 'offline' ? 'Offline. It saves when you’re back online' : mySt === 'error' ? 'Couldn’t save just now. Tap to try again'
+        : myCloud.saved ? 'Saved ' + savedText(myCloud.saved, st.asOf) : 'On' };
     var hasChanges = st.changes && st.changes.member === m.id;
     if (hasChanges && !M.badges.today) M.badges.today = 'news';
     function cols(a, b, extra) {
@@ -3644,9 +4077,11 @@
         var lvc = html`<${LevelCard} key="lv" LM=${LM} LP=${LP} A=${A} role=${m.role} />`, dqc = html`<${DailyCard} key="dq" LM=${LM} LP=${LP} A=${A} />`;
         var bks = LM.books.map(function (x) { return html`<${BookCard} key=${'bk' + x.b.id} bk=${x} LP=${LP} A=${A} open=${!!st.bookOpen[x.b.id]} />`; });
         var prc = html`<${PracticeCard} key="pr" LM=${LM} A=${A} />`, dkc = html`<${DeskCard} key="dk" LM=${LM} A=${A} />`, dlc = html`<${DealsCard} key="dl" LM=${LM} LP=${LP} A=${A} role=${m.role} />`;
-        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} />`, fxc = html`<${FxCard} key="fx" />`;
+        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} cloud=${cloudRow} />`, fxc = html`<${FxCard} key="fx" />`;
         var ltc = window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null;
-        content = phone ? [lvc, dqc, prc].concat(bks, [dkc, dlc, pcc, bdc, pgc, fxc, ltc]) : cols([lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, dlc, pgc, fxc, ltc]);
+        var tmc = P.cloud && TEAM_VIEW.indexOf(m.id) >= 0 && st.cloud[m.id] ? html`<${TeamCard} key="tm" board=${st.board} busy=${st.boardBusy} err=${st.boardErr} LP=${LP} A=${A} asOf=${st.asOf} me=${m.id}
+          mine=${{ level: LM.lv.cur.n, levelName: LM.lv.cur.name, xp: LM.xp, passed: LM.passed, total: LM.total, streak: LM.streak, active: isoOf(st.asOf) }} />` : null;
+        content = phone ? [lvc, dqc, prc].concat(bks, [dkc, dlc, tmc, pcc, bdc, pgc, fxc, ltc]) : cols([lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, tmc, dlc, pgc, fxc, ltc]);
         content = content.concat([html`<div key="lk" class="wide"><${LookBar} A=${A} /></div>`]);
       }
     } else if (tab === 'you') {
@@ -3654,14 +4089,14 @@
       head = M.lens === 'society'
         ? html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${m.role} title=${m.focus} text=${m.focusLine} lens=${true} />`
         : html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${'Analyst · ' + M.cycle.name} title=${m.sector} text=${m.sectorLine} lens=${true} />`;
-      var gl = html`<${GuideList} key="gl" M=${M} A=${A} st=${st} sync=${sync} />`, lb = html`<${Library} key="lb" items=${P.library} />`, gr = html`<${GuideRules} key="gr" M=${M} A=${A} st=${st} />`;
+      var gl = html`<${GuideList} key="gl" M=${M} A=${A} st=${st} sync=${sync} cloud=${cloudRow} />`, lb = html`<${Library} key="lb" items=${P.library} />`, gr = html`<${GuideRules} key="gr" M=${M} A=${A} st=${st} />`;
       content = phone ? rc.a.concat(rc.b, [gl, lb, gr]) : cols(rc.a.concat([gr]), rc.b.concat([gl, lb]));
     } else {
       head = html`<${Mast} M=${M} A=${A} st=${st} />`;
       var changes = hasChanges ? html`<${Changes} key="ch" changes=${st.changes} A=${A} />` : null;
       var dailyToday = LM && LM.daily ? html`<${DailyCard} key="dqt" LM=${LM} LP=${LP} A=${A} compact=${true} />` : null;
       content = phone
-        ? [changes, html`<${NextCard} key="nx" M=${M} A=${A} />`, st.showInstall && (st.canInstall || isIOS()) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
+        ? [changes, html`<${NextCard} key="nx" M=${M} A=${A} />`, st.showInstall && installWay(st) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
           html`<${Queue} key="q" M=${M} />`, html`<${NextMeet} key="nm" M=${M} A=${A} />`, dailyToday]
         : cols([html`<${NextCard} key="nx" M=${M} A=${A} />`], [html`<${NextMeet} key="nm" M=${M} A=${A} />`, html`<${Queue} key="q" M=${M} />`, dailyToday], changes ? [html`<div key="chw" class="wide">${changes}</div>`] : []);
     }
@@ -3682,6 +4117,7 @@
       ${st.updateReady && !st.toast && !inCheck ? html`<div class="toast" role="status"><span><b>A new version is ready</b></span><button onClick=${function () { location.reload(); }}>Refresh</button></div>` : null}
       ${st.toast && !inCheck ? html`<div class="toast" role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span>${st.toast.info ? null : html`<button onClick=${A.undo}>Undo</button>`}</div>` : null}
       ${sheet}
+      ${st.side ? html`<${TurnScreen} />` : null}
     </div>`;
   }
 
