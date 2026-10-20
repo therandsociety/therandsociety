@@ -37,7 +37,6 @@
   function dShort(ms) { return D(ms).getUTCDate() + NB + mon(ms); }
   function dMonth(ms) { return D(ms).getUTCDate() + NB + MONTHS[D(ms).getUTCMonth()]; }
   function wk(ms) { return WEEK[D(ms).getUTCDay()]; }
-  function dYear(ms) { return dMonth(ms) + ' ' + D(ms).getUTCFullYear(); }
   function dLong(ms) { return wk(ms) + ' ' + dMonth(ms) + ' ' + D(ms).getUTCFullYear(); }
   function nbsp(s) { return String(s == null ? '' : s).replace(MONTH_RX, '$1' + NB); }
   function plural(n, one, many) { return n === 1 ? one : (many || one + 's'); }
@@ -151,9 +150,7 @@
       library: (Array.isArray(raw.library) ? raw.library : []).filter(function (l) { return l && l.title && /^https:\/\/\S+$/.test(l.url || ''); }),
       notice: raw.notice && raw.notice.id && raw.notice.text ? raw.notice : null,
       teams: (raw.site && /^https:\/\//.test(raw.site.teams || '') && raw.site.teams) || '',
-      siteUrl: (raw.site && raw.site.url) || '',
-      // progress online: the Society's Apps Script web app (see tools/sync); empty keeps everything on the device
-      cloud: (raw.site && /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(raw.site.sync || '') && raw.site.sync) || ''
+      siteUrl: (raw.site && raw.site.url) || ''
     };
   }
 
@@ -584,7 +581,6 @@
               : it.band === 'nc' ? 'Recorded as not completed. It goes to the traffic-light review with a revised date.'
               : it.submitted ? 'Saved on this device. Tap again to undo.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
           </div>` : null}
-        ${p.team && p.team.length ? html`<p class="team-done"><span class="u-sign-ic" aria-hidden="true">${TICK}</span>Marked as submitted by the ${p.team.join(', the ')}.</p>` : null}
         ${p.check ? html`<${Checklist} c=${p.check} state=${p.checkState} toggle=${p.toggleCheck} />` : null}
         <${LinkRow} links=${it.links} />
         ${it.type === 'meeting' && !it.past ? html`<${MeetActions} it=${it} A=${p.A} />` : null}
@@ -901,8 +897,7 @@
     file: html`<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path>`,
     sound: html`<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path>`,
     buzz: html`<rect x="8" y="3.5" width="8" height="17" rx="2"></rect><path d="M4.5 8.5v7M19.5 8.5v7M2 10.5v3M22 10.5v3"></path>`,
-    send: html`<path d="M21 3 10.5 13.5"></path><path d="M21 3l-6.5 18-4-7.5L3 9.5z"></path>`,
-    cloud: html`<path d="M7.2 18.5h10.3a4 4 0 0 0 .5-7.97 6 6 0 0 0-11.4-.9A4.5 4.5 0 0 0 7.2 18.5z"></path><path d="m9.5 13.6 1.8 1.8 3.4-3.4"></path>`
+    send: html`<path d="M21 3 10.5 13.5"></path><path d="M21 3l-6.5 18-4-7.5L3 9.5z"></path>`
   };
   function Ico(p) {
     var I = ICONS[p.n];
@@ -1267,7 +1262,6 @@
         ${row('sr', 'search', 'Search', 'Any date, meeting or rule', A.openSearch)}
         ${inst ? row('in', 'phone', 'Install the app', inst.v, inst.go) : null}
         ${row('up', 'send', 'Send my update', 'Your week in one message, ready for WhatsApp, Teams or email', A.openUpdate)}
-        ${p.cloud ? row('ol', 'cloud', 'Progress online', p.cloud.text, A.openCloud) : null}
         ${row('src', 'file', 'Where the dates come from', M.term.source + (M.updated ? '. Updated ' + M.updated + '.' : '.'), null)}
       </ul>
       ${sync ? html`<div class=${'sync ' + sync.state} aria-live="polite"><i aria-hidden="true"></i><span>${sync.text}</span><button onClick=${A.refresh} disabled=${sync.busy}>${sync.busy ? 'Checking…' : 'Refresh'}</button></div>` : null}
@@ -1290,39 +1284,12 @@
     kind: 'device',
     all: function () { try { return JSON.parse(read('trs-learn') || '{}') || {}; } catch (e) { return {}; } },
     load: function (id) { var s = LearnStore.all()[id]; return s && s.v === 1 ? fillLearn(s) : null; },
-    save: function (id, s) { var all = LearnStore.all(); all[id] = s; store('trs-learn', JSON.stringify(all)); if (LearnStore.after) LearnStore.after(id); },
-    after: null
+    save: function (id, s) { var all = LearnStore.all(); all[id] = s; store('trs-learn', JSON.stringify(all)); }
   };
 
-  // ---------- progress online ----------
-  // With site.sync set in data.json (the Society's Google Apps Script web app: tools/sync/Code.gs), a member can keep their
-  // progress online: the Learn record and their "submitted" marks, saved a few seconds after each change. The PIN never
-  // leaves the phone: it becomes a key here, and only the key is sent and kept. The President's team view reads a summary
-  // of each member (level, chapters, streak) and which questions the team misses, never their answers.
-  var TEAM_VIEW = ['pres'];
-  var CloudStore = {
-    all: function () { try { return JSON.parse(read('trs-cloud') || '{}') || {}; } catch (e) { return {}; } },
-    get: function (id) { return CloudStore.all()[id] || null; },
-    put: function (id, o) { var a = CloudStore.all(); if (o) a[id] = o; else delete a[id]; store('trs-cloud', JSON.stringify(a)); }
-  };
-  function pinKey(role, pin) {
-    try {
-      return crypto.subtle.digest('SHA-256', new TextEncoder().encode('trs:' + role + ':' + pin)).then(function (b) {
-        return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
-      });
-    } catch (e) { return Promise.reject(new Error('nocrypto')); }
-  }
-  function cloudCall(url, body, keep) {
-    var text = JSON.stringify(body);
-    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: text, redirect: 'follow', cache: 'no-store', keepalive: !!keep && text.length < 60000 })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
-  }
-  function weakPin(pin) { return /^(\d)\1{5}$/.test(pin) || '0123456789012'.indexOf(pin) >= 0 || '9876543210987'.indexOf(pin) >= 0; }
-  function readBoard() { try { var b = JSON.parse(read('trs-board') || 'null'); return b && Array.isArray(b.members) ? b : null; } catch (e) { return null; } }
-  function isoOf(ms) { var d = D(ms); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
   function freshLearn() {
     return { v: 1, xp: 0, level: 1, units: {}, paid: {}, review: {}, daily: null, streak: { n: 0, last: 0, best: 0 }, badges: {}, promos: {}, finals: {}, flags: {},
-      skills: {}, cases: {}, cal: { n: 0, s: 0, sr: 0 }, notes: {}, weekly: { wk: -1, run: 0 }, seen: {}, ret: { n: 0, r: 0 }, sprint: { n: 0, best: 0 }, qs: {} };
+      skills: {}, cases: {}, cal: { n: 0, s: 0, sr: 0 }, notes: {}, weekly: { wk: -1, run: 0 }, seen: {}, ret: { n: 0, r: 0 }, sprint: { n: 0, best: 0 } };
   }
   // records saved before skills, deal files and confidence existed pick up the new fields as they load
   function fillLearn(S) { var f = freshLearn(); Object.keys(f).forEach(function (k) { if (S[k] == null) S[k] = f[k]; }); return S; }
@@ -1553,30 +1520,12 @@
     (raw.facts || []).forEach(function (f) { var k = f && f.text && (f.unit || f.book); if (k) (facts[k] = facts[k] || []).push(f.text); });
     var pg = raw.programme || {};
     return { R: R, X: X, SC: SC, levels: levels, books: books, units: units, qs: qs, samples: samples, byId: byId, facts: facts, pres: pres, cases: cases, caseOf: caseOf,
-      skills: skills, unitSkills: unitSkills, bookCfg: bookCfg, left: bad, sign: signPrep(raw, units),
+      skills: skills, unitSkills: unitSkills, bookCfg: bookCfg, left: bad,
       tiers: Array.isArray(raw.tiers) && raw.tiers.length === 3 ? raw.tiers : [{ name: 'Recall' }, { name: 'Concept' }, { name: 'Applied' }],
       badges: (raw.badges || []).filter(function (b) { return b && b.id && b.name; }), groups: raw.badgeGroups || [],
       title: pg.title || 'Required reading', term: pg.term || '', start: parseDay(pg.start), due: parseDay(pg.due),
       pauses: (Array.isArray(pg.pauses) ? pg.pauses : []).map(function (x) { return { a: parseDay(x && x.from), b: parseDay(x && x.to), label: (x && x.label) || 'Break' }; })
         .filter(function (x) { return !isNaN(x.a) && !isNaN(x.b) && x.b >= x.a; }) };
-  }
-  // A chapter's fingerprint: its questions and deal files exactly as written. A sign-off records the fingerprint it checked,
-  // so any later edit to the chapter shows as "updated since it was checked" until it is checked again.
-  function chapterPrint(raw, unit) {
-    var parts = [];
-    (raw.questions || []).forEach(function (q) { if (q && q.unit === unit) parts.push(q); });
-    (raw.cases || []).forEach(function (c) { if (c && c.unit === unit) parts.push(c); });
-    var s = JSON.stringify(parts), h = 2166136261;
-    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return ('0000000' + (h >>> 0).toString(16)).slice(-8);
-  }
-  function signPrep(raw, units) {
-    var SO = raw.signoff || {}, by = SO.by || 'hor', ch = {}, list = SO.chapters || {};
-    Object.keys(units).forEach(function (id) {
-      var s = list[id], on = s ? parseDay(s.on) : NaN, print = chapterPrint(raw, id);
-      ch[id] = { print: print, by: (s && s.by) || by, on: on, has: !isNaN(on), current: !isNaN(on) && !!s && s.print === print };
-    });
-    return { by: by, ch: ch };
   }
   function bookOf(LP, id) { return LP.books.filter(function (b) { return b.id === id; })[0]; }
   // Days from a to b (both included) that count towards the reading pace: breaks such as the year-end recess don't.
@@ -2038,8 +1987,6 @@
         if (a.calc) { calcN++; if (a.right) calcR++; }
         if (a.right && !S.paid[a.id]) S.paid[a.id] = 1;
         if (a.right && a.tier === 3) S.flags.t3 = S.flags.t3 || day;
-        // per question: times asked and times missed, so the President's team view can show which questions members miss
-        var qn = S.qs[a.id] = S.qs[a.id] || [0, 0]; qn[0]++; if (!a.right) qn[1]++;
         if (sp.conf && (a.sure === true || a.sure === false)) { S.cal.n++; if (a.sure) { S.cal.s++; sureN++; if (a.right) { S.cal.sr++; sureR++; } } }
         // long-term recall: answers on a skill (or a question) first met three weeks or more before
         var seenKey = a.skill || a.id, dn = Math.round(day / DAY), first = S.seen[seenKey];
@@ -2326,7 +2273,7 @@
   }
 
   // check.html loads this file to test learn.json with the app's own engine; it stops here, before anything is drawn
-  if (window.TRS_CHECK) { window.TRS_ENGINE = { TPL: TPL, learnPrep: learnPrep, chapterPrint: chapterPrint, instItem: instItem, gradeItem: gradeItem, draftDone: draftDone, showNum: showNum, nearIn: nearIn, seeded: seeded, QTYPES: QTYPES, UNITS: UNITS }; return; }
+  if (window.TRS_CHECK) { window.TRS_ENGINE = { TPL: TPL, learnPrep: learnPrep, instItem: instItem, gradeItem: gradeItem, draftDone: draftDone, showNum: showNum, nearIn: nearIn, seeded: seeded, QTYPES: QTYPES, UNITS: UNITS }; return; }
 
   // ---------- learn: pieces ----------
   // ---------- Learn looks ----------
@@ -2795,119 +2742,14 @@
   }
 
   function ProgressCard(p) {
-    var A = p.A, cl = p.cloud;
+    var A = p.A;
     return html`<section class="card glist-card" aria-labelledby="lp-h">
       <div class="card-head"><h2 id="lp-h" class="card-k">Your progress</h2></div>
       <ul class="glist">
         ${gRow('sh', 'send', 'Share my progress', 'Your level, chapters and badges in one message', A.shareProgress)}
-        ${cl ? gRow('ol', 'cloud', 'Progress online', cl.text, A.openCloud) : null}
-        ${gRow('bk', 'phone', 'Moving to a new phone', cl && cl.on ? 'Sign in with your PIN on the new phone, or use a backup code' : 'Copy a backup code, then paste it on the new phone', A.openBackup)}
-        ${cl ? null : gRow('sv', 'file', 'Saved on this device', 'Only you see your progress. Nothing is sent anywhere.', null)}
+        ${gRow('bk', 'phone', 'Moving to a new phone', 'Copy a backup code, then paste it on the new phone', A.openBackup)}
+        ${gRow('sv', 'file', 'Saved on this device', 'Only you see your progress. Nothing is sent anywhere.', null)}
       </ul>
-    </section>`;
-  }
-
-  // Progress online: turn it on with a PIN, sign in on a new phone, see when it last saved.
-  function CloudSheet(p) {
-    var A = p.A, on = !!p.c, u = useState({ step: on ? 'on' : 'check', pin: '', pin2: '', err: '', busy: false }), s = u[0], setS = u[1];
-    function put(o) { setS(function (prev) { return Object.assign({}, prev, o); }); }
-    useEffect(function () {
-      if (on) return;
-      A.cloudHello().then(function (res) {
-        put(!res || !res.ok ? { step: 'away' } : res.locked ? { step: 'locked', until: res.locked } : { step: res.claimed ? 'enter' : 'choose' });
-      });
-    }, [on]);
-    function go(ev) {
-      if (ev) ev.preventDefault();
-      if (s.busy) return;
-      var pin = s.pin.trim();
-      if (!/^\d{6}$/.test(pin)) { put({ err: 'Your PIN is six digits.' }); return; }
-      if (s.step === 'choose') {
-        if (weakPin(pin)) { put({ err: 'Pick a PIN that’s harder to guess.' }); return; }
-        if (pin !== s.pin2.trim()) { put({ err: 'The two PINs don’t match.' }); return; }
-      }
-      put({ busy: true, err: '' });
-      A.cloudJoin(pin, s.step === 'choose').then(function (res) {
-        if (res.ok) { put({ busy: false, pin: '', pin2: '', joined: res.adopted ? 'in' : 'on' }); return; }
-        var e = res.err;
-        put({ busy: false, pin: '', pin2: '',
-          err: e === 'pin' ? 'That PIN isn’t right.' + (res.left ? ' ' + res.left + (res.left === 1 ? ' try' : ' tries') + ' left before a 15-minute pause.' : '')
-            : e === 'locked' ? 'Too many wrong PINs. Try again after ' + clockSAST(res.until) + '.'
-            : e === 'claimed' ? 'This role went online from another phone a moment ago. Enter that PIN instead.'
-            : e === 'nocrypto' ? 'This browser can’t make a secure PIN code. Update it, or use Safari or Chrome.'
-            : 'Couldn’t reach the Society’s storage. Check your connection and try again.',
-          step: e === 'claimed' ? 'enter' : e === 'locked' ? 'locked' : s.step, until: res.until });
-      });
-    }
-    var st = p.status, c = p.c;
-    var line = !c ? '' : st === 'saving' ? 'Saving…' : st === 'offline' ? 'Offline. It saves when you’re back online.' : st === 'error' ? 'Couldn’t save just now. It tries again after your next change.'
-      : c.saved ? (c.dirty ? 'Changes waiting to save. ' : '') + 'Last saved ' + savedText(c.saved, p.asOf) + '.' : 'Not saved yet.';
-    function pinBox(id, label, val, key, auto) {
-      return html`<label class="cl-pin" for=${id}><span>${label}</span><input id=${id} type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" enterkeyhint="done"
-        value=${val} data-autofocus=${auto ? true : null} onInput=${function (e) { var o = {}; o[key] = e.target.value.replace(/\D/g, '').slice(0, 6); o.err = ''; put(o); }} /></label>`;
-    }
-    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Progress online">
-      <div class="sheet-head"><span class="when">${p.role}</span><${CloseBtn} onClose=${p.onClose} /></div>
-      <div class="sheet-body cl">
-        <h2 class="sheet-title">${c ? 'Saved online' : 'Keep your progress online'}</h2>
-        ${c ? html`<div class=${'cl-st ' + (st || 'ok')} role="status"><i aria-hidden="true"></i><span>${line}</span></div>
-          ${s.joined === 'in' ? html`<p class="cl-p cl-ok">Signed in. The progress you saved from your other phone is on this one now.</p>` : null}
-          <p class="cl-p">Your Learn progress and submitted marks save to the Society’s storage a few seconds after each change. On a new phone, choose your role and sign in with your PIN.</p>
-          <div class="cl-btns"><button class="pill" onClick=${A.cloudSaveNow} disabled=${st === 'saving'}>Save now</button><button class="pill ghost" onClick=${A.cloudOff}>Turn off on this phone</button></div>
-          <p class="cl-note">Turning it off keeps your progress on this phone and online. Forgot your PIN? The President can reset it.</p>`
-        : html`<p class="cl-p">Your Learn progress and submitted marks, saved to the Society’s storage after each change. Lose your phone and you pick up where you left off.</p>
-          <p class="cl-p cl-muted">Members see only their own progress. The President sees each member’s level, chapters and streak, and which questions the team misses most.</p>
-          ${s.step === 'check' ? html`<p class="cl-p cl-muted" role="status">Checking…</p>`
-          : s.step === 'away' ? html`<p class="cl-err" role="alert">Couldn’t reach the Society’s storage. Check your connection, then open this again.</p>`
-          : s.step === 'locked' ? html`<p class="cl-err" role="alert">Too many wrong PINs. Try again after ${clockSAST(s.until)}.</p>`
-          : html`<form class="cl-form" onSubmit=${go} noValidate>
-              ${s.step === 'enter' ? html`<p class="cl-p">This role is already online. Enter its PIN to sign in on this phone.</p>` : null}
-              ${pinBox('cl-a', s.step === 'choose' ? 'Choose a six-digit PIN' : 'Your PIN', s.pin, 'pin', true)}
-              ${s.step === 'choose' ? pinBox('cl-b', 'Type it again', s.pin2, 'pin2', false) : null}
-              ${s.err ? html`<p class="cl-err" role="alert">${s.err}</p>` : null}
-              <button class="pill wide" type="submit" disabled=${s.busy}>${s.busy ? 'One moment…' : s.step === 'choose' ? 'Turn on' : 'Sign in'}</button>
-              <p class="cl-note">${s.step === 'choose' ? 'Keep it to yourself. If you forget it, the President can reset it.' : 'Forgot it? Ask the President to reset it.'}</p>
-            </form>`}`}
-      </div>
-    </${Sheet}>`;
-  }
-  function savedText(ms, asOf) {
-    var day = parseDay(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date(ms))), gap = Math.round((asOf - day) / DAY);
-    return (gap === 0 ? 'today' : gap === 1 ? 'yesterday' : dShort(day)) + ' at ' + clockSAST(ms);
-  }
-  function activeText(iso, asOf) {
-    var d = parseDay(iso); if (isNaN(d)) return '';
-    var gap = Math.round((asOf - d) / DAY);
-    return gap <= 0 ? 'Active today' : gap === 1 ? 'Active yesterday' : gap < 7 ? 'Active ' + gap + ' days ago' : 'Last active ' + dShort(d);
-  }
-  // A question's text as members first meet it (its written example figures), for the team view
-  function qPlain(LP, id) {
-    var q = LP.byId[id];
-    if (!q) return '';
-    try { var c = q.caseId ? LP.cases[q.caseId] : null; return TPL.fill(q.q, TPL.build(q.raw, null, c ? TPL.build(c.def, null) : null)); } catch (e) { return q.q; }
-  }
-
-  // The President's team view: each member's progress and the questions the team misses most
-  function TeamCard(p) {
-    var b = p.board, LP = p.LP, A = p.A;
-    var missed = b ? (b.missed || []).filter(function (x) { return LP.byId[x.id]; }).slice(0, 5) : [];
-    return html`<section class="card team-card" aria-labelledby="tm-h">
-      <div class="card-head"><h2 id="tm-h" class="card-k">The team</h2><button class="txt-btn" onClick=${A.loadBoard} disabled=${p.busy}>${p.busy ? 'Updating…' : 'Update'}</button></div>
-      ${!b ? html`<p class="tm-empty" role="status">${p.err ? 'Couldn’t reach the Society’s storage. Try again when you’re online.' : 'Loading the team…'}</p>` : html`
-        <ul class="tm-list">${b.members.map(function (m) {
-          var x = m.role === p.me && p.mine ? p.mine : m.summary;  // your own row is always this phone's latest
-          return html`<li key=${m.role} class=${x ? '' : 'off'}>
-            <span class="tm-r"><b>${m.title}</b><small>${x ? 'Level ' + x.level + (x.levelName ? ' · ' + x.levelName : '') + ' · ' + num(x.xp) + ' XP' : m.online ? 'Online, nothing saved yet' : 'Not online yet'}</small></span>
-            ${x ? html`<span class="tm-n tnum"><b>${x.passed}<i> of ${x.total}</i></b><small>chapters</small></span>` : null}
-            ${x ? html`<span class="tm-a">${activeText(x.active, p.asOf)}${x.streak > 1 ? html`<small>${x.streak}-day streak</small>` : null}</span>` : null}
-          </li>`;
-        })}</ul>
-        ${missed.length ? html`<div class="tm-miss"><h3 class="card-k">Most missed</h3><ol>${missed.map(function (x) {
-          var q = LP.byId[x.id], u = q && LP.units[q.unit], bk = u && bookOf(LP, u.book), t = qPlain(LP, x.id);
-          return html`<li key=${x.id}><p>${t.length > 150 ? t.slice(0, 147).replace(/\s+\S*$/, '') + '…' : t}</p>
-            <small class="tnum">${x.missed} of ${x.asked} missed${u ? ' · ' + (bk ? bk.short + ', ' : '') + u.label : ''}${x.members > 1 ? ' · ' + x.members + ' members' : ''}${u ? html` · <a href=${'review.html#' + u.id} target="_blank" rel="noopener">See the answer</a>` : null}</small></li>`;
-        })}</ol></div>` : null}
-        <p class="tm-foot">${p.err ? 'Showing the last update, ' : 'Updated '}${savedText(b.at, p.asOf)}. Each member sees only their own progress.</p>`}
     </section>`;
   }
 
@@ -2936,13 +2778,6 @@
       : html`<button class="pill wide" data-autofocus onClick=${function () { A.startQuiz('check', u.id); }}>${u.passed ? 'Retake for full marks' : 'Take the check'}</button>`;
     var tag = u.desk ? html`<${Tag} text="Desk-ready" tone="ok" />` : u.state === 'perfect' ? html`<${Tag} text="Full marks" tone="ok" />` : u.state === 'passed' ? html`<${Tag} text="Passed" tone="ok" />` : u.state === 'locked' ? html`<${Tag} text="Locked" tone="quiet" />` : html`<${Tag} text="Open" tone="when" />`;
     var pool = (LP.qs[u.id] || []).length;
-    // the quality gate for questions: which role checked this chapter, and when; the checking role also gets the review page
-    var sg = LP.sign && LP.sign.ch[u.id], signer = sg ? p.roleOf(sg.by) : '', mine = !!sg && p.me === sg.by;
-    var signLine = sg && (sg.has || mine) ? html`<section class=${'u-sign' + (sg.has && !sg.current ? ' old' : '')} aria-label="Quality check">
-      ${sg.has ? html`<p>${sg.current ? html`<span class="u-sign-ic" aria-hidden="true">${TICK}</span>` : null}${sg.current ? 'Checked by the ' + signer + ' on ' + dYear(sg.on) + '.' : 'Questions updated since the ' + signer + ' checked them on ' + dYear(sg.on) + '.'}</p>`
-        : html`<p>Not yet checked. As ${signer}, you sign off each chapter’s questions before members rely on them.</p>`}
-      ${mine ? html`<a class="pill ghost" href=${'review.html#' + u.id} target="_blank" rel="noopener">${sg.current ? 'See the questions and answers' : 'Review and sign off'}</a>` : null}
-    </section>` : null;
     var checkText = cfg && cfg.passCalc
       ? R.checkSize + ' questions at your level, drawn from this chapter’s ' + pool + ', with calculations you type in. Pass with ' + cfg.pass + ', including at least ' + cfg.passCalc + ' calculations right. New levels bring harder questions and less help: worked examples first, then one step to fill, then none.'
       : R.checkSize + ' questions at your level' + (pool > R.checkSize ? ', drawn from this chapter’s ' + pool : '') + ', easiest first. Pass with ' + R.checkPass + '; all ' + R.checkSize + ' is full marks.';
@@ -2992,7 +2827,6 @@
           ${u.sample && u.ready ? html`<p class="u-note">Sample questions for now. This chapter’s own set is written from the book.</p>` : null}
           ${btn}
         </section>
-        ${signLine}
       </div>
     </${Sheet}>`;
   }
@@ -3549,13 +3383,12 @@
     var s = useState(function () {
       return { P: null, err: null, mi: 0, lens: read('trs-lens') === 'analyst' ? 'analyst' : 'society', all: false, showPast: false, sheet: null, open: {}, months: {},
         tab: tabFromHash() || 'today', showPastMeet: false, boardOpen: null, checks: readChecks(), asOf: todaySAST(), now: nowMs(todaySAST()), since: readSince(), source: '', syncBusy: false, updateReady: false, phone: isPhone(), canInstall: false, changes: null, showInstall: false, done: readDone(), toast: null,
-        LP: null, learnErr: '', learnTick: 0, learnShift: 0, bookOpen: {}, cloud: CloudStore.all(), cloudSt: {}, board: readBoard(), boardBusy: false, boardErr: false };
+        LP: null, learnErr: '', learnTick: 0, learnShift: 0, bookOpen: {} };
     });
     var st = s[0], setSt = s[1];
     function set(patch) { setSt(function (prev) { return Object.assign({}, prev, typeof patch === 'function' ? patch(prev) : patch); }); }
     var loadedAt = useRef(0), toastT = useRef(0), loadRef = useRef(null), sheetRef = useRef(null), ignorePop = useRef(false);
     var tabRef = useRef(st.tab), scrolls = useRef({}), animRef = useRef('from-l'), aRef = useRef(null), learnRef = useRef({}), quizGuard = useRef(null);
-    var cloudRef = useRef({ t: {}, busy: {}, again: {}, quiet: false, pulled: 0 });
 
     function load(first) {
       return loadData().then(function (res) {
@@ -3592,13 +3425,7 @@
       }
       function tick() { var day = todaySAST(); set(function (prev) { return { asOf: day, now: nowMs(day) }; }); }
       var clock = setInterval(tick, 30000);
-      // progress online: any change to a Learn record counts; leaving the app saves what's waiting, coming back checks for newer
-      LearnStore.after = function (id) { if (aRef.current) aRef.current.cloudTouch(id); };
-      function onVis() {
-        if (document.visibilityState !== 'visible') { if (aRef.current) aRef.current.cloudFlush(); return; }
-        tick(); if (!window.TRS_DATA && Date.now() - loadedAt.current > 30 * 60000) load(false);
-        if (aRef.current && Date.now() - cloudRef.current.pulled > 30000) aRef.current.cloudPullAll();
-      }
+      function onVis() { if (document.visibilityState !== 'visible') return; tick(); if (!window.TRS_DATA && Date.now() - loadedAt.current > 30 * 60000) load(false); }
       document.addEventListener('visibilitychange', onVis);
       function onMq() { set({ phone: isPhone() }); }
       if (phoneQuery) { if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', onMq); else if (phoneQuery.addListener) phoneQuery.addListener(onMq); }
@@ -3633,7 +3460,7 @@
         if (t !== tabRef.current) { scrolls.current[tabRef.current] = window.scrollY; animRef.current = 'tab-in'; tabRef.current = t; set({ tab: t }); }
       }
       window.addEventListener('popstate', onPop);
-      function onOnline() { if (loadRef.current) loadRef.current(false); else set({}); if (navigator.onLine !== false && aRef.current) aRef.current.cloudPullAll(); }
+      function onOnline() { if (loadRef.current) loadRef.current(false); else set({}); }
       window.addEventListener('online', onOnline); window.addEventListener('offline', onOnline);
       function onUpdate() { set({ updateReady: true }); }
       window.addEventListener('trs-update', onUpdate);
@@ -3650,7 +3477,6 @@
       return function () {
         if (so && so.removeEventListener) so.removeEventListener('change', onTurn);
         window.removeEventListener('orientationchange', onTurn); window.removeEventListener('resize', onTurn);
-        LearnStore.after = null;
         clearInterval(clock); document.removeEventListener('visibilitychange', onVis);
         window.removeEventListener('hashchange', onHash); window.removeEventListener('keydown', onKey); window.removeEventListener('popstate', onPop);
         window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOnline); window.removeEventListener('trs-update', onUpdate);
@@ -3659,15 +3485,6 @@
     }, []);
 
     useEffect(function () { if (st.P) hideSplash(false); }, [!!st.P]);
-
-    // progress online: once the dates and the reading programme are in, check for newer progress saved from another phone
-    useEffect(function () { if (st.P && st.LP && st.P.cloud && aRef.current) aRef.current.cloudPullAll(); }, [!!st.P, !!st.LP]);
-    // the President's team view refreshes when Learn opens, at most every ten minutes
-    useEffect(function () {
-      if (!st.P || !st.P.cloud || st.tab !== 'learn' || !aRef.current) return;
-      var me = st.P.members[clamp(st.mi, 0, st.P.members.length - 1)].id;
-      if (TEAM_VIEW.indexOf(me) >= 0 && st.cloud[me] && (!st.board || Date.now() - st.board.at > 10 * 60000)) aRef.current.loadBoard();
-    }, [st.tab, st.mi, !!(st.P && st.P.cloud), Object.keys(st.cloud).join()]);
 
     // Each open panel gets one history entry, so Back closes it; closing it any other way removes that entry again.
     useEffect(function () {
@@ -3731,53 +3548,6 @@
     if (LM && LM.daily && !LM.daily.done) M.badges.learn = 'q';
     // The questions for any session, drawn to the member's level (see learnSpec)
     function quizSpec(kind, ref) { return LP ? learnSpec(LP, getLS(M.m.id), LM, kind, ref, learnDay, lctx) : null; }
-    // progress online, the parts that need this render's data
-    function cloudSet(id, v) { set(function (prev) { var o = Object.assign({}, prev.cloudSt); if (v != null) o[id] = v; return { cloudSt: o, cloud: CloudStore.all() }; }); }
-    function cloudSnap(id) {
-      var S = fillLearn(learnRef.current[id] || LearnStore.load(id) || freshLearn()), c = CloudStore.get(id) || {}, d = readDone(), pre = id + ':', done = {};
-      Object.keys(d).forEach(function (k) { if (k.indexOf(pre) === 0) done[k.slice(pre.length)] = d[k]; });
-      var mem = P.members.filter(function (x) { return x.id === id; })[0] || {}, sum = null;
-      try {
-        var L = learnModel(LP, S, learnDay, { id: id, cycle: mem.cycle, dates: lctx.dates }), b = learnSummary(LP, L);
-        sum = { level: b.level, levelName: L.lv.cur.name, xp: b.xp, passed: b.passed, total: b.total, secure: b.secure, skills: b.skills, deals: b.deals, sure: b.sure, held: b.held,
-          streak: L.streak, active: isoOf(st.asOf), done: done };
-      } catch (e) { sum = { done: done, active: isoOf(st.asOf) }; }
-      return packCode(id, S).then(function (code) {
-        return { state: { v: 1, at: c.at || Date.now(), learn: code, done: done, since: readSince()[id] || null }, summary: sum, stats: S.qs || {} };
-      });
-    }
-    function cloudAdopt(id, remote) {
-      return (remote && remote.learn ? unpackCode(remote.learn) : Promise.resolve(null)).then(function (o) {
-        if (o && o.old) { cloudSet(id, 'error'); return; }
-        var R = cloudRef.current; R.quiet = true;
-        try {
-          if (o && o.s && o.id === id) { learnRef.current[id] = o.s; LearnStore.save(id, o.s); }
-          var d = readDone(), pre = id + ':';
-          Object.keys(d).forEach(function (k) { if (k.indexOf(pre) === 0) delete d[k]; });
-          Object.keys(remote.done || {}).forEach(function (k) { d[pre + k] = remote.done[k]; });
-          store('trs-done', JSON.stringify(d));
-          var sn = readSince(); if (remote.since) { sn[id] = remote.since; store('trs-mark-since', JSON.stringify(sn)); }
-          var c = CloudStore.get(id); if (c) { c.at = remote.at || Date.now(); c.dirty = false; CloudStore.put(id, c); }
-          set(function (prev) { var cs = Object.assign({}, prev.cloudSt); cs[id] = ''; return { done: d, since: sn, learnTick: prev.learnTick + 1, cloud: CloudStore.all(), cloudSt: cs }; });
-        } finally { R.quiet = false; }
-      });
-    }
-    // another phone saved since this one last did: the newer change wins
-    function cloudMerge(id, res) {
-      var c = CloudStore.get(id), remote = res.state;
-      if (!c) return;
-      c.version = res.version; c.saved = res.saved; CloudStore.put(id, c);
-      if (remote && (!c.dirty || (remote.at || 0) > (c.at || 0))) return cloudAdopt(id, remote).then(function () { if (id === M.m.id) A.say('Brought in newer progress saved from another phone.'); });
-      if (aRef.current) aRef.current.cloudPush(id);
-    }
-    function cloudFail(id, res) {
-      if (res && (res.err === 'pin' || res.err === 'unclaimed')) {
-        CloudStore.put(id, null); cloudSet(id, '');
-        if (id === M.m.id) A.say('Your PIN was reset. Turn progress online back on with a new PIN.');
-        return;
-      }
-      cloudSet(id, 'error');
-    }
     if (window.TRS_TEST) window.TRS_TEST.learn = { LP: LP, spec: quizSpec, S: function () { return LM ? getLS(M.m.id) : null; }, openUnit: function (u) { A.openUnit(u); } };
     var A = {
       openMembers: function () { set({ sheet: { kind: 'member' } }); },
@@ -3844,7 +3614,6 @@
         clearTimeout(toastT.current);
         toastT.current = setTimeout(function () { set({ toast: null }); }, 5000);
         set({ done: o, toast: { text: on ? 'Marked as submitted' : 'No longer marked as submitted', title: title, key: k } });
-        A.cloudTouch(M.m.id);
       },
       say: function (text) { clearTimeout(toastT.current); toastT.current = setTimeout(function () { set({ toast: null }); }, 4000); set({ toast: { text: text, title: '', key: '', info: true } }); },
       undo: function () { var t = st.toast; if (t) A.toggleDone(t.key, t.title); set({ toast: null }); },
@@ -3861,91 +3630,6 @@
         set({ changes: null });
       },
       dismissInstall: function () { store('trs-install-later', String(Date.now())); set({ showInstall: false }); },
-      // ---- progress online ----
-      openCloud: function () { set({ sheet: { kind: 'cloud' } }); },
-      cloudTouch: function (id) {
-        var R = cloudRef.current, c = CloudStore.get(id);
-        if (!P.cloud || R.quiet || !c) return;
-        c.at = Date.now(); c.dirty = true; CloudStore.put(id, c);
-        clearTimeout(R.t[id]);
-        R.t[id] = setTimeout(function () { if (aRef.current) aRef.current.cloudPush(id); }, 2500);
-        cloudSet(id, null);
-      },
-      cloudPush: function (id, force, keep) {
-        var R = cloudRef.current, c = CloudStore.get(id);
-        if (!P.cloud || !c || !LP) return Promise.resolve();
-        if (R.busy[id]) { R.again[id] = true; return Promise.resolve(); }
-        if (navigator.onLine === false) { cloudSet(id, 'offline'); return Promise.resolve(); }
-        clearTimeout(R.t[id]);
-        cloudSet(id, 'saving');
-        var sentAt = c.at || 0;
-        R.busy[id] = cloudSnap(id).then(function (snap) {
-          return cloudCall(P.cloud, { action: 'save', role: id, key: c.key, base: c.version || 0, force: !!force, state: snap.state, summary: snap.summary, stats: snap.stats }, keep);
-        }).then(function (res) {
-          var c2 = CloudStore.get(id);
-          if (!c2) return;
-          if (res.ok) { c2.version = res.version; c2.saved = res.saved; if ((c2.at || 0) <= sentAt) c2.dirty = false; CloudStore.put(id, c2); cloudSet(id, ''); return; }
-          if (res.err === 'newer') return cloudMerge(id, res);
-          cloudFail(id, res);
-        }).catch(function () { cloudSet(id, navigator.onLine === false ? 'offline' : 'error'); }).then(function () {
-          R.busy[id] = null;
-          if (R.again[id]) { R.again[id] = false; if (aRef.current) aRef.current.cloudPush(id); }
-        });
-        return R.busy[id];
-      },
-      cloudPull: function (id) {
-        var c = CloudStore.get(id);
-        if (!P.cloud || !c || !LP || navigator.onLine === false) return Promise.resolve();
-        cloudRef.current.pulled = Date.now();
-        return cloudCall(P.cloud, { action: 'hello', role: id, key: c.key }).then(function (res) {
-          if (!res.ok) return cloudFail(id, res);
-          if (!res.mine) return cloudFail(id, { err: res.claimed ? 'pin' : 'unclaimed' });
-          if ((res.version || 0) > (c.version || 0)) return cloudCall(P.cloud, { action: 'load', role: id, key: c.key }).then(function (r2) { return r2.ok ? cloudMerge(id, r2) : cloudFail(id, r2); });
-          if (c.dirty) return aRef.current.cloudPush(id);
-          cloudSet(id, '');
-        }).catch(function () { cloudSet(id, navigator.onLine === false ? 'offline' : 'error'); });
-      },
-      cloudPullAll: function () { if (P.cloud && LP) Object.keys(CloudStore.all()).forEach(function (id) { A.cloudPull(id); }); },
-      cloudFlush: function () { Object.keys(CloudStore.all()).forEach(function (id) { var c = CloudStore.get(id); if (c && c.dirty) A.cloudPush(id, false, true); }); },
-      cloudHello: function () { return P.cloud ? cloudCall(P.cloud, { action: 'hello', role: M.m.id }).catch(function () { return null; }) : Promise.resolve(null); },
-      cloudJoin: function (pin, claim) {
-        var id = M.m.id;
-        return pinKey(id, pin).then(function (key) {
-          return cloudCall(P.cloud, { action: claim ? 'claim' : 'load', role: id, key: key }).then(function (res) {
-            if (!res.ok) return res;
-            var c = { key: key, version: res.version || 0, saved: res.saved || 0, at: Date.now(), dirty: true };
-            CloudStore.put(id, c);
-            var remote = !claim && res.state;
-            // signing in on another phone: bring in what's online, unless this phone is further along
-            var pick = !remote ? Promise.resolve(false) : unpackCode(remote.learn).then(function (o) {
-              var mine = getLS(id), theirs = o && o.s;
-              return !!theirs && (theirs.xp || 0) >= (mine.xp || 0);
-            }).catch(function () { return false; });
-            return pick.then(function (adopt) {
-              return (adopt ? cloudAdopt(id, remote) : A.cloudPush(id, !!remote)).then(function () { set({ cloud: CloudStore.all() }); return { ok: true, adopted: adopt }; });
-            });
-          });
-        }).catch(function (e) { return { ok: false, err: e && e.message === 'nocrypto' ? 'nocrypto' : 'net' }; });
-      },
-      cloudSaveNow: function () { A.cloudPush(M.m.id); },
-      cloudOff: function () {
-        var id = M.m.id; clearTimeout(cloudRef.current.t[id]);
-        CloudStore.put(id, null);
-        if (TEAM_VIEW.indexOf(id) >= 0) { store('trs-board', ''); }
-        set({ cloud: CloudStore.all(), sheet: null, board: TEAM_VIEW.indexOf(id) >= 0 ? null : st.board });
-        A.say('Progress online is off on this phone. Your progress stays here.');
-      },
-      loadBoard: function () {
-        var id = M.m.id, c = CloudStore.get(id);
-        if (!P.cloud || !c || TEAM_VIEW.indexOf(id) < 0) return;
-        set({ boardBusy: true });
-        cloudCall(P.cloud, { action: 'board', role: id, key: c.key }).then(function (res) {
-          if (!res.ok) { if (res.err === 'pin' || res.err === 'unclaimed') cloudFail(id, res); set({ boardBusy: false, boardErr: true }); return; }
-          var b = { at: Date.now(), members: res.members || [], missed: res.missed || [] };
-          store('trs-board', JSON.stringify(b));
-          set({ board: b, boardBusy: false, boardErr: false });
-        }).catch(function () { set({ boardBusy: false, boardErr: true }); });
-      },
       // ---- learn ----
       learnDo: function (act) {
         var id = M.m.id, res = learnApply(LP, getLS(id), act, learnDay, lctx);
@@ -4022,7 +3706,7 @@
     } else if (st.sheet && st.sheet.kind === 'unit' && LM) {
       var uu = null;
       LM.books.forEach(function (x) { x.units.forEach(function (u) { if (u.id === st.sheet.unit) uu = u; }); });
-      if (uu) sheet = html`<${UnitSheet} key="unit" phone=${st.phone} u=${uu} LP=${LP} A=${A} me=${M.m.id} roleOf=${function (id) { var x = P.members.filter(function (m) { return m.id === id; })[0]; return x ? x.role : 'Head of Research'; }} onClose=${A.close} />`;
+      if (uu) sheet = html`<${UnitSheet} key="unit" phone=${st.phone} u=${uu} LP=${LP} A=${A} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'skills' && LM) {
       sheet = html`<${SkillsSheet} key="skills" phone=${st.phone} LM=${LM} LP=${LP} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'deals' && LM) {
@@ -4034,26 +3718,19 @@
       if (fb && fb.passed) sheet = html`<${CertSheet} key="cert" phone=${st.phone} LP=${LP} book=${bookOf(LP, st.sheet.book)} role=${M.m.role} f=${fb} share=${A.shareProgress} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'backup' && LP) {
       sheet = html`<${BackupSheet} key="backup" phone=${st.phone} make=${function () { return packCode(M.m.id, getLS(M.m.id)); }} restore=${A.restoreLearn} onClose=${A.close} />`;
-    } else if (st.sheet && st.sheet.kind === 'cloud' && P.cloud) {
-      sheet = html`<${CloudSheet} key="cloud" phone=${st.phone} A=${A} c=${st.cloud[M.m.id] || null} status=${st.cloudSt[M.m.id] || ''} role=${M.m.role} asOf=${st.asOf} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'item') {
       var seq = list.some(function (it) { return it.key === st.sheet.key; }) ? list : M.all;
       var idx = -1;
       seq.forEach(function (it, i) { if (it.key === st.sheet.key) idx = i; });
       if (idx >= 0) {
         var ck = M.checkFor(seq[idx].key);
-        var teamDone = st.board && TEAM_VIEW.indexOf(M.m.id) >= 0 && st.cloud[M.m.id] ? st.board.members.filter(function (x) { return x.role !== M.m.id && x.summary && x.summary.done && x.summary.done[seq[idx].key]; }).map(function (x) { return x.title; }) : null;
-        sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close} toggleDone=${A.toggleDone} A=${A} team=${teamDone}
+        sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close} toggleDone=${A.toggleDone} A=${A}
           check=${ck && seq[idx].part === 'lead' ? ck.c : null} checkState=${ck ? ck.state : null} toggleCheck=${A.toggleCheck}
           prev=${function () { if (idx > 0) A.openItem(seq[idx - 1].key); }} next=${function () { if (idx < seq.length - 1) A.openItem(seq[idx + 1].key); }} />`;
       }
     }
 
     var tab = st.tab, phone = st.phone, m = M.m;
-    var myCloud = st.cloud[m.id], mySt = st.cloudSt[m.id] || '';
-    var cloudRow = !P.cloud ? null : !myCloud ? { on: false, text: 'Off. Turn it on to keep your progress if you lose your phone' }
-      : { on: true, text: mySt === 'saving' ? 'Saving…' : mySt === 'offline' ? 'Offline. It saves when you’re back online' : mySt === 'error' ? 'Couldn’t save just now. Tap to try again'
-        : myCloud.saved ? 'Saved ' + savedText(myCloud.saved, st.asOf) : 'On' };
     var hasChanges = st.changes && st.changes.member === m.id;
     if (hasChanges && !M.badges.today) M.badges.today = 'news';
     function cols(a, b, extra) {
@@ -4077,11 +3754,9 @@
         var lvc = html`<${LevelCard} key="lv" LM=${LM} LP=${LP} A=${A} role=${m.role} />`, dqc = html`<${DailyCard} key="dq" LM=${LM} LP=${LP} A=${A} />`;
         var bks = LM.books.map(function (x) { return html`<${BookCard} key=${'bk' + x.b.id} bk=${x} LP=${LP} A=${A} open=${!!st.bookOpen[x.b.id]} />`; });
         var prc = html`<${PracticeCard} key="pr" LM=${LM} A=${A} />`, dkc = html`<${DeskCard} key="dk" LM=${LM} A=${A} />`, dlc = html`<${DealsCard} key="dl" LM=${LM} LP=${LP} A=${A} role=${m.role} />`;
-        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} cloud=${cloudRow} />`, fxc = html`<${FxCard} key="fx" />`;
+        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} />`, fxc = html`<${FxCard} key="fx" />`;
         var ltc = window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null;
-        var tmc = P.cloud && TEAM_VIEW.indexOf(m.id) >= 0 && st.cloud[m.id] ? html`<${TeamCard} key="tm" board=${st.board} busy=${st.boardBusy} err=${st.boardErr} LP=${LP} A=${A} asOf=${st.asOf} me=${m.id}
-          mine=${{ level: LM.lv.cur.n, levelName: LM.lv.cur.name, xp: LM.xp, passed: LM.passed, total: LM.total, streak: LM.streak, active: isoOf(st.asOf) }} />` : null;
-        content = phone ? [lvc, dqc, prc].concat(bks, [dkc, dlc, tmc, pcc, bdc, pgc, fxc, ltc]) : cols([lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, tmc, dlc, pgc, fxc, ltc]);
+        content = phone ? [lvc, dqc, prc].concat(bks, [dkc, dlc, pcc, bdc, pgc, fxc, ltc]) : cols([lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, dlc, pgc, fxc, ltc]);
         content = content.concat([html`<div key="lk" class="wide"><${LookBar} A=${A} /></div>`]);
       }
     } else if (tab === 'you') {
@@ -4089,7 +3764,7 @@
       head = M.lens === 'society'
         ? html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${m.role} title=${m.focus} text=${m.focusLine} lens=${true} />`
         : html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${'Analyst · ' + M.cycle.name} title=${m.sector} text=${m.sectorLine} lens=${true} />`;
-      var gl = html`<${GuideList} key="gl" M=${M} A=${A} st=${st} sync=${sync} cloud=${cloudRow} />`, lb = html`<${Library} key="lb" items=${P.library} />`, gr = html`<${GuideRules} key="gr" M=${M} A=${A} st=${st} />`;
+      var gl = html`<${GuideList} key="gl" M=${M} A=${A} st=${st} sync=${sync} />`, lb = html`<${Library} key="lb" items=${P.library} />`, gr = html`<${GuideRules} key="gr" M=${M} A=${A} st=${st} />`;
       content = phone ? rc.a.concat(rc.b, [gl, lb, gr]) : cols(rc.a.concat([gr]), rc.b.concat([gl, lb]));
     } else {
       head = html`<${Mast} M=${M} A=${A} st=${st} />`;
