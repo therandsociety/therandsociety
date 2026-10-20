@@ -1269,9 +1269,9 @@
   }
 
   // ---------- learn: required reading ----------
-  // learn.json (window.TRS_LEARN in the preview) holds the books, levels, badges, rules and question bank. Progress is
-  // personal: one record per role, kept on the device behind LearnStore. A shared store can replace LearnStore later
-  // (same load and save calls) without touching the screens.
+  // learn.json (window.TRS_LEARN in the preview) holds the books, levels, badges, rules, skills, deal files and question bank.
+  // Progress is personal: one record per role, kept on the device behind LearnStore. A shared store can replace LearnStore
+  // later (same load and save calls) without touching the screens; learnSummary() is what it would share.
   function loadLearn() {
     if (window.TRS_LEARN) return Promise.resolve(window.TRS_LEARN);
     function fromCache(err) {
@@ -1283,20 +1283,152 @@
   var LearnStore = {
     kind: 'device',
     all: function () { try { return JSON.parse(read('trs-learn') || '{}') || {}; } catch (e) { return {}; } },
-    load: function (id) { var s = LearnStore.all()[id]; return s && s.v === 1 ? s : null; },
+    load: function (id) { var s = LearnStore.all()[id]; return s && s.v === 1 ? fillLearn(s) : null; },
     save: function (id, s) { var all = LearnStore.all(); all[id] = s; store('trs-learn', JSON.stringify(all)); }
   };
-  function freshLearn() { return { v: 1, xp: 0, level: 1, units: {}, paid: {}, review: {}, daily: null, streak: { n: 0, last: 0, best: 0 }, badges: {}, promos: {}, finals: {}, flags: {} }; }
+  function freshLearn() {
+    return { v: 1, xp: 0, level: 1, units: {}, paid: {}, review: {}, daily: null, streak: { n: 0, last: 0, best: 0 }, badges: {}, promos: {}, finals: {}, flags: {},
+      skills: {}, cases: {}, cal: { n: 0, s: 0, sr: 0 }, notes: {}, weekly: { wk: -1, run: 0 }, seen: {}, ret: { n: 0, r: 0 } };
+  }
+  // records saved before skills, deal files and confidence existed pick up the new fields as they load
+  function fillLearn(S) { var f = freshLearn(); Object.keys(f).forEach(function (k) { if (S[k] == null) S[k] = f[k]; }); return S; }
   function num(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
+  // ---------- learn: numbers in questions ----------
+  // A calculation question carries ranges for its inputs ("vars") and the steps that turn them into the answer ("let"), so
+  // each member, day and try gets fresh figures: a review tests the method, not a remembered number. Formulas take numbers,
+  // names, + - * / ^ and brackets, and min, max, abs, round(x, dp), floor, ceil, sqrt, ln, exp and pow. Nothing is eval'd.
+  var TPL = (function () {
+    var FN = { min: Math.min, max: Math.max, abs: Math.abs, floor: Math.floor, ceil: Math.ceil, sqrt: Math.sqrt, ln: Math.log, exp: Math.exp, pow: Math.pow,
+      round: function (x, d) { var k = Math.pow(10, d || 0); return Math.round(x * k) / k; } };
+    var cache = {};
+    function parse(src) {
+      src = String(src);
+      if (cache[src]) return cache[src];
+      var s = src, i = 0;
+      function peek() { while (i < s.length && /\s/.test(s.charAt(i))) i++; return i < s.length ? s.charAt(i) : ''; }
+      function fail(m) { throw new Error('Formula "' + s + '": ' + m); }
+      function expr() { var n = term(), c; while ((c = peek()) === '+' || c === '-') { i++; n = [c, n, term()]; } return n; }
+      function term() { var n = unary(), c; while ((c = peek()) === '*' || c === '/') { i++; n = [c, n, unary()]; } return n; }
+      function unary() { var c = peek(); if (c === '-') { i++; return ['neg', unary()]; } if (c === '+') { i++; return unary(); } return power(); }
+      function power() { var b = atom(); if (peek() === '^') { i++; return ['^', b, unary()]; } return b; }
+      function atom() {
+        var c = peek(), m, rest = s.slice(i);
+        if (c === '(') { i++; var e = expr(); if (peek() !== ')') fail('missing )'); i++; return e; }
+        m = /^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?/i.exec(rest);
+        if (m) { i += m[0].length; return ['n', parseFloat(m[0])]; }
+        m = /^[A-Za-z_]\w*/.exec(rest);
+        if (!m) fail(c ? 'unexpected ' + c : 'unexpected end');
+        i += m[0].length;
+        if (peek() !== '(') return ['v', m[0]];
+        i++;
+        var args = [];
+        if (peek() !== ')') { for (;;) { args.push(expr()); if (peek() !== ',') break; i++; } }
+        if (peek() !== ')') fail('missing )');
+        i++;
+        if (!FN.hasOwnProperty(m[0])) fail('unknown function ' + m[0]);
+        return ['f', m[0], args];
+      }
+      var tree = expr();
+      if (peek()) fail('unexpected ' + peek());
+      return (cache[src] = tree);
+    }
+    function run(t, env) {
+      switch (t[0]) {
+        case 'n': return t[1];
+        case 'v': if (!Object.prototype.hasOwnProperty.call(env, t[1])) throw new Error('No value for ' + t[1]); return env[t[1]];
+        case 'neg': return -run(t[1], env);
+        case 'f': return FN[t[1]].apply(null, t[2].map(function (a) { return run(a, env); }));
+        case '+': return run(t[1], env) + run(t[2], env);
+        case '-': return run(t[1], env) - run(t[2], env);
+        case '*': return run(t[1], env) * run(t[2], env);
+        case '/': return run(t[1], env) / run(t[2], env);
+        case '^': return Math.pow(run(t[1], env), run(t[2], env));
+      }
+      throw new Error('Bad formula');
+    }
+    function val(src, env) { return typeof src === 'number' ? src : run(parse(src), env || {}); }
+    // [min, max, step, example], [constant], or {pick: [...], base}
+    function pick(spec, r) {
+      if (!Array.isArray(spec)) {
+        if (spec && Array.isArray(spec.pick)) return r ? spec.pick[Math.floor(r() * spec.pick.length)] : spec.base != null ? spec.base : spec.pick[0];
+        return +spec;
+      }
+      if (spec.length < 3) return +spec[0];
+      var lo = +spec[0], hi = +spec[1], st = +spec[2] || 1, n = Math.floor((hi - lo) / st + 1e-9) + 1;
+      if (!r) return spec.length > 3 ? +spec[3] : lo;
+      return +(lo + st * Math.floor(r() * n)).toFixed(10);
+    }
+    function once(def, r, base) {
+      var e = Object.assign({}, base || {});
+      Object.keys(def.vars || {}).forEach(function (k) { e[k] = pick(def.vars[k], r); });
+      Object.keys(def.let || {}).forEach(function (k) { e[k] = val(def.let[k], e); if (!isFinite(e[k])) throw new Error(k + ' is not a number'); });
+      return e;
+    }
+    function fits(def, e) { return (def.when || []).every(function (w) { return val(w, e) > 0; }); }
+    // the written example when r is null; otherwise fresh draws until every "when" holds, falling back to the example
+    function build(def, r, base) {
+      if (!def) return Object.assign({}, base || {});
+      if (r) {
+        for (var k = 0; k < 40; k++) {
+          try { var e = once(def, r, base); if (fits(def, e)) return e; } catch (x) { /* draw again */ }
+        }
+      }
+      return once(def, null, base);
+    }
+    function group(s) { return s.replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    // [R][decimals][% x m bn]: R1bn turns R8,426m into R8.4bn; 1% turns 0.129 into 12.9%; 1x turns 8.87 into 8.9×
+    function fmt(v, spec) {
+      var m = /^(R?)(\d?)(%|x|m|bn)?$/.exec(spec || '') || ['', '', '', ''];
+      var x = +v, suf = m[3] || '', dp = m[2] === '' ? null : +m[2];
+      if (suf === '%') x *= 100;
+      if (suf === 'bn') x /= 1000;
+      if (dp == null) dp = Math.abs(x - Math.round(x)) < 1e-9 ? 0 : 2;
+      var k = Math.pow(10, dp), str = (Math.round(Math.abs(x) * k + 1e-7) / k).toFixed(dp), neg = x < 0 && +str !== 0, parts = str.split('.');
+      str = group(parts[0]) + (parts[1] ? '.' + parts[1] : '');
+      return (neg ? '−' : '') + m[1] + str + (suf === 'x' ? '×' : suf);
+    }
+    function fill(text, env) {
+      return String(text == null ? '' : text).replace(/\{([^{}|]+)(?:\|([^{}]*))?\}/g, function (all, ex, spec) { return fmt(val(ex, env), spec); });
+    }
+    // what a member types: "R8 426m", "8,426", "8,9" (a decimal comma), "12.9%", "(50)" or "−1.5"
+    function parseNum(t) {
+      var s = String(t == null ? '' : t).replace(/[\s  ']/g, '').replace(/[−–—]/g, '-');
+      var neg = false;
+      if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+      s = s.replace(/^(-?)R/i, '$1');
+      for (var k = 0; k < 3; k++) s = s.replace(/(×|x|%|bn|m|times|days|years|yrs)$/i, '');
+      if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) s = s.replace(/,/g, '');
+      else if (/^-?0,\d+$/.test(s) || /,\d{1,2}$/.test(s) || /,\d{4,}$/.test(s)) s = s.replace(',', '.');
+      else s = s.replace(/,(?=\d{3}(\D|$))/g, '');
+      if (!/^-?(\d+\.?\d*|\.\d+)$/.test(s)) return NaN;
+      var n = parseFloat(s);
+      return neg ? -n : n;
+    }
+    // close enough: within the stated rounding, or half a percent of the answer
+    function near(a, b, dp, tol) { return isFinite(a) && Math.abs(a - b) <= Math.max((tol == null ? 0.005 : tol) * Math.abs(b), 0.5 * Math.pow(10, -(dp || 0)) + 1e-9); }
+    return { parse: parse, val: val, build: build, fmt: fmt, fill: fill, parseNum: parseNum, near: near, pick: pick };
+  })();
+  // How an answer's unit reads and is typed: Rm (rand millions), R, m (millions), x (a multiple), % (stored as a fraction)
+  var UNITS = { Rm: { pre: 'R', suf: 'm', word: 'R million' }, Rbn: { pre: 'R', suf: 'bn', word: 'R billion' }, R: { pre: 'R', suf: '', word: 'rand' },
+    m: { pre: '', suf: 'm', word: 'million' }, x: { pre: '', suf: '×', box: 'times', word: 'times' }, '%': { pre: '', suf: '%', word: 'per cent' }, '': { pre: '', suf: '', word: '' } };
+  function unitOf(u) { return UNITS[u] || UNITS['']; }
+  function unitSpec(u, dp) { return u === 'Rm' ? 'R' + dp + 'm' : u === 'Rbn' ? 'R' + dp + 'bn' : u === 'R' ? 'R' + dp : u === 'm' ? dp + 'm' : u === 'x' ? dp + 'x' : u === '%' ? dp + '%' : String(dp); }
+  function showNum(v, u, dp) { return TPL.fmt(v, unitSpec(u || '', dp || 0)); }
+  // the typed number in the answer's own terms (per cent answers are typed as 12.9, kept as 0.129)
+  function typedValue(text, u) { var n = TPL.parseNum(text); return u === '%' ? n / 100 : u === 'Rbn' ? n * 1000 : n; }
+  function nearIn(v, truth, u, dp, tol) { var k = u === '%' ? 100 : u === 'Rbn' ? 0.001 : 1; return TPL.near(v * k, truth * k, dp, tol); }
+
+  var QTYPES = { tf: 1, mcq: 1, num: 3, est: 3, err: 3, order: 2, dir: 2, two: 2, sort: 2 };
   function learnPrep(raw) {
     if (!raw || !Array.isArray(raw.books) || !raw.books.length || !Array.isArray(raw.levels) || !raw.levels.length) throw new Error('learn.json needs books and levels.');
-    var R = Object.assign({ checkSize: 8, checkPass: 6, reviewSize: 10, reviewPass: 8, finalSize: 20, finalPass: 16, finalMix: [2, 8, 10], retry: 'nextDay', inOrder: true, promotions: true, samples: false }, raw.rules || {});
-    var X = Object.assign({ t1: 10, t2: 20, t3: 40, pass: 100, perfect: 50, daily: 15, streak7: 100, reviewClear: 30 }, raw.xp || {});
+    var R = Object.assign({ checkSize: 8, checkPass: 6, reviewSize: 10, reviewPass: 8, finalSize: 20, finalPass: 16, finalMix: [2, 8, 10], retry: 'nextDay', inOrder: true, promotions: true, samples: false, confidence: true }, raw.rules || {});
+    var X = Object.assign({ t1: 10, t2: 20, t3: 40, calc: 40, err: 40, 'case': 40, deal: 100, pass: 100, perfect: 50, daily: 15, streak7: 100, reviewClear: 30, weekly: 30, warm: 30, pret: 30, sure: 0.5 }, raw.xp || {});
+    var SC = Object.assign({ skill: [2, 7, 16, 35], miss: [1, 3, 7, 16], after: 14, weekly: 6, reviewMax: 12, preThesis: null }, raw.schedule || {});
     var levels = raw.levels.map(function (l, i) {
       return { n: i + 1, name: l.name || 'Level ' + (i + 1), xp: +l.xp || 0, mix: Array.isArray(l.mix) && l.mix.length === 3 ? l.mix.map(Number) : [R.checkSize, 0, 0] };
     });
-    var units = {};
+    var units = {}, bookCfg = {};
     var books = raw.books.map(function (b) {
       var mods = {};
       (b.modules || []).forEach(function (md) { (md.units || []).forEach(function (u) { mods[u] = md.title; }); });
@@ -1307,24 +1439,74 @@
       });
       var modules = (b.modules || []).map(function (md) { return { title: md.title || '', units: (md.units || []).filter(function (u) { return units[u]; }) }; }).filter(function (md) { return md.units.length; });
       if (!modules.length) modules = [{ title: '', units: list.map(function (u) { return u.id; }) }];
+      var ck = b.check || null;
+      // a book can set its own check: how many calculations a pass needs, how much help each level starts with, and the
+      // question plan per level ({r: recall, c: concept, a: applied slots such as "num", "err", "est" or "case3"})
+      if (ck) bookCfg[b.id] = { pass: +ck.pass || R.checkPass, passCalc: +ck.passCalc || 0, support: Array.isArray(ck.support) ? ck.support : [], plans: Array.isArray(ck.plans) ? ck.plans : [],
+        final: ck.final || null, promoCase: ck.promoCase !== false, label: ck.label || b.short || b.title };
       return { id: b.id, title: b.title || b.id, short: b.short || b.title || b.id, by: b.by || '', units: list, modules: modules };
     });
-    var qs = {}, samples = {}, byId = {};
-    (raw.questions || []).forEach(function (q) {
-      if (!q || !q.id || !q.q || byId[q.id]) return;
-      var tf = q.type === 'tf';
-      if (tf ? typeof q.answer !== 'boolean' : !(Array.isArray(q.options) && q.options.length >= 2 && q.answer >= 0 && q.answer < q.options.length)) return;
-      var u = units[q.unit], book = u ? u.book : q.book;
-      if (!u && !(q.sample && book)) return;
-      var x = { id: q.id, unit: u ? u.id : '', book: book, tier: clamp(Math.round(+q.tier) || 1, 1, 3), tf: tf, q: q.q,
-        options: tf ? ['True', 'False'] : q.options, answer: tf ? (q.answer ? 0 : 1) : q.answer, why: q.why || '', sample: !u };
-      byId[x.id] = x;
-      if (u) (qs[u.id] = qs[u.id] || []).push(x); else (samples[book] = samples[book] || []).push(x);
+    var skills = {}, unitSkills = {};
+    (raw.skills || []).forEach(function (s) {
+      if (!s || !s.id || !units[s.unit] || skills[s.id]) return;
+      skills[s.id] = { id: s.id, unit: s.unit, name: s.name || s.id, typed: s.typed !== false };
+      (unitSkills[s.unit] = unitSkills[s.unit] || []).push(s.id);
     });
+    var qs = {}, samples = {}, byId = {}, pres = {}, cases = {}, caseOf = {}, bad = [];
+    function norm(q, c) {
+      if (!q || !q.id || !q.q || byId[q.id]) return null;
+      var type = QTYPES[q.type] ? q.type : '', u = units[c ? c.unit : q.unit], book = u ? u.book : q.book, tf = type === 'tf';
+      function no(why) { bad.push(q.id + ': ' + why); return null; }
+      if (!type) return no('type');
+      if (!u && !(q.sample && book)) return no('unit');
+      if (tf && typeof q.answer !== 'boolean') return no('answer');
+      if ((type === 'mcq' || type === 'two') && !(Array.isArray(q.options) && q.options.length >= 2 && q.answer >= 0 && q.answer < q.options.length)) return no('options');
+      if (type === 'two' && !(q.reason && Array.isArray(q.reason.options) && q.reason.answer >= 0 && q.reason.answer < q.reason.options.length)) return no('reason');
+      if (type === 'order' && !(Array.isArray(q.items) && q.items.length >= 3)) return no('items');
+      if (type === 'err' && !(Array.isArray(q.lines) && q.lines[q.bad] != null && q.fix && Array.isArray(q.fix.options) && q.fix.options[q.fix.answer] != null)) return no('lines');
+      if (type === 'dir' && !(Array.isArray(q.measures) && q.measures.length && q.measures.every(function (m) { return m && m.name && /^(up|down|same)$/.test(m.dir); }))) return no('measures');
+      if (type === 'sort' && !(Array.isArray(q.cats) && q.cats.length === 2 && Array.isArray(q.items) && q.items.length >= 2 && q.items.every(function (x) { return x && x.t && (x.c === 0 || x.c === 1); }))) return no('sort');
+      if (type === 'est' && !(Array.isArray(q.band) && q.band.length === 2)) return no('band');
+      // anything with numbers has to work out with its written example
+      try {
+        var env = TPL.build(q, null, c ? TPL.build(c.def, null) : null);
+        if (type === 'num' || type === 'est') { if (!isFinite(TPL.val(q.ans, env))) return no('answer'); }
+        if (type === 'est') { var lo = TPL.val(q.band[0], env), hi = TPL.val(q.band[1], env); if (!(lo <= hi)) return no('band'); }
+        if (type === 'dir' && q.mag && !isFinite(TPL.val(q.mag.ans, env))) return no('mag');
+        TPL.fill(q.q, env); TPL.fill(q.why, env);
+        (q.steps || []).forEach(function (st) { TPL.fill(st.t, env); TPL.val(st.v, env); });
+      } catch (e) { return no(e.message); }
+      var tier = clamp(Math.round(+q.tier) || QTYPES[type], 1, 3), calc = type === 'num' || type === 'est';
+      var x = { id: q.id, unit: u ? u.id : '', book: book, tier: tier, type: type, tf: tf, q: q.q, why: q.why || '', src: q.src || '', skill: skills[q.skill] ? q.skill : '',
+        pre: !!q.pre, sample: !u, calc: calc, xpk: c ? 'case' : calc ? 'calc' : type === 'err' ? 'err' : 't' + tier, caseId: c ? c.id : '', raw: q,
+        options: tf ? ['True', 'False'] : q.options || null, answer: tf ? (q.answer ? 0 : 1) : q.answer };
+      byId[x.id] = x;
+      return x;
+    }
+    (raw.cases || []).forEach(function (c) {
+      if (!c || !c.id || !units[c.unit] || cases[c.id]) return;
+      var cc = { id: c.id, unit: c.unit, book: units[c.unit].book, title: c.title || c.id, deal: c.deal || 'Deal file', lead: c.lead || '', def: { vars: c.vars, let: c.let, when: c.when },
+        facts: (c.facts || []).filter(function (f) { return Array.isArray(f) && f.length === 2; }), tomb: c.tomb || {}, pass: +c.pass || 0, items: [] };
+      try { var env = TPL.build(cc.def, null); cc.facts.forEach(function (f) { TPL.fill(f[1], env); }); if (cc.tomb.value) TPL.fill(cc.tomb.value, env); } catch (e) { bad.push(c.id + ': ' + e.message); return; }
+      cases[c.id] = cc;
+      (c.items || []).forEach(function (q) { var x = norm(q, cc); if (x) { x.seq = cc.items.length; cc.items.push(x); } });
+      if (!cc.items.length) { delete cases[c.id]; return; }
+      cc.pass = Math.min(cc.items.length, cc.pass || Math.max(1, cc.items.length - 1));
+      (caseOf[c.unit] = caseOf[c.unit] || []).push(c.id);
+    });
+    (raw.questions || []).forEach(function (q) {
+      var x = norm(q, null);
+      if (!x) return;
+      if (x.pre && x.unit) (pres[x.unit] = pres[x.unit] || []).push(x);
+      else if (x.unit) (qs[x.unit] = qs[x.unit] || []).push(x);
+      else (samples[x.book] = samples[x.book] || []).push(x);
+    });
+    if (bad.length && window.TRS_LEARN) { try { console.warn('Learn questions left out: ' + bad.join('; ')); } catch (e) { /* no console */ } }
     var facts = {};
     (raw.facts || []).forEach(function (f) { var k = f && f.text && (f.unit || f.book); if (k) (facts[k] = facts[k] || []).push(f.text); });
     var pg = raw.programme || {};
-    return { R: R, X: X, levels: levels, books: books, units: units, qs: qs, samples: samples, byId: byId, facts: facts,
+    return { R: R, X: X, SC: SC, levels: levels, books: books, units: units, qs: qs, samples: samples, byId: byId, facts: facts, pres: pres, cases: cases, caseOf: caseOf,
+      skills: skills, unitSkills: unitSkills, bookCfg: bookCfg, left: bad,
       tiers: Array.isArray(raw.tiers) && raw.tiers.length === 3 ? raw.tiers : [{ name: 'Recall' }, { name: 'Concept' }, { name: 'Applied' }],
       badges: (raw.badges || []).filter(function (b) { return b && b.id && b.name; }), groups: raw.badgeGroups || [],
       title: pg.title || 'Required reading', term: pg.term || '', start: parseDay(pg.start), due: parseDay(pg.due),
@@ -1339,8 +1521,11 @@
     LP.pauses.forEach(function (x) { var lo = Math.max(a, x.a), hi = Math.min(b, x.b); if (hi >= lo) n -= Math.round((hi - lo) / DAY) + 1; });
     return Math.max(0, n);
   }
+  function pauseOn(LP, day) { return LP.pauses.filter(function (x) { return day >= x.a && day <= x.b; })[0] || null; }
+  // weeks run Monday to Sunday
+  function weekOf(day) { return Math.floor((day / DAY + 3) / 7); }
 
-  // Small seeded random numbers: the same member, day and attempt always get the same questions in the same order.
+  // Small seeded random numbers: the same member, day and attempt always get the same questions, order and figures.
   function seeded(str) {
     var h = 2166136261;
     for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
@@ -1368,11 +1553,55 @@
     for (t = top + 1; out.length < n && t <= 2; t++) out = out.concat(by[t].splice(0, n - out.length));
     return out.sort(function (a, b) { return a.tier - b.tier; });
   }
-  function quizItems(list, r) {
-    return list.map(function (q) {
-      var idx = q.options.map(function (o, i) { return i; }), ord = q.tf ? idx : shuffled(idx, r);
-      return { id: q.id, tier: q.tier, tf: q.tf, q: q.q, why: q.why, sample: q.sample, opts: ord.map(function (i) { return { t: q.options[i], right: i === q.answer }; }) };
+  // three (or n) linked questions from a deal file: the window with the most calculations in it, chosen at random among ties
+  function caseSlice(LP, cid, k, r) {
+    var c = LP.cases[cid];
+    if (!c) return [];
+    if (c.items.length <= k) return c.items.slice();
+    var best = -1, starts = [];
+    for (var i = 0; i + k <= c.items.length; i++) {
+      var n = c.items.slice(i, i + k).filter(function (q) { return q.calc; }).length;
+      if (n > best) { best = n; starts = [i]; } else if (n === best) starts.push(i);
+    }
+    var at = starts[Math.floor(r() * starts.length)];
+    return c.items.slice(at, at + k);
+  }
+  // Books with a question plan (Investment Banking): recall, then concept, then the applied slots in order, with a
+  // three-question slice of the chapter's deal file where the plan asks for "case3". Calculations spread across skills.
+  function planPick(LP, pool, plan, n, r, avoid, caseIds) {
+    avoid = avoid || {};
+    var groups = { r: [], c: [], num: [], err: [], est: [], mcq3: [] };
+    shuffled(pool, r).forEach(function (q) {
+      groups[q.tier === 1 ? 'r' : q.tier === 2 ? 'c' : q.type === 'num' ? 'num' : q.type === 'err' ? 'err' : q.type === 'est' ? 'est' : 'mcq3'].push(q);
     });
+    Object.keys(groups).forEach(function (k) { var l = groups[k]; groups[k] = l.filter(function (q) { return !avoid[q.id]; }).concat(l.filter(function (q) { return avoid[q.id]; })); });
+    var used = {};
+    function take(g) {
+      var l = groups[g], k = 0;
+      if (!l.length) return null;
+      for (var j = 0; j < l.length; j++) if (!l[j].skill || !used[l[j].skill]) { k = j; break; }
+      var q = l.splice(k, 1)[0];
+      if (q.skill) used[q.skill] = 1;
+      return q;
+    }
+    var FALL = { num: ['num', 'est', 'err', 'mcq3', 'c'], err: ['err', 'num', 'mcq3', 'c'], est: ['est', 'num', 'mcq3', 'c'], mcq3: ['mcq3', 'num', 'err', 'c'], c: ['c', 'mcq3', 'r'], r: ['r', 'c'] };
+    function slot(g) { var f = FALL[g] || [g, 'c']; for (var i = 0; i < f.length; i++) { var q = take(f[i]); if (q) return q; } return null; }
+    var head = [], app = [], cs = [], k;
+    for (k = 0; k < (plan.r || 0); k++) head.push(slot('r'));
+    for (k = 0; k < (plan.c || 0); k++) head.push(slot('c'));
+    (plan.a || []).forEach(function (g) {
+      var m = /^case(\d)$/.exec(g);
+      if (m) {
+        var ids = (caseIds || []).filter(function (id) { return LP.cases[id]; }), got = ids.length ? caseSlice(LP, ids[Math.floor(r() * ids.length)], +m[1], r) : [];
+        if (got.length) { cs = cs.concat(got); return; }
+        for (k = 0; k < +m[1]; k++) app.push(slot('num'));
+        return;
+      }
+      app.push(slot(g));
+    });
+    var out = head.concat(app).filter(Boolean);
+    ['num', 'c', 'r', 'err', 'mcq3', 'est'].forEach(function (g) { while (out.length + cs.length < n && groups[g].length) out.push(take(g)); });
+    return out.slice(0, Math.max(0, n - cs.length)).concat(cs);
   }
   function levelInfo(LP, S) {
     var L = LP.levels, cur = L[clamp(S.level || 1, 1, L.length) - 1], nxt = L[cur.n] || null;
@@ -1380,6 +1609,167 @@
     return { cur: cur, next: nxt, pct: pct, toNext: nxt ? Math.max(0, nxt.xp - S.xp) : 0, maxTier: cur.mix[2] ? 3 : cur.mix[1] ? 2 : 1 };
   }
   function tierOpensAt(LP, t) { for (var i = 0; i < LP.levels.length; i++) if (LP.levels[i].mix[t] > 0) return LP.levels[i]; return null; }
+  function planFor(LP, bookId, lvN) { var c = LP.bookCfg[bookId]; return c && c.plans.length ? c.plans[Math.min(lvN, c.plans.length) - 1] : null; }
+
+  // How much help a calculation gets: a worked example first ("walk"), then one step left blank ("fade"), then none
+  // ("solo"). Each book sets where a level starts; each skill then moves on with the member: a right answer takes a step
+  // of help away, two misses in a row give one back, and two solo passes switch the help off for that skill.
+  function supportFor(LP, S, q, lvN) {
+    if (q.type !== 'num' || q.caseId || !(q.raw.steps && q.raw.steps.length)) return 'solo';
+    var c = LP.bookCfg[q.book], base = c && c.support.length ? c.support[Math.min(lvN, c.support.length) - 1] : 'solo';
+    var sk = q.skill && S.skills && S.skills[q.skill];
+    var m = sk && sk.sup ? (sk.sup === 'off' ? 'solo' : sk.sup) : base;
+    return m === 'walk' || m === 'fade' ? m : 'solo';
+  }
+
+  // One question, ready to show: figures drawn, options shuffled, working filled in. o.mode is the help it gets, o.env a
+  // deal file's figures (shared across its questions), o.r the seeded random numbers for this member, day and try.
+  function instItem(LP, q, o) {
+    var raw = q.raw || {}, r = o.r, c = q.caseId ? LP.cases[q.caseId] : null, env;
+    try { env = TPL.build(raw, r, c ? o.env || TPL.build(c.def, r) : null); } catch (e) { env = TPL.build(raw, null, c ? TPL.build(c.def, null) : null); }
+    function f(t) { try { return TPL.fill(t, env); } catch (e) { return String(t || ''); } }
+    function v(x) { return TPL.val(x, env); }
+    var it = { id: q.id, tier: q.tier, type: q.type, tf: q.tf, q: f(q.q), why: f(q.why), src: q.src, skill: q.skill, sample: q.sample, calc: q.calc, xpk: q.xpk, caseId: q.caseId, unit: q.unit, book: q.book, mode: 'solo' };
+    if (q.type === 'tf' || q.type === 'mcq' || q.type === 'two') {
+      var idx = q.options.map(function (x, i) { return i; }), ord = q.tf ? idx : shuffled(idx, r);
+      it.opts = ord.map(function (i) { return { t: f(q.options[i]), right: i === q.answer, miss: raw.miss && raw.miss[i] ? f(raw.miss[i]) : '' }; });
+      if (q.type === 'two') {
+        var rs = raw.reason, ri = shuffled(rs.options.map(function (x, i) { return i; }), r);
+        it.rq = f(rs.q || 'Why?');
+        it.ropts = ri.map(function (i) { return { t: f(rs.options[i]), right: i === rs.answer }; });
+        it.aq = f(raw.aq || 'Your call');
+      }
+    } else if (q.type === 'num' || q.type === 'est') {
+      it.ans = v(raw.ans); it.unit = raw['in'] || ''; it.dp = raw.dp != null ? +raw.dp : 0; it.tol = raw.tol; it.signed = !!raw.signed || it.ans < 0;
+      it.work = (raw.work || []).map(f);
+      it.errs = (raw.errs || []).map(function (e) { var x = NaN; try { x = v(e.v); } catch (er) { /* skip */ } return { v: x, why: f(e.why) }; }).filter(function (e) { return isFinite(e.v); });
+      it.hint = raw.hint ? f(raw.hint) : '';
+      if (q.type === 'est') { it.band = [v(raw.band[0]), v(raw.band[1])]; it.secs = +raw.secs || 90; }
+      var mode = o.mode || 'solo';
+      if (q.type === 'num' && raw.steps && raw.steps.length && mode !== 'solo') {
+        it.mode = mode;
+        it.steps = raw.steps.map(function (st) { return { t: f(st.t), v: v(st.v), unit: st['in'] != null ? st['in'] : it.unit, dp: st.dp != null ? +st.dp : it.dp }; });
+        if (mode === 'fade') {
+          var key = -1;
+          raw.steps.forEach(function (st, i) { if (st.key) key = i; });
+          it.blank = key >= 0 ? key : Math.max(0, it.steps.length - 2);
+          var b = it.steps[it.blank];
+          it.target = { v: b.v, unit: b.unit, dp: b.dp };
+        } else {
+          var ex = TPL.build(raw, o.rx || r, null);
+          it.example = { q: TPL.fill(raw.q, ex), steps: raw.steps.map(function (st) { return { t: TPL.fill(st.t, ex), v: TPL.val(st.v, ex), unit: st['in'] != null ? st['in'] : it.unit, dp: st.dp != null ? +st.dp : it.dp }; }),
+            ans: TPL.val(raw.ans, ex) };
+          if (raw.ask) it.ask = { q: raw.ask.q, why: raw.ask.why || '', opts: shuffled(raw.ask.options.map(function (t, i) { return { t: t, right: i === raw.ask.answer }; }), r) };
+        }
+      }
+    } else if (q.type === 'order') {
+      it.items = raw.items.map(f);
+      var sh = shuffled(it.items.map(function (x, i) { return i; }), r);
+      if (sh.every(function (x, i) { return x === i; })) sh.push(sh.shift());
+      it.start = sh;
+    } else if (q.type === 'err') {
+      it.lines = raw.lines.map(f); it.bad = raw.bad;
+      it.fq = f(raw.fix.q || 'What should that line say?');
+      it.fix = shuffled(raw.fix.options.map(function (t, i) { return { t: f(t), right: i === raw.fix.answer }; }), r);
+    } else if (q.type === 'dir') {
+      it.measures = raw.measures.map(function (m) { return { name: f(m.name), dir: m.dir }; });
+      if (raw.mag) it.mag = { q: f(raw.mag.q), ans: v(raw.mag.ans), unit: raw.mag['in'] || '', dp: raw.mag.dp != null ? +raw.mag.dp : 0, tol: raw.mag.tol };
+      it.work = (raw.work || []).map(f);
+    } else if (q.type === 'sort') {
+      it.cats = raw.cats.map(f);
+      it.items = shuffled(raw.items.map(function (x) { return { t: f(x.t), c: x.c }; }), r);
+    }
+    if (c) { it.caseTitle = c.title; it.facts = c.facts.map(function (x) { return [f(x[0]), f(x[1])]; }); it.lead = f(c.lead); }
+    return it;
+  }
+
+  // Marking one answer. d is the member's draft: pick, v (typed), order, line + fix, dirs + v, a + b, sort.
+  function gradeItem(it, d) {
+    var out = { right: false, typed: false, val: NaN, diag: '' };
+    function numeric(text, truth, u, dp, tol) {
+      var x = typedValue(text, u);
+      out.val = x; out.typed = true;
+      return nearIn(x, truth, u, dp, tol);
+    }
+    switch (it.type) {
+      case 'tf': case 'mcq': out.right = !!(it.opts[d.pick] && it.opts[d.pick].right); break;
+      case 'two': out.right = !!(it.opts[d.a] && it.opts[d.a].right && it.ropts[d.b] && it.ropts[d.b].right); break;
+      case 'num':
+        if (it.mode === 'fade') out.right = numeric(d.v, it.target.v, it.target.unit, it.target.dp, it.tol);
+        else out.right = numeric(d.v, it.ans, it.unit, it.dp, it.tol);
+        if (!out.right && it.mode !== 'fade') it.errs.some(function (e) { if (nearIn(out.val, e.v, it.unit, it.dp, it.tol)) { out.diag = e.why; return true; } return false; });
+        break;
+      case 'est':
+        out.val = typedValue(d.v, it.unit); out.typed = true;
+        out.right = isFinite(out.val) && out.val >= it.band[0] - 1e-9 && out.val <= it.band[1] + 1e-9;
+        out.slow = d.secs > it.secs;
+        break;
+      case 'order': out.right = (d.order || []).every(function (x, i) { return x === i; }); break;
+      case 'err': out.right = d.line === it.bad && !!(it.fix[d.fix] && it.fix[d.fix].right); break;
+      case 'dir':
+        out.right = it.measures.every(function (m, i) { return (d.dirs || [])[i] === m.dir; });
+        if (it.mag) { var mr = numeric(d.v, it.mag.ans, it.mag.unit, it.mag.dp, it.mag.tol); out.right = out.right && mr; out.magRight = mr; }
+        break;
+      case 'sort': out.right = it.items.every(function (x, i) { return (d.sort || [])[i] === x.c; }); break;
+    }
+    return out;
+  }
+  // Has the member given a whole answer (so the Sure and Not sure buttons can wake up)?
+  function draftDone(it, d) {
+    function okNum(t) { return isFinite(TPL.parseNum(t)); }
+    if (it.ask && d.ask < 0) return false;
+    switch (it.type) {
+      case 'tf': case 'mcq': return d.pick >= 0;
+      case 'two': return d.a >= 0 && d.b >= 0;
+      case 'num': case 'est': return okNum(d.v);
+      case 'order': return true;
+      case 'err': return d.line >= 0 && d.fix >= 0;
+      case 'dir': return it.measures.every(function (m, i) { return !!(d.dirs || [])[i]; }) && (!it.mag || okNum(d.v));
+      case 'sort': return it.items.every(function (x, i) { return (d.sort || [])[i] === 0 || (d.sort || [])[i] === 1; });
+    }
+    return false;
+  }
+  // XP for a set of answers: first-time right answers pay their type's points; with confidence on, "Sure" and right adds
+  // half again and "Sure" but wrong costs the question's points. A session never goes below zero.
+  function xpOf(LP, spec, answers) {
+    var X = LP.X, base = 0, bonus = 0, pen = 0, nb = 0, np = 0, seen = {};
+    answers.forEach(function (a) {
+      var pts = X[a.xpk] || 0;
+      if (a.right && !spec.paid[a.id] && !seen[a.id]) { base += pts; seen[a.id] = 1; }
+      if (spec.conf && a.sure === true) { if (a.right) { bonus += Math.round(pts * X.sure); nb++; } else { pen += pts; np++; } }
+    });
+    pen = Math.min(pen, base + bonus);
+    return { base: base, bonus: bonus, pen: pen, nb: nb, np: np, net: base + bonus - pen };
+  }
+
+  // A skill is secure once it has been right on three separate days at least a week apart (one of them a typed answer,
+  // where the skill has calculations).
+  function isSecure(sk, typedNeeded) {
+    var days = (sk.days || []).slice().sort(function (a, b) { return a - b; }), n = 0, last = -1e15;
+    days.forEach(function (d) { if (d - last >= 7 * DAY) { n++; last = d; } });
+    return n >= 3 && (!typedNeeded || !!sk.typed);
+  }
+  function skillState(LP, S, id) {
+    var sk = S.skills[id];
+    if (!sk || !sk.n) return 'new';
+    if (sk.sec) return 'secure';
+    return sk.days && sk.days.length ? 'practised' : 'learning';
+  }
+  function unitDesk(LP, S, uid) {
+    var list = LP.unitSkills[uid] || [];
+    if (!list.length) return false;
+    var cs = LP.caseOf[uid] || [];
+    return list.every(function (id) { return S.skills[id] && S.skills[id].sec; }) && cs.every(function (c) { return S.cases[c] && S.cases[c].closed; });
+  }
+  function calibration(S) { var c = S.cal || {}; return c.s ? { n: c.s, right: c.sr, pct: c.sr / c.s } : null; }
+  function preThesis(LP, ctx) {
+    var pt = LP.SC.preThesis;
+    if (!pt || !ctx || !ctx.dates) return null;
+    var by = ctx.dates[String(pt.dateKey || '').replace('{cycle}', ctx.cycle || '')];
+    if (!by) return null;
+    var end = by - (by % DAY), start = end - (pt.days || 7) * DAY;
+    return { start: start, end: end, units: pt.units || [], at: by };
+  }
 
   // Everything the Learn screens show, worked out from the questions file, a member's record and the day.
   function learnModel(LP, S, day, ctx) {
@@ -1389,8 +1779,17 @@
       var us = b.units.map(function (u) {
         var r = S.units[u.id] || {}, ok = !!r.passed, open = ok || !R.inOrder || prev;
         prev = ok; if (ok) passed++;
+        var cs = (LP.caseOf[u.id] || []).map(function (cid) {
+          var c = LP.cases[cid], rc = S.cases[cid] || {};
+          return { c: c, r: rc, closed: !!rc.closed, open: ok, wait: !!(!rc.closed && rc.lastDay >= day) };
+        });
+        var sks = (LP.unitSkills[u.id] || []).map(function (id) { return { id: id, name: LP.skills[id].name, state: skillState(LP, S, id) }; });
+        var desk = sks.length > 0 && unitDesk(LP, S, u.id);
+        if (desk) sks.forEach(function (s) { s.state = 'desk'; });
+        var pre = (LP.pres[u.id] || []).length ? { n: LP.pres[u.id].length, done: r.pre || 0, score: r.preScore || 0 } : null;
         var x = Object.assign({}, u, { r: r, passed: ok, perfect: !!r.perfect, open: open, state: ok ? (r.perfect ? 'perfect' : 'passed') : open ? 'open' : 'locked',
-          read: (r.read || []).length, ready: unitPool(LP, u.id).length > 0, sample: isSample(LP, u.id), wait: R.retry === 'nextDay' && r.lastDay >= day && !r.perfect });
+          read: (r.read || []).length, ready: unitPool(LP, u.id).length > 0, sample: isSample(LP, u.id), wait: R.retry === 'nextDay' && r.lastDay >= day && !r.perfect,
+          pre: pre, cases: cs, skills: sks, desk: desk, cfg: LP.bookCfg[u.book] || null });
         if (!ok && open && !next) next = x;
         return x;
       });
@@ -1412,41 +1811,77 @@
       var span = Math.max(1, activeDays(LP, LP.start, LP.due)), gone = day < LP.start ? 0 : activeDays(LP, LP.start, Math.min(day, LP.due));
       var frac = clamp(gone / span, 0, 1), expect = totalAll * frac, left = totalAll - passedAll;
       var weeks = Math.max(1, activeDays(LP, Math.max(day, LP.start), LP.due) / 7);
-      var brk = LP.pauses.filter(function (x) { return day >= x.a && day <= x.b; })[0] || null;
+      var brk = pauseOn(LP, day);
       pace = { state: !left ? 'done' : day < LP.start ? 'before' : brk ? 'paused' : passedAll >= Math.floor(expect) - 1 ? 'on' : 'behind', behind: Math.max(1, Math.round(expect - passedAll)),
         frac: day < LP.start ? 0 : frac, done: passedAll / totalAll, per: left ? Math.max(1, Math.round(left / weeks)) : 0, left: left, pause: brk,
         gaps: LP.pauses.filter(function (x) { return x.a > LP.start && x.a <= LP.due; }).map(function (x) { return { at: activeDays(LP, LP.start, x.a - DAY) / span, label: x.label }; }) };
     }
-    // question of the day: from chapters already passed, at the tiers open to you; before the first pass, from the chapters up next
+    // question of the day: from chapters already passed, at the tiers open to you; before the first pass, from the chapters
+    // up next. One tap only, so it draws true/false and multiple-choice questions.
     var dPool = [], seen = {};
-    function add(uid) { unitPool(LP, uid).forEach(function (q) { if (!seen[q.id] && q.tier <= lv.maxTier) { seen[q.id] = 1; dPool.push(q); } }); }
+    function add(uid) { unitPool(LP, uid).forEach(function (q) { if (!seen[q.id] && q.tier <= lv.maxTier && (q.type === 'tf' || q.type === 'mcq')) { seen[q.id] = 1; dPool.push(q); } }); }
     books.forEach(function (x) { x.units.forEach(function (u) { if (u.passed) add(u.id); }); });
     if (!dPool.length) books.forEach(function (x) { if (x.next) add(x.next.id); });
     var dd = S.daily && S.daily.day === day ? S.daily : null, dq = dd ? LP.byId[dd.q] : null;
     if (!dq && dPool.length) dq = dPool[Math.floor(seeded(ctx.id + ':' + day)() * dPool.length)];
-    var daily = dq ? { item: quizItems([dq], seeded(ctx.id + ':o:' + day))[0], done: !!dd, right: !!(dd && dd.right), pick: dd ? dd.pick : -1,
+    var daily = dq ? { item: instItem(LP, dq, { r: seeded(ctx.id + ':o:' + day) }), done: !!dd, right: !!(dd && dd.right), pick: dd ? dd.pick : -1,
       unit: dq.unit ? LP.units[dq.unit] : null, book: bookOf(LP, dq.book) } : null;
+    // practice: missed questions and skills that are due, the weekly mix, the warm-up after a break, the pre-thesis review
+    var pz = pauseOn(LP, day);
     var deck = Object.keys(S.review).filter(function (k) { return LP.byId[k]; });
-    var due = deck.filter(function (k) { return S.review[k].due <= day; });
+    var due = pz ? [] : deck.filter(function (k) { return S.review[k].due <= day; }).sort(function (a, b) { return (S.review[b].sure ? 1 : 0) - (S.review[a].sure ? 1 : 0) || S.review[a].due - S.review[b].due; });
+    var sched = Object.keys(S.skills).filter(function (k) { return LP.skills[k] && S.skills[k].due; });
+    var skDue = pz ? [] : sched.filter(function (k) { return S.skills[k].due <= day; }).sort(function (a, b) { return (S.skills[b].cm ? 1 : 0) - (S.skills[a].cm ? 1 : 0) || S.skills[a].due - S.skills[b].due; });
+    var upcoming = sched.map(function (k) { return S.skills[k].due; }).concat(deck.map(function (k) { return S.review[k].due; })).filter(function (d) { return d > day; }).sort(function (a, b) { return a - b; })[0] || 0;
+    var passedUnits = [];
+    books.forEach(function (x) { x.units.forEach(function (u) { if (u.passed) passedUnits.push(u.id); }); });
+    var wk = weekOf(day), weekly = passedUnits.length >= 2 ? { open: !pz && S.weekly.wk !== wk, done: S.weekly.wk === wk, run: S.weekly.wk >= wk - 1 ? S.weekly.run || 0 : 0 } : null;
+    var after = LP.pauses.filter(function (x) { return day > x.b && day <= x.b + 3 * DAY; })[0] || null;
+    var warm = after && passedUnits.length && !((S.flags.warm || 0) > after.b) ? { label: after.label, from: after.b + DAY } : null;
+    var pt = preThesis(LP, ctx), pret = null;
+    if (pt && day >= pt.start && day <= pt.end && pt.units.some(function (u) { return S.units[u] && S.units[u].passed; })) pret = { done: S.flags.pret === pt.at, at: pt.at, units: pt.units };
+    var practice = { paused: pz, due: due, skills: skDue, n: due.length + skDue.length, deck: deck.length, sched: sched.length, next: upcoming, weekly: weekly, warm: warm, pret: pret };
+    // the banker's desk: skills by chapter, deal files, and how well "Sure" matches being right
+    var desk = { units: [], total: 0, secure: 0, desks: 0 }, deals = [];
+    books.forEach(function (x) {
+      x.units.forEach(function (u) {
+        if (u.skills.length) {
+          desk.units.push(u); desk.total += u.skills.length;
+          desk.secure += u.skills.filter(function (s) { return s.state === 'secure' || s.state === 'desk'; }).length;
+          if (u.desk) desk.desks++;
+        }
+        u.cases.forEach(function (c) { deals.push(Object.assign({ u: u }, c)); });
+      });
+    });
     var badges = LP.badges.map(function (b) { var g = S.badges[b.id]; return Object.assign({}, b, { state: g ? (g.m ? 'mastered' : 'earned') : 'locked', at: g ? g.at : 0 }); });
     // the next badge to aim for: the locked chapter badge closest to where the member is reading
     var nb = null, need = 1e9;
     badges.forEach(function (b) {
-      if (b.state !== 'locked' || b.kind !== 'units') return;
+      if (b.state !== 'locked' || (b.kind !== 'units' && b.kind !== 'desk')) return;
       var steps = 0;
       (b.units || []).forEach(function (uid) {
         var u = LP.units[uid], bk = u && books.filter(function (x) { return x.b.id === u.book; })[0];
         if (u && bk && !(S.units[uid] && S.units[uid].passed)) steps += bk.next ? u.i - bk.next.i + 1 : 1;
+        else if (b.kind === 'desk' && !unitDesk(LP, S, uid)) steps += 1;
       });
       if (steps && steps < need) { need = steps; nb = b; }
     });
     return { lv: lv, books: books, passed: passedAll, total: totalAll, promo: promo, pace: pace, daily: daily,
-      streak: S.streak && S.streak.last >= day - DAY ? S.streak.n : 0, deck: deck.length, due: due, badges: badges,
-      earned: badges.filter(function (b) { return b.state !== 'locked'; }).length, nextBadge: nb, xp: S.xp };
+      streak: S.streak && S.streak.last >= day - DAY ? S.streak.n : 0, deck: deck.length, due: due, practice: practice, desk: desk, deals: deals,
+      closed: deals.filter(function (d) { return d.closed; }).length, cal: calibration(S), ret: S.ret && S.ret.n ? { n: S.ret.n, pct: S.ret.r / S.ret.n } : null, notes: Object.keys(S.notes || {}).filter(function (k) { return NOTES[k]; }).map(function (k) { return Object.assign({ id: k, at: S.notes[k] }, NOTES[k]); }),
+      badges: badges, earned: badges.filter(function (b) { return b.state !== 'locked'; }).length, nextBadge: nb, xp: S.xp };
   }
 
-  // Badges are never taken away. Unit badges become "mastered" with full marks on every chapter they cover;
-  // a book badge becomes mastered when its final is passed.
+  // Commendations arrive unannounced: they are never listed as targets, only noted when they happen.
+  var NOTES = {
+    desk1: { t: 'First desk-ready chapter', s: 'Every skill in a chapter secure and its deal file closed: the standard a desk works to.' },
+    clean: { t: 'A clean deal file', s: 'Six of six on a deal file, with no slip anywhere in the chain.' },
+    month: { t: 'A month of practice kept', s: 'Four weekly mixes in a row. Spaced practice is what makes learning last.' },
+    judge: { t: 'Sound judgement', s: 'Right at least 85% of the time when you said Sure, over 30 answers.' }
+  };
+
+  // Badges are never taken away. Unit badges become "mastered" with full marks on every chapter they cover; desk badges
+  // need every skill in their chapters secure and the deal files closed; a book badge becomes mastered when its final is passed.
   function learnBadges(LP, S, day, ctx) {
     var out = [];
     function passed(u) { return !!(S.units[u] && S.units[u].passed); }
@@ -1454,11 +1889,13 @@
     LP.badges.forEach(function (b) {
       var have = S.badges[b.id], earn = false, master = false, bk;
       if (b.kind === 'units') { earn = (b.units || []).length > 0 && b.units.every(passed); master = earn && b.units.every(perfect); }
+      else if (b.kind === 'desk') { earn = (b.units || []).length > 0 && b.units.every(function (u) { return passed(u) && unitDesk(LP, S, u); }); master = earn && b.units.every(perfect); }
       else if (b.kind === 'book') { bk = bookOf(LP, b.book); earn = !!bk && bk.units.every(function (u) { return passed(u.id); }); master = earn && !!(S.finals[b.book] && S.finals[b.book].passed); }
       else if (b.kind === 'perfect') earn = Object.keys(S.units).some(function (k) { return S.units[k].perfect; });
       else if (b.kind === 'tier3') earn = !!S.flags.t3;
       else if (b.kind === 'streak') earn = (S.streak.best || 0) >= (b.n || 7);
       else if (b.kind === 'review') earn = !!S.flags.cleared;
+      else if (b.kind === 'deals') earn = Object.keys(S.cases || {}).filter(function (k) { return S.cases[k].closed; }).length >= (b.n || 1);
       else if (b.kind === 'before') {
         var by = ctx.dates[String(b.dateKey || '').replace('{cycle}', ctx.cycle || '')];
         earn = !!by && (b.units || []).length > 0 && b.units.every(function (u) { return passed(u) && S.units[u].passed <= by; });
@@ -1469,14 +1906,18 @@
     return out;
   }
 
-  // One step of progress: answering the question of the day, finishing a check, review, promotion or final, or ticking
-  // a section as read. Returns the new record and what to celebrate.
+  // One step of progress: answering the question of the day, finishing a check, review, deal file, promotion or final, or
+  // ticking a section as read. Returns the new record and what to celebrate.
   function learnApply(LP, S0, act, day, ctx) {
-    var S = JSON.parse(JSON.stringify(S0)), X = LP.X, R = LP.R, L = LP.levels, before = levelInfo(LP, S0);
-    var ev = { lines: [], xp: 0, badges: [], level: null, promo: null, cert: null };
+    var S = fillLearn(JSON.parse(JSON.stringify(S0))), X = LP.X, R = LP.R, SC = LP.SC, L = LP.levels, before = levelInfo(LP, S0);
+    var ev = { lines: [], xp: 0, badges: [], level: null, promo: null, cert: null, notes: [], secure: [], desks: [], tomb: null };
     S.flags = S.flags || {}; S.streak = S.streak || { n: 0, last: 0, best: 0 };
     function gain(what, n) { if (!n) return; S.xp += n; ev.xp += n; ev.lines.push({ what: what, xp: n }); }
-    function toDeck(id) { S.review[id] = { box: 0, due: day + DAY }; }
+    function lose(what, n) { if (!n) return; S.xp = Math.max(0, S.xp - n); ev.xp -= n; ev.lines.push({ what: what, xp: -n }); }
+    function toDeck(id, sure) { S.review[id] = { box: 0, due: day + SC.miss[0] * DAY, sure: !!sure }; }
+    function note(id) { if (!S.notes[id] && NOTES[id]) { S.notes[id] = day; ev.notes.push(Object.assign({ id: id }, NOTES[id])); } }
+    var desksBefore = {};
+    Object.keys(LP.unitSkills).forEach(function (u) { desksBefore[u] = unitDesk(LP, S, u); });
     if (act.kind === 'read') {
       var ru = S.units[act.unit] = S.units[act.unit] || {}, rd = ru.read || [], at = rd.indexOf(act.i);
       if (at >= 0) rd.splice(at, 1); else rd.push(act.i);
@@ -1488,30 +1929,79 @@
       S.daily = { day: day, q: act.q, pick: act.pick, right: act.right };
       var k = S.streak;
       k.n = k.last === day - DAY ? k.n + 1 : k.last === day ? k.n : 1; k.last = day; k.best = Math.max(k.best || 0, k.n);
-      if (act.right) { gain('Question of the day', X.daily); if (act.tier === 3) S.flags.t3 = S.flags.t3 || day; } else toDeck(act.q);
+      if (act.right) { gain('Question of the day', X.daily); if (act.tier === 3) S.flags.t3 = S.flags.t3 || day; } else toDeck(act.q, false);
       if (k.n % 7 === 0) gain(k.n + ' days running', X.streak7);
     } else if (act.kind === 'quiz') {
-      var sp = act.spec, right = 0, paid = 0;
-      act.answers.forEach(function (a) {
-        if (a.right) {
-          right++;
-          if (!S.paid[a.id]) { S.paid[a.id] = 1; paid += X['t' + a.tier] || 0; }
-          if (a.tier === 3) S.flags.t3 = S.flags.t3 || day;
-          if (sp.kind === 'review' && S.review[a.id]) {
-            var bx = S.review[a.id].box + 1;
-            if (bx >= 3) delete S.review[a.id]; else S.review[a.id] = { box: bx, due: day + [1, 3, 7][bx] * DAY };
+      var sp = act.spec, ans = act.answers || [], right = 0, calcN = 0, calcR = 0, sureN = 0, sureR = 0;
+      ev.kind = sp.kind; ev.size = sp.size; ev.abandoned = !!act.abandoned;
+      if (sp.grade === false) {
+        // a cold open before reading: nothing is scored, it only points the reading at what matters
+        var pu = S.units[sp.ref] = S.units[sp.ref] || {};
+        ans.forEach(function (a) { if (a.right) right++; });
+        if (ans.length) { pu.pre = day; pu.preScore = right; }
+        ev.score = right; ev.pass = 0; ev.passed = false;
+        return { S: S, ev: ev };
+      }
+      var xp = xpOf(LP, sp, ans), unitOfSkill = function (id) { return LP.skills[id] ? LP.skills[id].unit : ''; };
+      function advance(sk) {
+        sk.box = (sk.box || 0) + 1; sk.cm = false;
+        if (sk.box < SC.skill.length) sk.due = Math.max(day + DAY, sk.start + SC.skill[sk.box] * DAY);
+        else if (sk.sec) { sk.due = 0; sk.done = day; }
+        else sk.due = day + SC.after * DAY;
+      }
+      ans.forEach(function (a) {
+        if (a.right) right++;
+        if (a.calc) { calcN++; if (a.right) calcR++; }
+        if (a.right && !S.paid[a.id]) S.paid[a.id] = 1;
+        if (a.right && a.tier === 3) S.flags.t3 = S.flags.t3 || day;
+        if (sp.conf && (a.sure === true || a.sure === false)) { S.cal.n++; if (a.sure) { S.cal.s++; sureN++; if (a.right) { S.cal.sr++; sureR++; } } }
+        // long-term recall: answers on a skill (or a question) first met three weeks or more before
+        var seenKey = a.skill || a.id, dn = Math.round(day / DAY), first = S.seen[seenKey];
+        if (first == null) S.seen[seenKey] = dn; else if (dn - first >= 21) { S.ret.n++; if (a.right) S.ret.r++; }
+        var meta = a.skill && LP.skills[a.skill], sk = meta ? (S.skills[a.skill] = S.skills[a.skill] || { n: 0, days: [] }) : null;
+        if (sk) {
+          sk.n = (sk.n || 0) + 1; sk.last = day; sk.days = sk.days || [];
+          if (a.right) {
+            if (sk.days.indexOf(day) < 0) { sk.days.push(day); if (sk.days.length > 12) sk.days.shift(); }
+            if (a.typed) sk.typed = day;
+            sk.miss = 0;
+            if (a.mode === 'walk') sk.sup = 'fade';
+            else if (a.mode === 'fade') sk.sup = 'solo';
+            else if (a.calc) { sk.run = (sk.run || 0) + 1; if (sk.run >= 2) sk.sup = 'off'; }
+            if (!sk.sec && isSecure(sk, meta.typed)) { sk.sec = day; ev.secure.push(meta.name); }
+            if (sk.start && sk.due && sk.due <= day) advance(sk);
+          } else {
+            sk.run = 0; sk.miss = (sk.miss || 0) + 1;
+            if (sk.miss >= 2) { sk.sup = a.mode === 'solo' ? 'fade' : 'walk'; sk.miss = 0; }
+            if (sk.start && sk.due !== 0) { sk.due = day + DAY; sk.cm = a.sure === true; }
+            else if (sk.start && sk.due === 0) { sk.due = day + DAY; sk.cm = a.sure === true; sk.box = Math.max(0, (sk.box || 1) - 1); }
           }
-        } else toDeck(a.id);
+        }
+        // misses go to the review deck, unless the skill's own schedule will bring them back
+        if (!a.right && !(sk && sk.start)) toDeck(a.id, a.sure === true);
+        if (a.right && S.review[a.id] && S.review[a.id].due <= day) {
+          var bx = S.review[a.id].box + 1;
+          if (bx >= SC.miss.length) delete S.review[a.id]; else S.review[a.id] = { box: bx, due: day + SC.miss[bx] * DAY, sure: false };
+        }
       });
-      if (paid) gain(right + ' right ' + plural(right, 'answer'), paid);
-      var passed = sp.kind !== 'review' && right >= sp.pass;
-      ev.score = right; ev.size = sp.size; ev.pass = sp.pass; ev.passed = passed; ev.kind = sp.kind; ev.abandoned = !!act.abandoned;
+      var need = Math.min(sp.passCalc || 0, calcN);
+      var scored = sp.kind === 'check' || sp.kind === 'promo' || sp.kind === 'final' || sp.kind === 'deal';
+      var passed = scored && right >= sp.pass && calcR >= need;
+      ev.score = right; ev.pass = sp.pass; ev.passed = passed; ev.calc = { r: calcR, n: calcN, need: need }; ev.sure = { n: sureN, r: sureR };
+      if (xp.base) gain(right + ' right ' + plural(right, 'answer'), xp.base);
+      if (xp.bonus) gain('Sure and right, ' + xp.nb + ' ' + plural(xp.nb, 'time'), xp.bonus);
+      if (xp.pen) lose('Sure but wrong, ' + xp.np + ' ' + plural(xp.np, 'time'), xp.pen);
       if (sp.kind === 'check') {
         var u = S.units[sp.ref] = S.units[sp.ref] || {};
         u.tries = (u.tries || 0) + 1; u.lastDay = day; u.best = Math.max(u.best || 0, right);
         u.last = sp.items.map(function (x) { return x.id; });
         if (passed && !u.passed) { u.passed = day; gain('Chapter passed', X.pass); }
         if (right === sp.size && sp.size > 0 && !u.perfect) { u.perfect = day; gain('Full marks', X.perfect); }
+      } else if (sp.kind === 'deal') {
+        var dc = S.cases[sp.caseId] = S.cases[sp.caseId] || {};
+        dc.tries = (dc.tries || 0) + 1; dc.lastDay = day; dc.best = Math.max(dc.best || 0, right);
+        if (passed && !dc.closed) { dc.closed = day; dc.score = right; dc.seed = sp.seed; gain('Deal closed', X.deal); ev.tomb = sp.caseId; }
+        if (right === sp.size && sp.size > 0) note('clean');
       } else if (sp.kind === 'promo') {
         var pr = S.promos[sp.ref] = S.promos[sp.ref] || {};
         pr.tries = (pr.tries || 0) + 1; pr.lastDay = day; pr.best = Math.max(pr.best || 0, right);
@@ -1520,10 +2010,30 @@
         var f = S.finals[sp.ref] = S.finals[sp.ref] || {};
         f.tries = (f.tries || 0) + 1; f.lastDay = day; f.best = Math.max(f.best || 0, right); f.size = sp.size;
         if (passed && !f.passed) { f.passed = day; ev.cert = sp.ref; }
-      } else if (sp.kind === 'review' && act.answers.length) {
-        var left = Object.keys(S.review).filter(function (id) { return LP.byId[id] && S.review[id].due <= day; }).length;
-        if (!left) { S.flags.cleared = S.flags.cleared || day; if (S.flags.clearDay !== day) { S.flags.clearDay = day; gain('Review deck cleared', X.reviewClear); } }
+      } else if (sp.kind === 'review' && ans.length) {
+        var leftM = Object.keys(S.review).filter(function (id) { return LP.byId[id] && S.review[id].due <= day; }).length;
+        var leftS = Object.keys(S.skills).filter(function (id) { return LP.skills[id] && S.skills[id].due && S.skills[id].due <= day; }).length;
+        if (!leftM && !leftS) { S.flags.cleared = S.flags.cleared || day; if (S.flags.clearDay !== day) { S.flags.clearDay = day; gain('Review cleared', X.reviewClear); } }
+      } else if (sp.kind === 'weekly' && ans.length) {
+        var wk = weekOf(day);
+        if (S.weekly.wk !== wk) { S.weekly.run = S.weekly.wk === wk - 1 ? (S.weekly.run || 0) + 1 : 1; S.weekly.wk = wk; gain('Weekly mix done', X.weekly); }
+        if (S.weekly.run >= 4) note('month');
+      } else if (sp.kind === 'warm' && ans.length) {
+        if (!(S.flags.warm >= day - 3 * DAY)) gain('Warm-up done', X.warm);
+        S.flags.warm = day;
+      } else if (sp.kind === 'pret' && ans.length) {
+        if (S.flags.pret !== sp.at) { S.flags.pret = sp.at; gain('Pre-thesis review done', X.pret); }
       }
+      // a skill's schedule starts once its chapter is passed: back in 2, 7, 16 and 35 days, with new figures each time
+      ans.forEach(function (a) {
+        var sk = a.skill && S.skills[a.skill], uid = unitOfSkill(a.skill);
+        if (sk && !sk.start && sk.days && sk.days.length && S.units[uid] && S.units[uid].passed) { sk.start = day; sk.box = 0; sk.due = day + SC.skill[0] * DAY; }
+      });
+      if (sp.kind === 'check' && passed) {
+        (LP.unitSkills[sp.ref] || []).forEach(function (id) { var sk = S.skills[id]; if (sk && !sk.start && sk.days && sk.days.length) { sk.start = day; sk.box = 0; sk.due = day + SC.skill[0] * DAY; } });
+      }
+      Object.keys(LP.unitSkills).forEach(function (uid) { if (!desksBefore[uid] && unitDesk(LP, S, uid)) { ev.desks.push(uid); note('desk1'); } });
+      if (S.cal.s >= 30 && S.cal.sr / S.cal.s >= 0.85) note('judge');
     }
     var top = L[L.length - 1];
     if (!R.promotions) { L.forEach(function (l) { if (S.xp >= l.xp && S.level < l.n) S.level = l.n; }); }
@@ -1535,18 +2045,138 @@
     return { S: S, ev: ev };
   }
 
-  // A sample record for the preview: halfway through, as in the design boards.
+  // The questions for any session, drawn for this member, day and try: a chapter check, a cold open before reading, a deal
+  // file, the review (missed questions and skills that are due), the weekly mix, the warm-up after a break, the pre-thesis
+  // review, a promotion review or a book final.
+  function learnSpec(LP, S, LM, kind, ref, day, ctx) {
+    var R = LP.R, SC = LP.SC, lvI = levelInfo(LP, S), lvN = lvI.cur.n, tries = 0, picked = [], size = 0, pass = 0, passCalc = 0;
+    var kicker = '', title = '', factKey = '', avoid = {}, book = '', caseId = '', at = 0, rv = {}, mix = null;
+    function passedUnits() { var out = []; LP.books.forEach(function (b) { b.units.forEach(function (u) { if (S.units[u.id] && S.units[u.id].passed) out.push(u.id); }); }); return out; }
+    function poolOf(ids) { var seen = {}, out = []; ids.forEach(function (uid) { unitPool(LP, uid).forEach(function (q) { if (!seen[q.id]) { seen[q.id] = 1; out.push(q); } }); }); return out; }
+    function rnd(extra) { return seeded([ctx.id, kind, ref, day, tries, extra || ''].join(':')); }
+    // one question from each chapter in turn, favouring what makes members work (calculations, errors, directions)
+    function spread(ids, n, r) {
+      var units = shuffled(ids, r), out = [], used = {}, guard = 0;
+      while (out.length < n && guard++ < n * 6 && units.length) {
+        var uid = units[out.length % units.length], qs = shuffled(unitPool(LP, uid).filter(function (q) { return !used[q.id]; }), r);
+        var best = qs.filter(function (q) { return q.type !== 'tf'; })[0] || qs[0];
+        if (best) { used[best.id] = 1; out.push(best); }
+      }
+      return out;
+    }
+    var r;
+    if (kind === 'check') {
+      var u = LP.units[ref], r0 = S.units[ref] || {};
+      if (!u) return null;
+      book = u.book; tries = r0.tries || 0; r = rnd();
+      (r0.last || []).forEach(function (id) { avoid[id] = 1; });
+      var plan = planFor(LP, book, lvN), cfg = LP.bookCfg[book];
+      picked = plan ? planPick(LP, unitPool(LP, ref), plan, R.checkSize, r, avoid, LP.caseOf[ref]) : pickQs(unitPool(LP, ref), lvI.cur.mix, R.checkSize, r, avoid);
+      size = R.checkSize; pass = cfg ? cfg.pass : R.checkPass; passCalc = cfg ? cfg.passCalc : 0;
+      kicker = bookOf(LP, book).title + ' · ' + u.label; title = u.title; factKey = LP.facts[ref] ? ref : book;
+    } else if (kind === 'pre') {
+      var up = LP.units[ref];
+      if (!up) return null;
+      book = up.book; r = rnd(); picked = (LP.pres[ref] || []).slice(0, 3); size = picked.length;
+      kicker = 'Before you read · ' + up.label; title = up.title;
+    } else if (kind === 'deal') {
+      var c = LP.cases[ref];
+      if (!c) return null;
+      var rc = S.cases[ref] || {};
+      book = c.book; caseId = ref; tries = rc.tries || 0; r = rnd();
+      picked = c.items.slice(); size = picked.length; pass = c.pass;
+      kicker = 'Deal file · ' + LP.units[c.unit].label; title = c.title;
+    } else if (kind === 'promo') {
+      var to = LP.levels[ref - 1];
+      if (!to) return null;
+      var pu = passedUnits(), pool = poolOf(pu);
+      if (!pool.length && LM) LM.books.forEach(function (x) { if (x.next) pool = pool.concat(unitPool(LP, x.next.id)); });
+      tries = (S.promos[ref] || {}).tries || 0; r = rnd();
+      picked = pickQs(pool, to.mix, R.reviewSize, r, {});
+      // books that use deal files put one linked question from a passed chapter's deal file into every promotion review
+      var dealIds = [];
+      pu.forEach(function (uid) { var bc = LP.bookCfg[LP.units[uid].book]; if (bc && bc.promoCase) dealIds = dealIds.concat(LP.caseOf[uid] || []); });
+      if (dealIds.length && picked.length) {
+        var dc = LP.cases[dealIds[Math.floor(r() * dealIds.length)]], dq = dc.items[Math.floor(r() * dc.items.length)], cut = picked.length - 1;
+        for (var j = picked.length - 1; j >= 0; j--) if (picked[j].tier === 3) { cut = j; break; }
+        picked[cut] = dq;
+      }
+      size = R.reviewSize; pass = R.reviewPass;
+      kicker = 'Promotion review'; title = to.name;
+    } else if (kind === 'final') {
+      var bk = bookOf(LP, ref), fcfg = LP.bookCfg[ref];
+      if (!bk) return null;
+      book = ref; tries = (S.finals[ref] || {}).tries || 0; r = rnd();
+      var fpool = poolOf(bk.units.map(function (x) { return x.id; })), fcases = [];
+      bk.units.forEach(function (x) { fcases = fcases.concat(LP.caseOf[x.id] || []); });
+      picked = fcfg && fcfg.final ? planPick(LP, fpool, fcfg.final, R.finalSize, r, {}, fcases) : pickQs(fpool, R.finalMix, R.finalSize, r, {});
+      size = R.finalSize; pass = R.finalPass;
+      kicker = 'Book final'; title = bk.title; factKey = ref;
+    } else if (kind === 'review') {
+      r = rnd();
+      var P = LM ? LM.practice : { due: [], skills: [] }, sure = [], misses = [], skl = [];
+      P.due.forEach(function (id) { (S.review[id].sure ? sure : misses).push(id); });
+      P.skills.forEach(function (sid) {
+        var opts = shuffled(unitPool(LP, LP.skills[sid].unit).filter(function (q) { return q.skill === sid; }), r);
+        var q = opts.filter(function (x) { return x.type === 'num'; })[0] || opts[0];
+        if (q) { skl.push(q.id); rv[q.id] = 'skill'; }
+      });
+      var ids = [], seenR = {};
+      sure.concat(skl, misses).forEach(function (id) { if (!seenR[id] && LP.byId[id]) { seenR[id] = 1; ids.push(id); } });
+      picked = ids.slice(0, SC.reviewMax).map(function (id) { if (!rv[id]) rv[id] = 'miss'; return LP.byId[id]; });
+      size = picked.length;
+      kicker = 'Review'; title = P.n + ' due today';
+    } else if (kind === 'weekly' || kind === 'warm') {
+      r = rnd();
+      picked = spread(passedUnits(), SC.weekly, r); size = picked.length;
+      kicker = kind === 'warm' ? 'Warm-up' : 'Weekly mix'; title = kind === 'warm' ? 'Back after the break' : 'From the chapters you’ve passed';
+    } else if (kind === 'pret') {
+      var pt = preThesis(LP, ctx);
+      if (!pt) return null;
+      at = pt.at; r = rnd();
+      var tu = pt.units.filter(function (x) { return S.units[x] && S.units[x].passed; });
+      picked = planPick(LP, poolOf(tu.length ? tu : pt.units), { r: 0, c: 2, a: ['num', 'num', 'err', 'num', 'num', 'err'] }, 8, r, {}, []);
+      size = picked.length;
+      kicker = 'Pre-thesis review'; title = 'Comps and DCF, a week out';
+    } else return null;
+    var base = [ctx.id, kind, ref, day, tries].join(':'), envs = {};
+    var helped = kind === 'check' || kind === 'review' || kind === 'weekly' || kind === 'warm' || kind === 'pret';
+    var items = picked.filter(Boolean).map(function (q) {
+      if (q.caseId && !envs[q.caseId]) envs[q.caseId] = TPL.build(LP.cases[q.caseId].def, seeded(base + ':case:' + q.caseId));
+      var it = instItem(LP, q, { r: seeded(base + ':' + q.id), rx: seeded(base + ':ex:' + q.id), mode: helped ? supportFor(LP, S, q, lvN) : 'solo', env: q.caseId ? envs[q.caseId] : null });
+      it.rv = rv[q.id] || '';
+      return it;
+    });
+    var facts = factKey ? LP.facts[factKey] || [] : [];
+    var scored = kind === 'check' || kind === 'promo' || kind === 'final' || kind === 'deal';
+    return { kind: kind, ref: ref, book: book, items: items, size: items.length, pass: scored ? Math.ceil(items.length * pass / Math.max(1, size)) : 0, passCalc: passCalc,
+      conf: R.confidence !== false && kind !== 'pre', grade: kind !== 'pre', kicker: kicker, title: title, caseId: caseId, at: at, seed: base,
+      fact: facts.length && r ? facts[Math.floor(r() * facts.length)] : '', paid: Object.assign({}, S.paid) };
+  }
+
+  // A sample record for the preview: halfway through, with skills, a closed deal and a confidence record.
   function learnDemo(LP, kind, day, ctx) {
     var S = freshLearn();
     if (kind === 'fresh') return S;
     var ii = bookOf(LP, 'ii'), ib = bookOf(LP, 'ib');
     function pass(uid, ago, perfect) { S.units[uid] = { passed: day - ago * DAY, best: perfect ? LP.R.checkSize : LP.R.checkSize - 1, tries: 1, lastDay: day - ago * DAY, perfect: perfect ? day - ago * DAY : 0 }; }
     if (ii) ii.units.slice(0, 12).forEach(function (u, i) { pass(u.id, 40 - i * 3, u.id === 'ii-8'); });
-    if (ib) { ib.units.slice(0, 2).forEach(function (u, i) { pass(u.id, 20 - i * 6, i === 0); }); if (ib.units[2]) S.units[ib.units[2].id] = { read: [0, 1] }; }
+    if (ib) { ib.units.slice(0, 2).forEach(function (u, i) { pass(u.id, 30 - i * 12, i === 0); }); if (ib.units[2]) S.units[ib.units[2].id] = { read: [0, 1] }; }
     S.xp = kind === 'promo' ? 3010 : 2140; S.level = 4; S.promos = { 2: { passed: day - 36 * DAY, best: 9, tries: 1 }, 3: { passed: day - 24 * DAY, best: 8, tries: 1 }, 4: { passed: day - 9 * DAY, best: 9, tries: 1 } };
     S.streak = { n: 6, last: day - DAY, best: 7 }; S.flags = { t3: day - 8 * DAY };
-    var some = Object.keys(LP.byId).filter(function (id) { return LP.byId[id].tier <= 2; }).slice(2, 5);
-    some.forEach(function (id) { S.review[id] = { box: 0, due: day }; });
+    // skills: Comps mostly secure, Precedents practised, one Comps skill due for review today
+    (LP.unitSkills['ib-1'] || []).forEach(function (id, i) {
+      var start = day - 30 * DAY;
+      S.skills[id] = i < 3 ? { n: 6, days: [start, start + 9 * DAY, start + 18 * DAY], typed: start + 18 * DAY, sec: start + 18 * DAY, sup: 'off', start: start, box: 3, due: start + 35 * DAY }
+        : { n: 3, days: [start, start + 9 * DAY], typed: start, sup: 'solo', start: start, box: 2, due: i === 3 ? day : day + 4 * DAY };
+    });
+    (LP.unitSkills['ib-2'] || []).forEach(function (id) { var start = day - 18 * DAY; S.skills[id] = { n: 2, days: [start], typed: start, sup: 'fade', start: start, box: 1, due: day + 2 * DAY }; });
+    (LP.caseOf['ib-1'] || []).forEach(function (cid) { S.cases[cid] = { closed: day - 22 * DAY, score: 6, best: 6, tries: 1, lastDay: day - 22 * DAY }; });
+    S.notes = { clean: day - 22 * DAY };
+    S.cal = { n: 64, s: 28, sr: 24 }; S.ret = { n: 41, r: 34 };
+    S.weekly = { wk: weekOf(day) - 1, run: 2 };
+    var some = Object.keys(LP.byId).filter(function (id) { var q = LP.byId[id]; return q.tier <= 2 && q.book === 'ii' && !q.pre; }).slice(2, 5);
+    some.forEach(function (id, i) { S.review[id] = { box: 0, due: day, sure: i === 0 }; });
     learnBadges(LP, S, day - 2 * DAY, ctx);
     return S;
   }
@@ -1554,8 +2184,17 @@
   function progressText(LP, LM, m) {
     var lines = ['The Rand Society · ' + LP.title + (LP.term ? ', ' + LP.term : ''), m.role + ' · Level ' + LM.lv.cur.n + ', ' + LM.lv.cur.name + ' · ' + num(LM.xp) + ' XP'];
     LM.books.forEach(function (x) { lines.push(x.b.title + ': ' + x.passed + ' of ' + x.total + ' passed' + (x.final.passed ? ', final passed' : '')); });
+    if (LM.desk.total) lines.push('Banking skills: ' + LM.desk.secure + ' of ' + LM.desk.total + ' secure' + (LM.desk.desks ? ' · ' + LM.desk.desks + ' ' + plural(LM.desk.desks, 'chapter') + ' desk-ready' : '') + ' · ' + LM.closed + ' of ' + LM.deals.length + ' deal files closed');
+    if (LM.cal && LM.cal.n >= 5) lines.push('When sure: right ' + Math.round(LM.cal.pct * 100) + '% of the time (' + LM.cal.n + ' answers)');
+    if (LM.ret && LM.ret.n >= 5) lines.push('Long-term recall: right ' + Math.round(LM.ret.pct * 100) + '% on what was first met three weeks or more ago (' + LM.ret.n + ' answers)');
     lines.push('Badges: ' + LM.earned + ' of ' + LM.badges.length + (LM.streak ? ' · ' + LM.streak + ' ' + plural(LM.streak, 'day') + ' running' : ''));
     return plain(lines.join('\n'));
+  }
+  // What a shared store would hold for the President's view (shared progress is still to come): no answers, just states.
+  function learnSummary(LP, LM) {
+    return { level: LM.lv.cur.n, xp: LM.xp, passed: LM.passed, total: LM.total, secure: LM.desk.secure, skills: LM.desk.total, desks: LM.desk.desks, deals: LM.closed,
+      sure: LM.cal ? Math.round(LM.cal.pct * 100) : null, held: LM.ret ? Math.round(LM.ret.pct * 100) : null,
+      units: LM.desk.units.map(function (u) { return { id: u.id, desk: u.desk, skills: u.skills.map(function (s) { return [s.id, s.state]; }) }; }) };
   }
   function backupCode(id, S) {
     try { return 'TRS1.' + btoa(unescape(encodeURIComponent(JSON.stringify({ id: id, s: S })))); } catch (e) { return ''; }
@@ -1563,8 +2202,11 @@
   function readBackup(text) {
     var t = String(text || '').replace(/\s+/g, '');
     if (t.indexOf('TRS1.') !== 0) return null;
-    try { var o = JSON.parse(decodeURIComponent(escape(atob(t.slice(5))))); return o && o.id && o.s && o.s.v === 1 && typeof o.s.xp === 'number' ? o : null; } catch (e) { return null; }
+    try { var o = JSON.parse(decodeURIComponent(escape(atob(t.slice(5))))); return o && o.id && o.s && o.s.v === 1 && typeof o.s.xp === 'number' ? (fillLearn(o.s), o) : null; } catch (e) { return null; }
   }
+
+  // check.html loads this file to test learn.json with the app's own engine; it stops here, before anything is drawn
+  if (window.TRS_CHECK) { window.TRS_ENGINE = { TPL: TPL, learnPrep: learnPrep, instItem: instItem, gradeItem: gradeItem, draftDone: draftDone, showNum: showNum, nearIn: nearIn, seeded: seeded, QTYPES: QTYPES, UNITS: UNITS }; return; }
 
   // ---------- learn: pieces ----------
   // ---------- Learn looks ----------
@@ -1798,7 +2440,8 @@
       </div>
       <ul class="lv-tiers" aria-label="Question types">${LP.tiers.map(function (t, i) {
         var on = i < lv.maxTier, at = on ? null : tierOpensAt(LP, i);
-        return html`<li key=${i} class=${on ? 'on' : ''}>${on ? TICK : LOCK}<span>${t.name}${at ? html`<small> · Level ${at.n}</small>` : null}</span></li>`;
+        var early = !on && Object.keys(LP.bookCfg).filter(function (bid) { var pl = planFor(LP, bid, lv.cur.n); return pl && (i === 2 ? (pl.a || []).length : i === 1 ? pl.c : pl.r); }).map(function (bid) { return bookOf(LP, bid).short; })[0];
+        return html`<li key=${i} class=${on || early ? 'on' : ''}>${on || early ? TICK : LOCK}<span>${t.name}${early ? html`<small> · ${early} now${at ? ', all books at Level ' + at.n : ''}</small>` : at ? html`<small> · Level ${at.n}</small>` : null}</span></li>`;
       })}</ul>
       ${pr ? html`<div class="lv-promo">
         <div class="lv-pt"><span class="card-k">${pr.final ? 'Last step' : 'Promotion review'}</span>
@@ -1894,14 +2537,129 @@
     </section>`;
   }
 
-  function ReviewCard(p) {
-    var LM = p.LM, A = p.A;
-    if (!LM.deck) return null;
-    var n = LM.due.length;
-    return html`<section class="card rv-card" aria-labelledby="rv-h">
-      <div class="rv-t"><h2 id="rv-h" class="card-k">Review deck</h2><b>${n ? n + ' due today' : 'Nothing due today'}</b><small>${LM.deck} in the deck. Missed questions come back after 1, 3 and 7 days.</small></div>
-      ${n ? html`<button class="pill" onClick=${function () { A.startQuiz('review', ''); }}>Review</button>` : null}
+  // Practice: what is due today, the weekly mix, the warm-up after a break and the pre-thesis review, in one place.
+  function PracticeCard(p) {
+    var LM = p.LM, A = p.A, P = LM.practice, rows = [];
+    if (P.paused) {
+      return html`<section class="card pr-card" aria-labelledby="pr-h"><div class="card-head"><h2 id="pr-h" class="card-k">Practice</h2></div>
+        <p class="pr-pause">Paused for the ${P.paused.label.toLowerCase()}. Reviews pick up on ${dMonth(P.paused.b + DAY)}, with a short warm-up.</p></section>`;
+    }
+    function row(k, t, sub, btn, go, quiet) {
+      return html`<li key=${k} class=${'pr-row' + (quiet ? ' quiet' : '')}><div class="pr-t"><b>${t}</b><small>${sub}</small></div>${btn ? html`<button class="pill" onClick=${go}>${btn}</button>` : null}</li>`;
+    }
+    if (P.warm) rows.push(row('wm', 'Warm-up', 'Six questions from the chapters you’ve passed, to get going after the ' + P.warm.label.toLowerCase() + '.', 'Start', function () { A.startQuiz('warm', ''); }));
+    if (P.n) {
+      var bits = [];
+      if (P.skills.length) bits.push(P.skills.length + ' banking ' + plural(P.skills.length, 'skill') + ', with new figures');
+      if (P.due.length) bits.push(P.due.length + ' missed ' + plural(P.due.length, 'question'));
+      rows.push(row('rv', P.n + ' due today', bits.join(' and ') + '. Confident misses come first.', 'Review', function () { A.startQuiz('review', ''); }));
+    } else if (P.deck || P.sched) rows.push(row('rv', 'Nothing due today', P.next ? 'Next due ' + dMonth(P.next) + '.' : 'Everything is on schedule.', null, null, true));
+    if (P.pret) rows.push(row('pt', 'Pre-thesis review', 'Comps and DCF, mixed, in the week before your thesis is due.' + (P.pret.done ? ' Done; again any day this week.' : ''), P.pret.done ? 'Again' : 'Start', function () { A.startQuiz('pret', ''); }));
+    if (P.weekly) rows.push(P.weekly.open
+      ? row('wk', 'Weekly mix', 'Six questions across the chapters you’ve passed' + (P.weekly.run ? ' · ' + P.weekly.run + ' ' + plural(P.weekly.run, 'week') + ' running' : '') + '.', 'Start', function () { A.startQuiz('weekly', ''); })
+      : row('wk', 'Weekly mix done', 'A new mix opens on Monday' + (P.weekly.run > 1 ? ' · ' + P.weekly.run + ' weeks running' : '') + '.', null, null, true));
+    if (!rows.length) return null;
+    return html`<section class="card pr-card" aria-labelledby="pr-h">
+      <div class="card-head"><h2 id="pr-h" class="card-k">Practice</h2></div>
+      <ul class="pr-list">${rows}</ul>
+      <p class="pr-foot">Missed questions return after 1, 3, 7 and 16 days. Banking skills return 2, 7, 16 and 35 days after their chapter is passed, until they’re secure.</p>
     </section>`;
+  }
+
+  var SKILL_WORD = { 'new': 'Not started', learning: 'Learning', practised: 'Practised', secure: 'Secure', desk: 'Desk-ready' };
+  // The banker's desk: every Investment Banking skill by chapter, and how well "Sure" matches being right.
+  function DeskCard(p) {
+    var LM = p.LM, A = p.A, D = LM.desk;
+    if (!D.units.length) return null;
+    var cal = LM.cal;
+    return html`<section class="card dk-card" aria-labelledby="dk-h">
+      <div class="card-head"><h2 id="dk-h" class="card-k">Banking skills</h2><button class="txt-btn" onClick=${A.openSkills}>See all</button></div>
+      <div class="dk-sum"><b class="tnum">${D.secure} of ${D.total}</b><span>skills secure${D.desks ? ' · ' + D.desks + ' ' + plural(D.desks, 'chapter') + ' desk-ready' : ''}</span></div>
+      <ul class="dk-rows">${D.units.map(function (u) {
+        return html`<li key=${u.id}><button class="dk-row" onClick=${function () { A.openUnit(u.id); }}>
+          <span class="dk-ch">${u.short || u.title}</span>
+          <span class="dk-bar" aria-hidden="true">${u.skills.map(function (s) { return html`<i key=${s.id} class=${'dk-s s-' + s.state}></i>`; })}</span>
+          <span class="vh">: ${u.skills.map(function (s) { return s.name + ', ' + SKILL_WORD[s.state].toLowerCase(); }).join('; ')}</span>
+        </button></li>`;
+      })}</ul>
+      <p class="dk-key" aria-hidden="true"><span><i class="dk-s s-practised"></i>Practised</span><span><i class="dk-s s-secure"></i>Secure</span><span><i class="dk-s s-desk"></i>Desk-ready</span></p>
+      <p class="dk-cal">${cal && cal.n >= 5 ? html`When you say <b>Sure</b>, you’re right <b class="tnum">${Math.round(cal.pct * 100)}%</b> of the time (${cal.n} answers).` : 'Say Sure or Not sure on every question. After five Sure answers, this shows how often your Sure is right.'}</p>
+    </section>`;
+  }
+
+  // A tombstone: the banker's keepsake for a closed deal, here for a closed deal file. The figure is the one the member
+  // worked out (the session's seed redraws the same numbers).
+  function Tombstone(p) {
+    var c = p.c, rc = p.r || {}, env = null, LP = p.LP;
+    try { env = TPL.build(c.def, rc.seed ? seeded(rc.seed + ':case:' + c.id) : null); } catch (e) { env = null; }
+    var value = env && c.tomb.value ? TPL.fill(c.tomb.value, env) : '';
+    return html`<div class=${'tomb' + (p.small ? ' sm' : '')}>
+      ${SKIN ? html`<i class="tb-band" aria-hidden="true"></i>` : html`<span class="tb-mark" aria-hidden="true"><${Logo} size=${p.small ? 18 : 26} color="#FFFFFF" /></span>`}
+      <span class="tb-k">${c.deal}</span>
+      <b class="tb-co">${c.title}</b>
+      ${value ? html`<span class="tb-v tnum">${value}</span>` : null}
+      ${c.tomb.line && !p.small ? html`<span class="tb-l">${c.tomb.line}</span>` : null}
+      <i class="tb-rule" aria-hidden="true"></i>
+      ${p.small ? null : html`<span class="tb-by">${p.role} · analyst</span>`}
+      <span class="tb-at">${rc.closed ? 'Closed ' + dShort(rc.closed) : ''}</span>
+      ${p.small ? null : html`<span class="tb-soc">The Rand Society${LP && LP.term ? ' · ' + LP.term : ''}</span>`}
+    </div>`;
+  }
+
+  function DealsCard(p) {
+    var LM = p.LM, A = p.A, LP = p.LP;
+    if (!LM.deals.length) return null;
+    var shut = LM.deals.filter(function (x) { return x.closed; }), nx = LM.deals.filter(function (x) { return x.open && !x.closed; })[0];
+    return html`<section class="card dl-card" aria-labelledby="dl-h">
+      <div class="card-head"><h2 id="dl-h" class="card-k">Deal book · ${shut.length} of ${LM.deals.length}</h2><button class="txt-btn" onClick=${A.openDeals}>Open</button></div>
+      ${shut.length ? html`<ul class="dl-shelf">${shut.slice(-3).reverse().map(function (x) { return html`<li key=${x.c.id}><${Tombstone} c=${x.c} r=${x.r} small=${true} LP=${LP} role=${p.role} /></li>`; })}
+          ${LM.deals.filter(function (x) { return !x.closed; }).slice(0, Math.max(0, 3 - shut.length)).map(function (x) { return html`<li key=${x.c.id} class="dl-slot" aria-hidden="true"><span>${x.u.label}</span><b>${x.c.title}</b></li>`; })}</ul>`
+        : html`<p class="dl-empty">Each Investment Banking chapter has a deal file: one company, six linked questions. Close it to add its tombstone here.</p>`}
+      ${nx ? html`<div class="dl-next"><div><span class="card-k">${nx.u.label} · ${nx.c.deal}</span><b>${nx.c.title}</b><small>${nx.c.items.length} linked questions. Close it with ${nx.c.pass}.</small></div>
+        ${nx.wait ? html`<span class="pill off">Again tomorrow</span>` : html`<button class="pill" onClick=${function () { A.startQuiz('deal', nx.c.id); }}>Open the file</button>`}</div>` : null}
+    </section>`;
+  }
+
+  function SkillsSheet(p) {
+    var LM = p.LM, D = LM.desk, cal = LM.cal, ret = LM.ret;
+    return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label="Banking skills">
+      <div class="sheet-head"><span class="when">${D.secure} of ${D.total} secure</span><${CloseBtn} onClose=${p.onClose} /></div>
+      <div class="sheet-body" tabindex="0" aria-label="Banking skills">
+        <h2 class="sheet-title">Banking skills</h2>
+        <p class="sk-intro">Each skill moves on as you practise: <b>practised</b> once you get it right, <b>secure</b> when it’s right on three separate days a week or more apart (one of them typed), and <b>desk-ready</b> when a whole chapter is secure and its deal file is closed.</p>
+        ${D.units.map(function (u) {
+          return html`<section key=${u.id} class="sk-unit" aria-label=${u.label + ': ' + u.title}>
+            <div class="sk-uh"><span class="card-k">${u.label}</span><b>${u.title}</b>${u.desk ? html`<${Tag} text="Desk-ready" tone="ok" />` : null}</div>
+            <ul class="sk-list">${u.skills.map(function (s) { return html`<li key=${s.id} class=${'s-' + s.state}><i class=${'dk-s s-' + s.state} aria-hidden="true"></i><span>${s.name}</span><small>${SKILL_WORD[s.state]}</small></li>`; })}</ul>
+          </section>`;
+        })}
+        <section class="sk-cal" aria-label="How well it holds">
+          <span class="card-k">How well it holds</span>
+          <p>${cal && cal.n >= 5 ? html`When you said Sure, you were right <b class="tnum">${Math.round(cal.pct * 100)}%</b> of the time, over ${cal.n} answers. Aim for 80% or better: it means your Sure can be trusted.` : 'Answer Sure only when you’d stake points on it. After five Sure answers, your hit rate shows here.'}</p>
+          <p>${ret && ret.n >= 5 ? html`On skills and questions you first met three weeks or more ago, you’re right <b class="tnum">${Math.round(ret.pct * 100)}%</b> of the time (${ret.n} answers). Aim for 80%: that is learning that lasts.` : 'Three weeks after you first meet a skill, this shows how much of it has stayed with you.'}</p>
+        </section>
+      </div>
+    </${Sheet}>`;
+  }
+
+  function DealsSheet(p) {
+    var LM = p.LM, A = p.A, LP = p.LP;
+    return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label="Deal book">
+      <div class="sheet-head"><span class="when">${LM.closed} of ${LM.deals.length} closed</span><${CloseBtn} onClose=${p.onClose} /></div>
+      <div class="sheet-body" tabindex="0" aria-label="Deal book">
+        <h2 class="sheet-title">Deal book</h2>
+        <p class="sk-intro">One deal file per Investment Banking chapter: a fictional company, a page of facts in rands, and six linked questions that build on each other, as a live deal does. Each question gives the result it needs, so one slip doesn’t sink the rest. New figures every try.</p>
+        <ul class="db-grid">${LM.deals.map(function (x) {
+          if (x.closed) return html`<li key=${x.c.id}><${Tombstone} c=${x.c} r=${x.r} LP=${LP} role=${p.role} /></li>`;
+          return html`<li key=${x.c.id}><div class=${'db-file' + (x.open ? '' : ' locked')}>
+            <span class="card-k">${x.u.label} · ${x.c.deal}</span><b>${x.c.title}</b>
+            <small>${x.open ? x.c.items.length + ' linked questions. Close it with ' + x.c.pass + '.' + (x.r.best ? ' Best so far: ' + x.r.best + '.' : '') : 'Opens when you pass ' + x.u.label + '.'}</small>
+            ${!x.open ? html`<span class="pill off">${LOCK} Locked</span>` : x.wait ? html`<span class="pill off">Again tomorrow</span>` : html`<button class="pill" onClick=${function () { A.startQuiz('deal', x.c.id); }}>Open the file</button>`}
+          </div></li>`;
+        })}</ul>
+        ${LM.notes.length ? html`<section class="db-notes" aria-label="Commendations"><span class="card-k">Commendations</span><ul>${LM.notes.map(function (n) { return html`<li key=${n.id}><b>${n.t}</b><small>${n.s} ${dShort(n.at)}.</small></li>`; })}</ul></section>` : null}
+      </div>
+    </${Sheet}>`;
   }
 
   function BadgesCard(p) {
@@ -1943,14 +2701,18 @@
   function readTime(m) { var h = Math.floor(m / 60), r = m % 60; return h ? h + ' h' + (r ? ' ' + r + ' min' : '') : r + ' min'; }
   function UnitSheet(p) {
     var io = useState(false), ideasOpen = io[0], setIdeas = io[1];
-    var u = p.u, LP = p.LP, R = LP.R, A = p.A, bk = bookOf(LP, u.book);
+    var u = p.u, LP = p.LP, R = LP.R, A = p.A, bk = bookOf(LP, u.book), cfg = u.cfg;
     var prev = bk.units[u.i - 1];
     var btn = !u.open ? html`<span class="pill off wide">Pass ${prev ? prev.label : 'the previous chapter'} first</span>`
       : !u.ready ? html`<span class="pill off wide">Questions coming soon</span>`
       : u.perfect ? html`<span class="pill off wide">Full marks</span>`
       : u.wait ? html`<span class="pill off wide">Next try tomorrow</span>`
       : html`<button class="pill wide" data-autofocus onClick=${function () { A.startQuiz('check', u.id); }}>${u.passed ? 'Retake for full marks' : 'Take the check'}</button>`;
-    var tag = u.state === 'perfect' ? html`<${Tag} text="Full marks" tone="ok" />` : u.state === 'passed' ? html`<${Tag} text="Passed" tone="ok" />` : u.state === 'locked' ? html`<${Tag} text="Locked" tone="quiet" />` : html`<${Tag} text="Open" tone="when" />`;
+    var tag = u.desk ? html`<${Tag} text="Desk-ready" tone="ok" />` : u.state === 'perfect' ? html`<${Tag} text="Full marks" tone="ok" />` : u.state === 'passed' ? html`<${Tag} text="Passed" tone="ok" />` : u.state === 'locked' ? html`<${Tag} text="Locked" tone="quiet" />` : html`<${Tag} text="Open" tone="when" />`;
+    var pool = (LP.qs[u.id] || []).length;
+    var checkText = cfg && cfg.passCalc
+      ? R.checkSize + ' questions at your level, drawn from this chapter’s ' + pool + ', with calculations you type in. Pass with ' + cfg.pass + ', including at least ' + cfg.passCalc + ' calculations right. New levels bring harder questions and less help: worked examples first, then one step to fill, then none.'
+      : R.checkSize + ' questions at your level' + (pool > R.checkSize ? ', drawn from this chapter’s ' + pool : '') + ', easiest first. Pass with ' + R.checkPass + '; all ' + R.checkSize + ' is full marks.';
     return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label=${u.label + ': ' + u.title}>
       <div class="sheet-head"><span class="when">${bk.title}${u.module ? ' · ' + u.module : ''}</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
@@ -1958,6 +2720,11 @@
         <h2 class="sheet-title">${u.title}</h2>
         ${u.pages || u.mins ? html`<p class="u-meta tnum">${u.pages ? 'Pages ' + u.pages : ''}${u.pages && u.mins ? ' · ' : ''}${u.mins ? 'about ' + readTime(u.mins) + ' of reading' : ''}</p>` : null}
         <div class="sheet-tags">${tag}${u.r.best ? html`<${Tag} text=${'Best ' + u.r.best + ' of ' + R.checkSize} tone="quiet" />` : null}</div>
+        ${u.pre && !u.passed && u.open ? html`<section class="u-pre" aria-label="Before you read">
+          <span class="card-k">Before you read</span>
+          <p>${u.pre.done ? 'Done: ' + u.pre.score + ' of ' + u.pre.n + ' right. Keep those ideas in mind as you read.' : u.pre.n + ' quick questions on what this chapter covers, before you read it. Not marked: guessing first makes the reading stick.'}</p>
+          <button class=${'pill' + (u.pre.done ? ' ghost' : '')} onClick=${function () { A.startQuiz('pre', u.id); }}>${u.pre.done ? 'Try them again' : 'Try them first'}</button>
+        </section>` : null}
         ${u.sections.length ? html`<section class="ck" aria-label="Reading">
           <div class="ck-head"><span class="card-k">Reading</span><span class="ck-n tnum">${u.read} of ${u.sections.length}</span></div>
           <div class="ck-bar" aria-hidden="true"><i style=${'width:' + Math.round(100 * u.read / u.sections.length) + '%'}></i></div>
@@ -1975,9 +2742,20 @@
             <span class="card-k">Key ideas</span><span class="u-ideas-n">${ideasOpen ? 'Hide' : u.ideas.length + ' to take from it'}</span><${Chev} open=${ideasOpen} /></button>
           ${ideasOpen ? html`<ol id=${'ideas-' + u.id} class="u-ideas-list">${u.ideas.map(function (t, i) { return html`<li key=${i}>${t}</li>`; })}</ol>` : null}
         </section>` : null}
+        ${u.skills.length ? html`<section class="u-skills" aria-label="Skills in this chapter">
+          <span class="card-k">Skills in this chapter</span>
+          <ul class="sk-list">${u.skills.map(function (s) { return html`<li key=${s.id} class=${'s-' + s.state}><i class=${'dk-s s-' + s.state} aria-hidden="true"></i><span>${s.name}</span><small>${SKILL_WORD[s.state]}</small></li>`; })}</ul>
+        </section>` : null}
+        ${u.cases.map(function (x) {
+          return html`<section key=${x.c.id} class="u-deal" aria-label="Deal file">
+            <span class="card-k">Deal file · ${x.c.deal}</span>
+            <p><b>${x.c.title}.</b> ${x.closed ? 'Closed ' + dShort(x.r.closed) + '; its tombstone is in your Deal book.' : x.open ? x.c.items.length + ' linked questions on one company. Close it with ' + x.c.pass + ' to add its tombstone to your Deal book.' : 'Opens when you pass this chapter.'}</p>
+            ${x.closed ? html`<button class="pill ghost" onClick=${A.openDeals}>See the Deal book</button>` : !x.open ? null : x.wait ? html`<span class="pill off">Again tomorrow</span>` : html`<button class="pill" onClick=${function () { A.startQuiz('deal', x.c.id); }}>Open the file</button>`}
+          </section>`;
+        })}
         <section class="u-check" aria-label="Chapter check">
           <span class="card-k">Chapter check</span>
-          <p>${R.checkSize} questions at your level${(LP.qs[u.id] || []).length > R.checkSize ? ', drawn from this chapter’s ' + LP.qs[u.id].length : ''}, easiest first. Pass with ${R.checkPass}; all ${R.checkSize} is full marks.${R.retry === 'nextDay' ? ' Each new try opens the next day, with a fresh mix.' : ''}</p>
+          <p>${checkText}${R.retry === 'nextDay' ? ' Each new try opens the next day, with a fresh mix.' : ''}</p>
           ${u.sample && u.ready ? html`<p class="u-note">Sample questions for now. This chapter’s own set is written from the book.</p>` : null}
           ${btn}
         </section>
@@ -2046,11 +2824,24 @@
     </${Sheet}>`;
   }
 
-  // ---------- learn: the check, review, promotion review and book final ----------
-  // Full screen on phones, a centred panel on computers. One question at a time, with the explanation after each answer.
+  // ---------- learn: every session (check, deal file, review, mixes, promotion review, final) ----------
+  // Full screen on phones, a centred panel on computers. One question at a time: the member answers, then says how sure
+  // they are (that tap submits), then sees the full working before moving on.
+  var UP = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"></path></svg>`;
+  var DOWN = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5.5 12.5 12 19l6.5-6.5"></path></svg>`;
+  var DIRS = [['up', 'Up', 'M12 19V5M6 11l6-6 6 6'], ['down', 'Down', 'M12 5v14M6 13l6 6 6-6'], ['same', 'No change', 'M5 12h14']];
+  var KIND_LABEL = { check: 'Chapter check', promo: 'Promotion review', final: 'Book final', review: 'Review', deal: 'Deal file', weekly: 'Weekly mix', warm: 'Warm-up', pret: 'Pre-thesis review', pre: 'Before you read' };
+  function blankDraft(it) { return { pick: -1, v: '', neg: false, order: it && it.start ? it.start.slice() : [], line: -1, fix: -1, dirs: [], a: -1, b: -1, sort: [], ask: -1, t0: Date.now() }; }
+  function hintFor(unit, dp) {
+    var U = unitOf(unit), d = dp ? 'to ' + dp + ' decimal ' + (dp > 1 ? 'places' : 'place') : 'a whole number';
+    return unit === '%' ? 'As a percentage, ' + d + '.' : U.word ? 'In ' + U.word + ', ' + d + '.' : 'As ' + d + '.';
+  }
+  function secsText(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+
   function Quiz(p) {
-    var spec = p.spec, A = p.A, LP = p.LP, items = spec.items;
-    var s = useState({ i: 0, pick: -1, answers: [], phase: 'q', ev: null, leave: false, report: false }), q = s[0], setQ = s[1];
+    var spec = p.spec, A = p.A, LP = p.LP, items = spec.items, X = LP.X;
+    var s = useState(function () { return { i: 0, d: blankDraft(items[0]), res: null, answers: [], phase: 'q', ev: null, leave: false, report: false, facts: true }; }), q = s[0], setQ = s[1];
+    var tk = useState(0), setTick = tk[1];
     var live = useRef({ started: false, done: false, answers: [] }), body = useRef(null), head = useRef(null), box = useRef(null);
     useEffect(function () {
       var prev = document.activeElement, de = document.documentElement, ov = de.style.overflow; de.style.overflow = 'hidden';
@@ -2065,7 +2856,26 @@
       if (body.current) body.current.scrollTop = 0;
       var el = head.current; if (el) { try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); } }
     }, [q.i, q.phase]);
-    // Escape asks before leaving a check that has started (and cancels that question if it is showing)
+    // after an answer, the Next button takes focus (the Sure buttons it replaces are gone)
+    useEffect(function () {
+      if (!q.res || !box.current) return;
+      var el = box.current.querySelector('.qz-go'); if (el) { try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); } }
+      // bring the feedback up if it landed below the fold, leaving the answer in view above it
+      var sc = body.current, fb = box.current.querySelector('.qz-fb');
+      if (sc && fb) {
+        var over = fb.getBoundingClientRect().top - sc.getBoundingClientRect().top - sc.clientHeight * 0.5;
+        if (over > 0) { try { sc.scrollBy({ top: over, behavior: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (e) { sc.scrollTop += over; } }
+      }
+    }, [q.res]);
+    var it = items[q.i];
+    if (window.TRS_LEARN || window.TRS_TEST) window.__trsQ = it; // a hook for the preview and the browser tests only
+    // the estimate's clock: counts up to the target time; nothing is cut off at the end of it
+    useEffect(function () {
+      if (q.phase !== 'q' || q.res || !it || it.type !== 'est') return;
+      var t = setInterval(function () { setTick(function (n) { return n + 1; }); }, 1000);
+      return function () { clearInterval(t); };
+    }, [q.i, !!q.res, q.phase]);
+    // Escape asks before leaving a session that counts as a try (and cancels that question if it is showing)
     var escRef = useRef(null);
     escRef.current = function () { if (q.leave) set2({ leave: false }); else close(); };
     useEffect(function () {
@@ -2079,66 +2889,207 @@
     }, [q.leave]);
     function onKey(ev) {
       if (ev.key !== 'Tab' || !box.current) return;
-      var f = box.current.querySelectorAll('button:not([disabled]), a[href], textarea');
+      var f = box.current.querySelectorAll('button:not([disabled]), a[href], textarea, input:not([disabled])');
       if (!f.length) return;
       var a = f[0], z = f[f.length - 1];
       if (ev.shiftKey && document.activeElement === a) { ev.preventDefault(); z.focus(); }
       else if (!ev.shiftKey && document.activeElement === z) { ev.preventDefault(); a.focus(); }
     }
     function set2(patch) { setQ(function (prev) { return Object.assign({}, prev, patch); }); }
-    var it = items[q.i], answered = q.pick >= 0, X = LP.X;
-    var earned = q.answers.reduce(function (t, a) { return t + (a.right && !spec.paid[a.id] ? X['t' + a.tier] || 0 : 0); }, 0);
-    function choose(i) {
-      if (answered) return;
-      var answers = q.answers.concat([{ id: it.id, tier: it.tier, right: it.opts[i].right }]);
+    // patch may be a function of the latest draft, so quick taps on several rows never overwrite each other
+    function draft(patch) { setQ(function (prev) { return prev.res ? prev : Object.assign({}, prev, { d: Object.assign({}, prev.d, typeof patch === 'function' ? patch(prev.d) : patch) }); }); }
+    var counts = spec.kind === 'check' || spec.kind === 'deal' || spec.kind === 'promo' || spec.kind === 'final';
+    var answered = !!q.res, d = q.d, xpNow = spec.grade ? xpOf(LP, spec, q.answers) : { net: 0 };
+    function submit(sure) {
+      if (answered || !draftDone(it, d)) return;
+      var dd = Object.assign({}, d, { secs: Math.round((Date.now() - d.t0) / 1000) });
+      if (dd.neg && dd.v !== '') dd.v = '-' + String(dd.v).replace(/^[-−]/, '');
+      var g = gradeItem(it, dd);
+      var a = { id: it.id, tier: it.tier, right: g.right, sure: spec.conf ? sure : null, calc: it.calc, skill: it.skill, typed: g.typed, xpk: it.xpk, mode: it.mode, type: it.type };
+      var answers = q.answers.concat([a]);
       live.current.started = true; live.current.answers = answers;
-      set2({ pick: i, answers: answers, report: false });
+      set2({ res: Object.assign(g, { sure: a.sure, secs: dd.secs }), answers: answers, report: false });
     }
     function next() {
-      if (q.i < items.length - 1) return set2({ i: q.i + 1, pick: -1, report: false });
+      // deal facts stay open on tall screens; elsewhere they fold after the first question so the next question shows first
+      if (q.i < items.length - 1) return set2({ i: q.i + 1, d: blankDraft(items[q.i + 1]), res: null, report: false, facts: q.facts && !(window.matchMedia && window.matchMedia('(max-width: 759px), (max-height: 900px)').matches) });
       live.current.done = true;
       var ev = A.learnFinish(spec, q.answers);
-      if (ev && (ev.level || (ev.passed && spec.kind !== 'review'))) Fx.play(ev.level ? 'level' : 'pass');
+      if (ev && (ev.level || (ev.passed && counts))) Fx.play(ev.level ? 'level' : 'pass');
       set2({ phase: ev && ev.level ? 'level' : 'done', ev: ev });
     }
     function close() {
-      if (live.current.started && !live.current.done && spec.kind !== 'review' && !q.leave) return set2({ leave: true });
+      if (live.current.started && !live.current.done && counts && !q.leave) return set2({ leave: true });
       p.onClose();
     }
-    // the phone's Back gesture: true means the check asked first instead of closing
+    // the phone's Back gesture: true means the session asked first instead of closing
     if (p.guard) p.guard.current = function () {
-      if (q.phase === 'q' && live.current.started && !live.current.done && spec.kind !== 'review') { if (!q.leave) set2({ leave: true }); return true; }
+      if (q.phase === 'q' && live.current.started && !live.current.done && counts) { if (!q.leave) set2({ leave: true }); return true; }
       return false;
     };
-    var label = { check: 'Chapter check', promo: 'Promotion review', final: 'Book final', review: 'Review deck' }[spec.kind];
+    var label = KIND_LABEL[spec.kind] || 'Check';
     var top = html`<div class="qz-top">
       <button class="x" onClick=${close} aria-label=${q.phase === 'q' ? 'Leave' : 'Close'}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
       <span class="qz-pos tnum">${q.phase === 'q' ? 'Question ' + (q.i + 1) + ' of ' + items.length : label}</span>
-      <span class=${'qz-xp tnum' + (q.ev ? (q.ev.xp ? ' on' : '') : earned ? ' on' : '')}>${q.ev ? (q.ev.xp ? '+' + num(q.ev.xp) + ' XP' : '') : earned ? '+' + earned + ' XP' : ''}</span>
+      <span class=${'qz-xp tnum' + ((q.ev ? q.ev.xp : xpNow.net) ? ' on' : '')}>${q.ev ? (q.ev.xp > 0 ? '+' + num(q.ev.xp) + ' XP' : '') : xpNow.net ? '+' + xpNow.net + ' XP' : ''}</span>
     </div>`;
+
+    // ---- pieces of a question ----
+    function optList(opts, sel, onPick, groupLabel, tf) {
+      return html`<div class="qz-opts" role="group" aria-label=${groupLabel || 'Answers'}>${opts.map(function (o, i) {
+        var st = !answered ? (sel === i ? ' sel' : '') : o.right ? ' right' : i === sel ? ' wrong' : ' dim';
+        return html`<button key=${i} class=${'qz-opt' + st} aria-pressed=${answered ? null : sel === i ? 'true' : 'false'} disabled=${answered} onClick=${function () { onPick(i); }}>
+          <span class="qz-k" aria-hidden="true">${tf ? (i ? 'F' : 'T') : 'ABCDEF'.charAt(i)}</span><span class="qz-t">${o.t}</span>
+          ${answered && o.right ? html`<span class="qz-mark" aria-hidden="true">${TICK}</span>` : null}
+          ${answered && o.right ? html`<span class="vh"> (correct answer)</span>` : answered && i === sel ? html`<span class="vh"> (your answer)</span>` : null}
+        </button>`;
+      })}</div>`;
+    }
+    function numBox(id, labelText, unit, dp, state, hint, signed) {
+      var U = unitOf(unit);
+      return html`<div class="qz-num">
+        <label class="qz-num-l" for=${id}>${labelText}</label>
+        <div class=${'qz-in' + (state ? ' ' + state : '')}>
+          ${signed ? html`<button type="button" class=${'qz-neg' + (d.neg ? ' on' : '')} aria-pressed=${d.neg ? 'true' : 'false'} aria-label="Make it negative" disabled=${answered} onClick=${function () { draft({ neg: !d.neg }); }}>−</button>` : null}
+          ${U.pre ? html`<span class="qz-ad" aria-hidden="true">${U.pre}</span>` : null}
+          <input id=${id} type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"
+            value=${d.v} disabled=${answered} aria-describedby=${id + '-h'} aria-invalid=${state === 'bad' ? 'true' : null}
+            onInput=${function (e) { draft({ v: e.currentTarget.value }); }} onKeyDown=${function (e) { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} />
+          ${U.suf ? html`<span class=${'qz-ad' + (U.box ? ' w' : '')} aria-hidden="true">${U.box || U.suf}</span>` : null}
+        </div>
+        <small id=${id + '-h'} class="qz-hint">${hint}</small>
+      </div>`;
+    }
+    function stepList(steps, blank) {
+      return html`<ol class="qz-steps">${steps.map(function (st, i) {
+        var hide = i === blank && !answered;
+        return html`<li key=${i} class=${i === blank ? 'blank' + (answered ? (q.res.right ? ' ok' : ' bad') : '') : ''}>
+          <span class="qz-st-t">${st.t}</span><span class="qz-st-v tnum">${hide ? html`<i aria-label="your answer below">?</i>` : showNum(st.v, st.unit, st.dp)}</span></li>`;
+      })}</ol>`;
+    }
+    function move(pos, dir) {
+      var j = pos + dir, idx = d.order[pos];
+      if (j < 0 || j >= d.order.length) return;
+      draft(function (dd) { var o = dd.order.slice(), at = o.indexOf(idx), to = at + dir; if (to < 0 || to >= o.length) return {}; o[at] = o[to]; o[to] = idx; return { order: o }; });
+      setTimeout(function () {
+        var el = box.current && (box.current.querySelector('[data-mv="' + idx + (dir < 0 ? 'u' : 'd') + '"]:not([disabled])') || box.current.querySelector('[data-mv="' + idx + (dir < 0 ? 'd' : 'u') + '"]'));
+        if (el) el.focus();
+      }, 30);
+    }
+    function questionBody() {
+      var g = q.res, state = answered ? (g.right ? 'ok' : 'bad') : '';
+      switch (it.type) {
+        case 'tf': case 'mcq': return optList(it.opts, d.pick, function (i) { draft({ pick: i }); }, 'Answers', it.tf);
+        case 'two': return html`<div class="qz-two"><p class="qz-sub">${it.aq}</p>${optList(it.opts, d.a, function (i) { draft({ a: i }); }, it.aq)}
+          <p class="qz-sub">${it.rq}</p>${optList(it.ropts, d.b, function (i) { draft({ b: i }); }, it.rq)}</div>`;
+        case 'num':
+          if (it.mode === 'fade') return html`<div class="qz-fade"><span class="card-k">The working, with one step for you</span>${stepList(it.steps, it.blank)}
+            ${numBox('qz-in', 'Fill in: ' + it.steps[it.blank].t, it.target.unit, it.target.dp, state, hintFor(it.target.unit, it.target.dp), it.target.v < 0)}</div>`;
+          return numBox('qz-in', 'Your answer', it.unit, it.dp, state, it.hint || hintFor(it.unit, it.dp), it.signed);
+        case 'est':
+          var secs = answered ? g.secs : Math.round((Date.now() - d.t0) / 1000);
+          return html`<div class="qz-est">${numBox('qz-in', 'Your estimate', it.unit, it.dp, state, it.hint || 'A rough answer is fine: anything in the accepted range counts.', it.signed)}
+            <p class=${'qz-clock tnum' + (secs > it.secs ? ' over' : '')} role="timer" aria-live="off"><b>${secsText(secs)}</b> · aim for ${secsText(it.secs)} or less, in your head</p></div>`;
+        case 'order': return html`<ol class="qz-order" aria-label="Put these in order, first at the top">${d.order.map(function (idx, pos) {
+          var mark = answered ? (idx === pos ? ' ok' : ' bad') : '';
+          return html`<li key=${idx} class=${mark}><span class="qz-ord-n tnum" aria-hidden="true">${pos + 1}</span><span class="qz-ord-t">${it.items[idx]}</span>
+            ${answered ? html`<span class="vh">${idx === pos ? ' (in the right place)' : ' (should be number ' + (idx + 1) + ')'}</span>` : html`<span class="qz-ord-b">
+              <button class="qz-mv" data-mv=${idx + 'u'} aria-label=${'Move up: ' + it.items[idx]} disabled=${pos === 0} onClick=${function () { move(pos, -1); }}>${UP}</button>
+              <button class="qz-mv" data-mv=${idx + 'd'} aria-label=${'Move down: ' + it.items[idx]} disabled=${pos === d.order.length - 1} onClick=${function () { move(pos, 1); }}>${DOWN}</button></span>`}
+          </li>`;
+        })}</ol>`;
+        case 'err': return html`<div class="qz-err">
+          <ol class="qz-lines" aria-label="The working: tap the line with the mistake">${it.lines.map(function (t, i) {
+            var st = !answered ? (d.line === i ? ' sel' : '') : i === it.bad ? ' bad-line' : i === d.line ? ' wrong' : ' dim';
+            return html`<li key=${i}><button class=${'qz-line' + st} aria-pressed=${answered ? null : d.line === i ? 'true' : 'false'} disabled=${answered} onClick=${function () { draft({ line: i }); }}>
+              <span class="qz-ln tnum" aria-hidden="true">${i + 1}</span><span class="qz-lt">${t}</span>${answered && i === it.bad ? html`<span class="qz-flag">The mistake</span>` : null}</button></li>`;
+          })}</ol>
+          <p class="qz-sub">${it.fq}</p>${optList(it.fix, d.fix, function (i) { draft({ fix: i }); }, it.fq)}</div>`;
+        case 'dir': return html`<div class="qz-dirs">${it.measures.map(function (m, k) {
+            return html`<div key=${k} class="qz-dir-row"><span class="qz-dir-n" id=${'qd-' + k}>${m.name}</span>
+              <div class="qz-seg" role="radiogroup" aria-labelledby=${'qd-' + k}>${DIRS.map(function (x) {
+                var on = (d.dirs || [])[k] === x[0], st = !answered ? (on ? ' sel' : '') : m.dir === x[0] ? ' right' : on ? ' wrong' : ' dim';
+                return html`<button key=${x[0]} role="radio" aria-checked=${on ? 'true' : 'false'} class=${'qz-sg' + st} disabled=${answered}
+                  onClick=${function () { draft(function (dd) { var o = (dd.dirs || []).slice(); o[k] = x[0]; return { dirs: o }; }); }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${x[2]}></path></svg><span>${x[1]}</span></button>`;
+              })}</div></div>`;
+          })}${it.mag ? numBox('qz-in', it.mag.q, it.mag.unit, it.mag.dp, answered ? (g.magRight ? 'ok' : 'bad') : '', hintFor(it.mag.unit, it.mag.dp), it.mag.ans < 0) : null}</div>`;
+        case 'sort': return html`<ul class="qz-sort">${it.items.map(function (x, i) {
+            return html`<li key=${i}><span class="qz-sort-t" id=${'qs-' + i}>${x.t}</span>
+              <div class="qz-seg two" role="radiogroup" aria-labelledby=${'qs-' + i}>${it.cats.map(function (c, k) {
+                var on = (d.sort || [])[i] === k, st = !answered ? (on ? ' sel' : '') : x.c === k ? ' right' : on ? ' wrong' : ' dim';
+                return html`<button key=${k} role="radio" aria-checked=${on ? 'true' : 'false'} class=${'qz-sg' + st} disabled=${answered}
+                  onClick=${function () { draft(function (dd) { var o = (dd.sort || []).slice(); o[i] = k; return { sort: o }; }); }}><span>${c}</span></button>`;
+              })}</div></li>`;
+          })}</ul>`;
+      }
+      return null;
+    }
+    function feedback() {
+      var g = q.res, ok = g.right, pts = X[it.xpk] || 0, extra = [];
+      var first = ok && !spec.paid[it.id] && !q.answers.slice(0, -1).some(function (a) { return a.id === it.id && a.right; });
+      if (spec.grade && first) extra.push('+' + pts + ' XP');
+      if (spec.conf && g.sure === true) extra.push(ok ? '+' + Math.round(pts * X.sure) + ' for being sure' : '−' + pts + ' XP for being sure');
+      var answerLine = null, work = [];
+      if (it.type === 'num' || it.type === 'est') {
+        var tgt = it.mode === 'fade' ? it.target : { v: it.ans, unit: it.unit, dp: it.dp };
+        answerLine = html`<p class="qz-ans">${it.type === 'est' ? html`Accepted range <b class="tnum">${showNum(it.band[0], it.unit, it.dp)} to ${showNum(it.band[1], it.unit, it.dp)}</b>; worked out exactly, <b class="tnum">${showNum(it.ans, it.unit, Math.max(it.dp, 1))}</b>.`
+          : html`${it.mode === 'fade' ? 'That step' : 'The answer'}: <b class="tnum">${showNum(tgt.v, tgt.unit, tgt.dp)}</b>.`}
+          ${isFinite(g.val) && !ok ? html` You put <span class="tnum">${showNum(g.val, tgt.unit, tgt.dp)}</span>.` : null}</p>`;
+        work = it.mode === 'fade' ? it.steps.map(function (st) { return st.t + ' = ' + showNum(st.v, st.unit, st.dp); }) : it.work.length ? it.work : (it.steps || []).map(function (st) { return st.t + ' = ' + showNum(st.v, st.unit, st.dp); });
+      } else if (it.type === 'dir') {
+        answerLine = html`<p class="qz-ans">${it.measures.map(function (m, i) { return html`<span key=${i}>${i ? ' · ' : ''}${m.name}: <b>${{ up: 'up', down: 'down', same: 'no change' }[m.dir]}</b></span>`; })}${it.mag ? html`. ${it.mag.q.replace(/\?$/, '')}: <b class="tnum">${showNum(it.mag.ans, it.mag.unit, it.mag.dp)}</b>` : null}.</p>`;
+        work = it.work || [];
+      } else if (it.type === 'order' && !ok) {
+        answerLine = html`<div class="qz-work"><span class="card-k">The right order</span><ol>${it.items.map(function (t, i) { return html`<li key=${i}>${t}</li>`; })}</ol></div>`;
+      } else if (it.type === 'err' && !ok) {
+        answerLine = html`<p class="qz-ans">The mistake is in line ${it.bad + 1}. It should read: <b>${(it.fix.filter(function (o) { return o.right; })[0] || {}).t}</b></p>`;
+      }
+      var missed = (it.type === 'mcq' || it.type === 'two') && !ok && it.opts[it.type === 'two' ? d.a : d.pick] ? it.opts[it.type === 'two' ? d.a : d.pick].miss : '';
+      var after = !spec.grade ? 'Look out for this as you read.' : ok ? (it.type === 'est' && g.slow ? 'In range, but over ' + secsText(it.secs) + ': on the desk, speed matters too.' : '')
+        : g.sure === true ? 'You were sure, so this comes back first in your review.' : 'It comes back in your review.';
+      return html`<div class=${'qz-fb ' + (ok ? 'right' : 'wrong')} role="status">
+        <div class="qz-fbh"><b>${ok ? 'Right' : 'Not quite'}</b>${extra.length ? html`<b class="tnum">${extra.join(' · ')}</b>` : null}</div>
+        ${answerLine}
+        ${g.diag ? html`<p class="qz-diag">${g.diag}</p>` : null}
+        ${missed ? html`<p class="qz-diag">${missed}</p>` : null}
+        ${it.why ? html`<p>${it.why}</p>` : null}
+        ${work.length ? html`<div class="qz-work"><span class="card-k">Working</span><ol>${work.map(function (w, i) { return html`<li key=${i} class="tnum">${w}</li>`; })}</ol></div>` : null}
+        ${it.src ? html`<small class="qz-reread">Reread: ${it.src}</small>` : null}
+        ${after ? html`<small>${after}</small>` : null}
+      </div>`;
+    }
     var content;
     if (q.phase === 'q') {
       var factAt = Math.max(0, Math.floor(items.length / 2) - 1);
-      var tierName = LP.tiers[it.tier - 1].name, pts = X['t' + it.tier];
+      var typeName = it.type === 'num' ? 'Calculate' : it.type === 'est' ? 'Estimate' : it.type === 'err' ? 'Find the mistake' : it.type === 'order' ? 'Put in order' : it.type === 'dir' ? 'Which way' : it.type === 'two' ? 'Answer and reason' : it.type === 'sort' ? 'Sort' : it.tf ? 'True or false' : LP.tiers[it.tier - 1].name;
+      var pts = X[it.xpk] || 0, done = draftDone(it, d);
       var mail = 'Question ' + it.id + ' (' + spec.kicker + '): "' + it.q + '"\n\nWhat looks wrong: ';
       content = html`
         <div class="qz-bar" aria-hidden="true">${items.map(function (x, i) { return html`<i key=${i} class=${i < q.i || (i === q.i && answered) ? 'done' : i === q.i ? 'cur' : ''}></i>`; })}</div>
         <div class="qz-body" ref=${body} tabindex="0" aria-label=${label}>
+          ${it.facts ? html`<section class="qz-facts" aria-label=${'Deal facts: ' + it.caseTitle}>
+            <button class="qz-facts-h" aria-expanded=${q.facts ? 'true' : 'false'} onClick=${function () { set2({ facts: !q.facts }); }}><span class="card-k">Deal facts</span><b>${it.caseTitle}</b><${Chev} open=${q.facts} /></button>
+            ${q.facts ? html`<div class="qz-facts-b">${it.lead ? html`<p>${it.lead}</p>` : null}<table><tbody>${it.facts.map(function (f, i) { return html`<tr key=${i}><th scope="row">${f[0]}</th><td class="tnum">${f[1]}</td></tr>`; })}</tbody></table></div>` : null}
+          </section>` : null}
           <div class="qz-src"><span class="card-k">${spec.kicker}</span><span>${spec.title}</span></div>
-          <span class=${'qz-tier t' + it.tier}>${tierName} · ${spec.paid[it.id] ? 'already counted' : pts + ' XP'}${it.sample ? ' · sample' : ''}</span>
+          <span class=${'qz-tier t' + it.tier}>${typeName}${spec.grade ? ' · ' + (spec.paid[it.id] ? 'already counted' : pts + ' XP') : ' · not marked'}${it.mode === 'walk' ? ' · worked example first' : it.mode === 'fade' ? ' · one step to fill' : ''}${it.sample ? ' · sample' : ''}</span>
           <h2 class="qz-q" ref=${head} tabindex="-1">${it.q}</h2>
-          <div class="qz-opts" role="group" aria-label="Answers">${it.opts.map(function (o, i) {
-            var st = !answered ? '' : o.right ? ' right' : i === q.pick ? ' wrong' : ' dim';
-            return html`<button key=${i} class=${'qz-opt' + st} disabled=${answered} onClick=${function () { choose(i); }}>
-              <span class="qz-k" aria-hidden="true">${it.tf ? (i ? 'F' : 'T') : 'ABCDEF'.charAt(i)}</span><span class="qz-t">${o.t}</span>
-              ${answered && o.right ? html`<span class="qz-mark" aria-hidden="true">${TICK}</span>` : null}
-              ${answered && o.right ? html`<span class="vh"> (correct answer)</span>` : answered && i === q.pick ? html`<span class="vh"> (your answer)</span>` : null}
-            </button>`;
-          })}</div>
-          ${answered ? html`<div class=${'qz-fb ' + (it.opts[q.pick].right ? 'right' : 'wrong')} role="status">
-            <div class="qz-fbh"><b>${it.opts[q.pick].right ? 'Right' : 'Not quite'}</b>${it.opts[q.pick].right && !spec.paid[it.id] ? html`<b class="tnum">+${pts} XP</b>` : null}</div>
-            <p>${it.why}</p>${it.opts[q.pick].right ? null : html`<small>Added to your review deck.</small>`}
-          </div>` : null}
+          ${it.mode === 'walk' && it.example ? html`<section class="qz-ex" aria-label="A worked example">
+            <span class="card-k">Worked example: the same method, other figures</span>
+            <p class="qz-ex-q">${it.example.q}</p>
+            ${stepList(it.example.steps, -1)}
+            <p class="qz-ex-a">Answer: <b class="tnum">${showNum(it.example.ans, it.unit, it.dp)}</b></p>
+            ${it.ask ? html`<div class="qz-ask"><p class="qz-sub"><b>Check the method.</b> ${it.ask.q}</p>
+              <div class="qz-opts" role="group" aria-label="Check the method">${it.ask.opts.map(function (o, i) {
+                var on = d.ask === i, st = d.ask < 0 ? '' : o.right ? ' right' : on ? ' wrong' : ' dim';
+                return html`<button key=${i} class=${'qz-opt sm' + st} disabled=${d.ask >= 0 || answered} onClick=${function () { draft({ ask: i }); }}><span class="qz-t">${o.t}</span></button>`;
+              })}</div>
+              ${d.ask >= 0 ? html`<p class=${'qz-ask-why ' + (it.ask.opts[d.ask].right ? 'ok' : 'bad')} role="status"><b>${it.ask.opts[d.ask].right ? 'Yes.' : 'Not quite.'}</b> ${it.ask.why}</p>` : null}</div>` : null}
+          </section>
+          <span class="card-k qz-your">Your turn</span>` : null}
+          ${questionBody()}
+          ${answered ? feedback() : null}
           ${answered && spec.fact && q.i === factAt ? html`<div class="qz-fact"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"></path></svg><div><span class="card-k">Fun fact</span><p>${spec.fact}</p></div></div>` : null}
           ${q.report ? html`<div class="qz-rep"><p>Tell the Head of Research what looks wrong. The question’s reference goes with it.</p><div class="share-btns">
             <a class="share-btn" href=${'https://wa.me/?text=' + encodeURIComponent(plain(mail))} target="_blank" rel="noopener">WhatsApp</a>
@@ -2146,12 +3097,21 @@
         </div>
         <div class="qz-foot">
           ${q.leave ? html`<div class="qz-leave" role="alert"><p>Leave now and this counts as a try. ${LP.R.retry === 'nextDay' ? 'You can try again tomorrow.' : ''}</p><div><button class="pill ghost" onClick=${function () { set2({ leave: false }); }}>Stay</button><button class="pill" onClick=${p.onClose}>Leave</button></div></div>`
-            : html`<button class="qz-go" disabled=${!answered} onClick=${next}>${q.i < items.length - 1 ? 'Next question' : 'See results'}</button>
-              <button class="qz-report" onClick=${function () { set2({ report: !q.report }); }}>${q.report ? 'Hide' : 'Report this question'}</button>`}
+            : answered ? html`<button class="qz-go" onClick=${next}>${q.i < items.length - 1 ? 'Next question' : 'See results'}</button>
+              <button class="qz-report" onClick=${function () { set2({ report: !q.report }); }}>${q.report ? 'Hide' : 'Report this question'}</button>`
+            : spec.conf ? html`<div class="qz-conf"><span class="qz-conf-k" id="qz-conf-k">How sure are you?<small> Sure: +${Math.round(pts * X.sure)} if right, −${pts} if wrong</small></span>
+                <div class="qz-conf-b" role="group" aria-labelledby="qz-conf-k"><button class="qz-go ghost" disabled=${!done} onClick=${function () { submit(false); }}>Not sure</button><button class="qz-go" disabled=${!done} onClick=${function () { submit(true); }}>Sure</button></div></div>`
+            : html`<button class="qz-go" disabled=${!done} onClick=${function () { submit(null); }}>Check my answer</button>`}
         </div>`;
     } else if (q.phase === 'level') {
       var ev = q.ev, lvl = LP.levels[ev.level - 1], prevL = LP.levels[ev.level - 2] || lvl;
       var opened = [0, 1, 2].filter(function (t) { return lvl.mix[t] > 0 && !(prevL.mix[t] > 0); })[0];
+      var bplans = Object.keys(LP.bookCfg).map(function (bid) {
+        var pl = planFor(LP, bid, lvl.n), bk = bookOf(LP, bid);
+        if (!pl || !bk) return null;
+        var a = (pl.a || []).reduce(function (t, x) { var m = /^case(\d)$/.exec(x); return t + (m ? +m[1] : 1); }, 0), cs = (pl.a || []).some(function (x) { return /^case/.test(x); });
+        return bk.short + ' checks: ' + (pl.r ? pl.r + ' recall, ' : '') + pl.c + ' concept, ' + a + ' applied' + (cs ? ', with a mini deal file' : '') + '.';
+      }).filter(Boolean);
       content = html`<div class="qz-level on-navy">
         <div class="ql-in">
           <span class="ql-k">${spec.kind === 'promo' ? 'Promotion review passed · ' + ev.score + ' of ' + ev.size : 'Both book finals passed'}</span>
@@ -2164,7 +3124,7 @@
         ${lvl.n < LP.levels.length ? html`<div class="ql-mix"><span class="card-k">Each chapter check from now on</span><ul>${scaleMix(lvl.mix, LP.R.checkSize).map(function (c, t) {
           var was = scaleMix(prevL.mix, LP.R.checkSize)[t];
           return html`<li key=${t} class=${c ? '' : 'off'}><b class="tnum">${c}</b><small>${LP.tiers[t].name}</small>${c !== was ? html`<em class="tnum">${c > was ? '+' : '−'}${Math.abs(c - was)}</em>` : null}</li>`;
-        })}</ul></div>` : null}
+        })}</ul>${bplans.map(function (t, i) { return html`<p key=${i} class="ql-plan">${t}</p>`; })}</div>` : null}
         ${ev.badges.map(function (x) { return html`<div key=${x.b.id} class="ql-badge"><${Medal} state=${x.m ? 'mastered' : 'earned'} glyph=${x.b.glyph} size=${68} onNavy=${true} /><div><span class="card-k">New badge${x.m ? ' · Mastered' : ''}</span><b>${x.b.name}</b><small>${x.b.rule}</small></div></div>`; })}
         <div class="ql-btns"><button class="pill ghost-navy" onClick=${A.shareProgress}>Share my progress</button><button class="pill white" onClick=${function () { set2({ phase: 'done' }); }}>Continue</button></div>
       </div>`;
@@ -2176,25 +3136,36 @@
       </div>
       <div class="qz-foot"><button class="qz-go" onClick=${p.onClose}>Done</button><button class="qz-report" onClick=${A.shareProgress}>Share my progress</button></div>`;
     } else {
-      var e = q.ev || { lines: [], badges: [], score: 0, size: items.length };
-      var title = spec.kind === 'review' ? 'Review done' : e.passed ? { check: 'Chapter passed', promo: 'Promoted', final: 'Book final passed' }[spec.kind] : 'Not yet';
-      var note = spec.kind === 'review' ? (p.dueLeft ? p.dueLeft + ' still due today.' : 'Your deck is clear for today.')
-        : e.passed ? (spec.kind === 'check' && e.score < e.size ? 'A retake with full marks makes this chapter’s badge mastered.' : '')
-        : 'You need ' + e.pass + ' of ' + e.size + '. Missed questions are in your review deck' + (LP.R.retry === 'nextDay' ? '; your next try opens tomorrow.' : '.');
+      var e = q.ev || { lines: [], badges: [], notes: [], secure: [], score: 0, size: items.length };
+      var title = !counts ? { review: 'Review done', weekly: 'Weekly mix done', warm: 'Warm-up done', pret: 'Pre-thesis review done', pre: 'Ready to read' }[spec.kind]
+        : e.passed ? { check: 'Chapter passed', promo: 'Promoted', final: 'Book final passed', deal: 'Deal closed' }[spec.kind] : 'Not yet';
+      var calcBit = e.calc && e.calc.need ? ' · calculations ' + e.calc.r + ' of ' + e.calc.n : '';
+      var note = spec.kind === 'pre' ? 'These come from the chapter you’re about to read. Look out for them, and for anything that surprised you.'
+        : spec.kind === 'review' ? (p.dueLeft ? p.dueLeft + ' still due today.' : 'Nothing else is due today.')
+        : !counts ? 'Spacing practice like this is what makes it stick.'
+        : e.passed ? (spec.kind === 'check' && e.score < e.size ? 'A retake with full marks makes this chapter’s badge mastered.' : spec.kind === 'deal' ? 'Its tombstone is in your Deal book.' : '')
+        : spec.kind === 'deal' ? 'You need ' + e.pass + ' of ' + e.size + ' to close it. Your next try opens tomorrow, with new figures.'
+        : 'You need ' + e.pass + ' of ' + e.size + (e.calc && e.calc.need ? ', including ' + e.calc.need + ' calculations' : '') + '. Missed questions come back in your review' + (LP.R.retry === 'nextDay' ? '; your next try opens tomorrow.' : '.');
+      var c0 = spec.caseId && LP.cases[spec.caseId];
       content = html`<div class="qz-body" ref=${body} tabindex="0" aria-label=${label}>
         <div class="qr-score">
-          ${SK ? html`<${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} ...${SK.result(spec.kind, e.passed)} />`
-            : html`<${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} color=${e.passed || spec.kind === 'review' ? '#0F2340' : '#3E5A82'} />`}
-          <div><h2 class="qr-title" ref=${head} tabindex="-1">${title}</h2><span class="qr-of tnum">${e.score} of ${e.size} right${spec.kind === 'review' ? '' : ' · pass with ' + e.pass}</span></div>
+          ${SK ? html`<${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} ...${SK.result(counts ? spec.kind : 'review', e.passed)} />`
+            : html`<${Ring} size=${96} w=${6} pct=${e.size ? e.score / e.size : 0} n=${e.score} color=${e.passed || !counts ? '#0F2340' : '#3E5A82'} />`}
+          <div><h2 class="qr-title" ref=${head} tabindex="-1">${title}</h2><span class="qr-of tnum">${e.score} of ${e.size} right${counts ? ' · pass with ' + e.pass : ''}${calcBit}</span></div>
         </div>
         ${note ? html`<p class="qr-note">${note}</p>` : null}
-        ${e.lines.length ? html`<ul class="qr-xp">${e.lines.map(function (l, i) { return html`<li key=${i}><span>${l.what}</span><b class="tnum">+${l.xp} XP</b></li>`; })}${e.lines.length > 1 ? html`<li class="tot"><span>This ${label.toLowerCase()}</span><b class="tnum">+${e.xp} XP</b></li>` : null}</ul>` : html`<p class="qr-note muted">No new XP this time: questions only pay the first time you get them right.</p>`}
+        ${e.tomb && c0 ? html`<div class="qr-tomb"><${Tombstone} c=${c0} r=${{ closed: p.day, seed: spec.seed }} role=${p.role} LP=${LP} /></div>` : null}
+        ${spec.grade ? (e.lines.length ? html`<ul class="qr-xp">${e.lines.map(function (l, i) { return html`<li key=${i} class=${l.xp < 0 ? 'neg' : ''}><span>${l.what}</span><b class="tnum">${l.xp < 0 ? '−' + Math.abs(l.xp) : '+' + l.xp} XP</b></li>`; })}${e.lines.length > 1 ? html`<li class="tot"><span>This ${label.toLowerCase()}</span><b class="tnum">${e.xp < 0 ? '−' : '+'}${Math.abs(e.xp)} XP</b></li>` : null}</ul>`
+          : html`<p class="qr-note muted">No new XP this time: questions only pay the first time you get them right.</p>`) : null}
+        ${e.sure && e.sure.n ? html`<p class="qr-note muted">You said Sure ${e.sure.n} ${plural(e.sure.n, 'time')} and were right on ${e.sure.r}.</p>` : null}
+        ${e.secure && e.secure.length ? html`<div class="qr-promo"><span class="card-k">Now secure</span><b>${e.secure.join(', ')}</b><small>Right on three separate days, a week or more apart.</small></div>` : null}
+        ${(e.notes || []).map(function (n) { return html`<div key=${n.id} class="qr-note-c"><span class="card-k">Commendation</span><b>${n.t}</b><small>${n.s}</small></div>`; })}
         ${e.badges.map(function (x) { return html`<div key=${x.b.id} class="qr-badge"><${Medal} state=${x.m ? 'mastered' : 'earned'} glyph=${x.b.glyph} size=${60} /><div><span class="card-k">${x.up ? 'Badge mastered' : 'New badge'}</span><b>${x.b.name}</b><small>${x.b.rule}</small></div></div>`; })}
         ${e.promo ? html`<div class="qr-promo"><span class="card-k">Unlocked</span><b>${e.promo.n === LP.levels.length ? e.promo.name + ' opens once both book finals are passed' : 'Promotion review for ' + e.promo.name}</b><small>${e.promo.n === LP.levels.length ? '' : 'Find it on your level card.'}</small></div>` : null}
       </div>
       <div class="qz-foot">${e.cert ? html`<button class="qz-go" onClick=${function () { set2({ phase: 'cert' }); }}>See your certificate</button>` : html`<button class="qz-go" onClick=${p.onClose}>Done</button>`}</div>`;
     }
-    var won = q.phase === 'done' && q.ev && q.ev.passed && spec.kind !== 'review';
+    var won = q.phase === 'done' && q.ev && q.ev.passed && counts;
     var deco = !SK ? '' : q.phase === 'level' ? 'level' : won ? 'sunrise' : 'night', decoHtml = deco ? SK.deco(deco, { n: q.ev && q.ev.level, bloom: p.bloom }) : '';
     return html`<div class=${'qz-wrap' + (SKIN ? ' ' + SKIN : '')}>
       <div class="scrim" onClick=${q.phase === 'q' ? null : p.onClose}></div>
@@ -2432,48 +3403,13 @@
     var LP = st.LP, learnDay = st.asOf + (st.learnShift || 0) * DAY, lctx = { id: M.m.id, cycle: M.m.cycle, dates: {} };
     var bloom = SKIN === 'stripes'; // the jacarandas come with the stripes look
     P.analyst.forEach(function (e) { lctx.dates[e.key] = e.ms; });
-    function getLS(id) { if (!learnRef.current[id]) learnRef.current[id] = LearnStore.load(id) || freshLearn(); return learnRef.current[id]; }
+    function getLS(id) { if (!learnRef.current[id]) learnRef.current[id] = LearnStore.load(id) || freshLearn(); return fillLearn(learnRef.current[id]); }
     var LM = null;
     if (LP) { try { LM = learnModel(LP, getLS(M.m.id), learnDay, lctx); } catch (e) { try { console.warn('Learn:', e); } catch (x) { /* no console */ } } }
     if (LM && LM.daily && !LM.daily.done) M.badges.learn = 'q';
-    // The questions for a check, promotion review, book final or review session: drawn to the member's level, easiest first.
-    function quizSpec(kind, ref) {
-      if (!LP) return null;
-      var S = getLS(M.m.id), R = LP.R, lvI = levelInfo(LP, S), tries = 0, pool = [], mix = null, size = 0, pass = 0, kicker = '', title = '', factKey = '', avoid = {};
-      function passedPool() {
-        var seen = {}, out = [];
-        LP.books.forEach(function (b) { b.units.forEach(function (u) { if (S.units[u.id] && S.units[u.id].passed) unitPool(LP, u.id).forEach(function (q) { if (!seen[q.id]) { seen[q.id] = 1; out.push(q); } }); }); });
-        return out;
-      }
-      if (kind === 'check') {
-        var u = LP.units[ref], r0 = S.units[ref] || {};
-        if (!u) return null;
-        pool = unitPool(LP, ref); mix = lvI.cur.mix; size = R.checkSize; pass = R.checkPass; tries = r0.tries || 0;
-        kicker = bookOf(LP, u.book).title + ' · ' + u.label; title = u.title; factKey = LP.facts[ref] ? ref : u.book;
-        (r0.last || []).forEach(function (id) { avoid[id] = 1; });
-      } else if (kind === 'promo') {
-        var to = LP.levels[ref - 1];
-        if (!to) return null;
-        pool = passedPool();
-        if (!pool.length && LM) LM.books.forEach(function (x) { if (x.next) pool = pool.concat(unitPool(LP, x.next.id)); });
-        mix = to.mix; size = R.reviewSize; pass = R.reviewPass; tries = (S.promos[ref] || {}).tries || 0;
-        kicker = 'Promotion review'; title = to.name;
-      } else if (kind === 'final') {
-        var bk = bookOf(LP, ref), seen = {};
-        if (!bk) return null;
-        bk.units.forEach(function (x) { unitPool(LP, x.id).forEach(function (q) { if (!seen[q.id]) { seen[q.id] = 1; pool.push(q); } }); });
-        mix = R.finalMix; size = R.finalSize; pass = R.finalPass; tries = (S.finals[ref] || {}).tries || 0;
-        kicker = 'Book final'; title = bk.title; factKey = ref;
-      } else {
-        pool = (LM ? LM.due : []).map(function (id) { return LP.byId[id]; }).filter(Boolean); size = Math.min(12, pool.length);
-        kicker = 'Review deck'; title = pool.length + ' due today';
-      }
-      var r = seeded([M.m.id, kind, ref, learnDay, tries].join(':'));
-      var picked = mix ? pickQs(pool, mix, size, r, avoid) : shuffled(pool, r).slice(0, size);
-      var facts = factKey ? LP.facts[factKey] || [] : [];
-      return { kind: kind, ref: ref, items: quizItems(picked, r), size: picked.length, pass: kind === 'review' ? 0 : Math.ceil(picked.length * pass / Math.max(1, size)),
-        kicker: kicker, title: title, fact: facts.length ? facts[Math.floor(r() * facts.length)] : '', paid: Object.assign({}, S.paid) };
-    }
+    // The questions for any session, drawn to the member's level (see learnSpec)
+    function quizSpec(kind, ref) { return LP ? learnSpec(LP, getLS(M.m.id), LM, kind, ref, learnDay, lctx) : null; }
+    if (window.TRS_TEST) window.TRS_TEST.learn = { LP: LP, spec: quizSpec, S: function () { return LM ? getLS(M.m.id) : null; } };
     var A = {
       openMembers: function () { set({ sheet: { kind: 'member' } }); },
       pick: function (i) { store('trs-member', P.members[i].id); clearRoleHash(P); animRef.current = 'from-l'; scrolls.current = {}; set({ mi: i, sheet: null, showPast: false }); revealBoard(); },
@@ -2571,6 +3507,8 @@
       toggleBook: function (id) { set(function (prev) { var o = Object.assign({}, prev.bookOpen); o[id] = !o[id]; return { bookOpen: o }; }); },
       openUnit: function (uid) { set({ sheet: { kind: 'unit', unit: uid } }); },
       openBadges: function () { set({ sheet: { kind: 'badges' } }); },
+      openSkills: function () { set({ sheet: { kind: 'skills' } }); },
+      openDeals: function () { set({ sheet: { kind: 'deals' } }); },
       openCert: function (bid) { set({ sheet: { kind: 'cert', book: bid } }); },
       openBackup: function () { set({ sheet: { kind: 'backup' } }); },
       shareProgress: function () {
@@ -2622,11 +3560,15 @@
     } else if (st.sheet && st.sheet.kind === 'member') {
       sheet = html`<${MemberSheet} key="member" phone=${st.phone} members=${P.members} mi=${M.mi} pick=${A.pick} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'quiz' && LP) {
-      sheet = html`<${Quiz} key=${'quiz' + st.sheet.id} spec=${st.sheet.spec} LP=${LP} A=${A} onClose=${A.close} role=${M.m.role} day=${learnDay} dueLeft=${LM ? LM.due.length : 0} guard=${quizGuard} bloom=${bloom} />`;
+      sheet = html`<${Quiz} key=${'quiz' + st.sheet.id} spec=${st.sheet.spec} LP=${LP} A=${A} onClose=${A.close} role=${M.m.role} day=${learnDay} dueLeft=${LM ? LM.practice.n : 0} guard=${quizGuard} bloom=${bloom} />`;
     } else if (st.sheet && st.sheet.kind === 'unit' && LM) {
       var uu = null;
       LM.books.forEach(function (x) { x.units.forEach(function (u) { if (u.id === st.sheet.unit) uu = u; }); });
       if (uu) sheet = html`<${UnitSheet} key="unit" phone=${st.phone} u=${uu} LP=${LP} A=${A} onClose=${A.close} />`;
+    } else if (st.sheet && st.sheet.kind === 'skills' && LM) {
+      sheet = html`<${SkillsSheet} key="skills" phone=${st.phone} LM=${LM} LP=${LP} onClose=${A.close} />`;
+    } else if (st.sheet && st.sheet.kind === 'deals' && LM) {
+      sheet = html`<${DealsSheet} key="deals" phone=${st.phone} LM=${LM} LP=${LP} A=${A} role=${M.m.role} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'badges' && LM) {
       sheet = html`<${BadgesSheet} key="badges" phone=${st.phone} LM=${LM} LP=${LP} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'cert' && LM) {
@@ -2669,9 +3611,10 @@
       else {
         var lvc = html`<${LevelCard} key="lv" LM=${LM} LP=${LP} A=${A} role=${m.role} />`, dqc = html`<${DailyCard} key="dq" LM=${LM} LP=${LP} A=${A} />`;
         var bks = LM.books.map(function (x) { return html`<${BookCard} key=${'bk' + x.b.id} bk=${x} LP=${LP} A=${A} open=${!!st.bookOpen[x.b.id]} />`; });
-        var rest = [html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, html`<${ReviewCard} key="rv" LM=${LM} A=${A} />`, html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, html`<${ProgressCard} key="pg" A=${A} />`, html`<${FxCard} key="fx" />`,
-          window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null];
-        content = phone ? [lvc, dqc].concat(bks, rest) : cols([lvc].concat(bks, [rest[0], rest[2]]), [dqc, rest[1], rest[3], rest[4], rest[5]]);
+        var prc = html`<${PracticeCard} key="pr" LM=${LM} A=${A} />`, dkc = html`<${DeskCard} key="dk" LM=${LM} A=${A} />`, dlc = html`<${DealsCard} key="dl" LM=${LM} LP=${LP} A=${A} role=${m.role} />`;
+        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} />`, fxc = html`<${FxCard} key="fx" />`;
+        var ltc = window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null;
+        content = phone ? [lvc, dqc, prc].concat(bks, [dkc, dlc, pcc, bdc, pgc, fxc, ltc]) : cols([lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, dlc, pgc, fxc, ltc]);
         content = content.concat([html`<div key="lk" class="wide"><${LookBar} A=${A} /></div>`]);
       }
     } else if (tab === 'you') {

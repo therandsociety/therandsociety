@@ -153,20 +153,52 @@ Plan, Meetings, Learn and You open on a plain navy band. To give one a photo, as
 
 ## Learn
 
-The Learn section turns the two required books (The Intelligent Investor and Investment Banking, by 28 February 2027) into chapter checks, levels and badges. Everything it shows comes from **`learn.json`**. Progress stays on each member's phone (localStorage key `trs-learn`); members can move it to a new phone with a backup code, and share a summary with **Share my progress**.
+The Learn section turns the two required books (The Intelligent Investor and Investment Banking, by 28 February 2027) into chapter checks, levels, badges and, for Investment Banking, banking skills and deal files. Everything it shows comes from **`learn.json`**. Progress stays on each member's phone (localStorage key `trs-learn`); members can move it to a new phone with a backup code, and share a summary with **Share my progress**. The design rests on the research report in the project docs (*Learn: evidence-based question and practice design*).
+
+### How a member learns
+
+- **Book 1 builds judgement.** Recall and concept questions on Graham's ideas, then scenario questions: an answer and the reason for it, sorting (defensive or enterprising, investment or speculation), and Graham's numbers applied in rands (margin of safety, the 25–75 rule, the defensive screen).
+- **Book 2 builds technical skill.** Calculations are typed in, with new figures on every try. Help fades with the member: a worked example first (with one "check the method" question to answer before they start), then the working with one step left blank, then nothing. A chapter check passes with 6 of 8, including at least 3 calculations right. Each chapter's calculations, mistakes to find and estimates follow a plan per level (`books[].check.plans`).
+- **Sure or Not sure.** Every answer is submitted with one of the two. Sure and right earns half the question's XP again; Sure and wrong costs the question's XP; a session never goes below zero and confidence never changes a pass. Learn shows how often a member's Sure is right and, from three weeks after a skill is first met, how much of it has held (the aim is 80% for both).
+- **Spaced practice.** Missed questions come back after 1, 3, 7 and 16 days (confident misses first). Each banking skill comes back 2, 7, 16 and 35 days after its chapter is passed, with new figures, until it is **secure**: right on three days at least a week apart, one of them typed. A chapter is **desk-ready** when every skill in it is secure and its deal file is closed. There is a weekly mix of six questions from passed chapters, a short warm-up after a break, and a pre-thesis review of Comps and DCF in the week before each Pitch Cycle's thesis is due (it reads `a-thesisA` or `a-thesisB` from `data.json`). Practice pauses with the programme.
+- **Before you read.** Each Investment Banking chapter opens with three unmarked questions to try before reading; guessing first makes the reading stick.
+- **Deal files and tombstones.** Each Investment Banking chapter has one fictional company, a page of facts in rands and six linked questions; each gives the result it needs, so one slip doesn't sink the rest. Closing it (5 of 6) adds a tombstone to the member's Deal book, showing the figure they worked out. Commendations mark a first desk-ready chapter, a clean deal file, a month of weekly mixes and sound judgement.
+- **Shared progress, later.** `learnSummary()` in `app.js` already produces what a shared store would hold for the President's view (level, chapters, skills by state, deal files, how often Sure is right; no answers).
+
+### The file
 
 | Field | What it does |
 |---|---|
-| `programme` | `start` and `due` dates for the pace line, and `pauses`: breaks the pace leaves out, such as `{"from": "2026-12-19", "to": "2027-01-04", "label": "Year-end recess"}` |
-| `rules` | Chapter check size and pass mark (8 and 6), promotion review (10 and 8), book final (20 and 16, with its recall/concept/applied mix), `retry: "nextDay"`, `inOrder` |
-| `xp`, `levels` | XP per question tier and event; the seven levels from Intern to Partner, each with its check mix (recall, concept, applied) |
-| `books` | Each book's chapters (`units`): `id`, `label`, `title`, `pages`, `mins` (reading time), `ideas` (three key ideas), `sections` (reading ticks) |
-| `questions` | One per line: `id`, `unit`, `tier` (1 recall, 2 concept, 3 applied), `type` (`tf` or `mcq`), `q`, `options` (mcq), `answer` (true/false, or the number of the right option counting from 0), `why` |
-| `facts`, `badges` | Fun facts per chapter or book, and the badge shelf |
+| `programme` | `start` and `due` dates for the pace line, and `pauses`: breaks the pace and practice leave out, such as `{"from": "2026-12-19", "to": "2027-01-04", "label": "Year-end recess"}` |
+| `rules` | Chapter check size and pass mark (8 and 6), promotion review (10 and 8), book final (20 and 16, with its mix), `retry: "nextDay"`, `inOrder`, `confidence` (Sure and Not sure on or off) |
+| `xp` | Points: `t1`, `t2`, `t3` by tier; `calc`, `err` and `case` for calculations, mistakes and deal-file questions; `deal` for closing a file; `weekly`, `warm`, `pret`; `sure` (0.5: the share added for Sure and right) |
+| `schedule` | `skill` and `miss` (days between returns), `after` (days to the next return for a skill not yet secure), `weekly` (questions in the weekly mix), `reviewMax`, and `preThesis` (`dateKey`, `days`, `units`) |
+| `tiers`, `levels` | The three question tiers and the seven levels from Intern to Partner, each with its check mix (recall, concept, applied) |
+| `books` | Each book's chapters (`units`): `id`, `label`, `short`, `title`, `pages`, `mins`, `ideas`, `sections`. A book with `check` uses plans: `pass`, `passCalc`, `support` (help by level: `walk`, `fade`, `solo`), `plans` (per level: `r` recall, `c` concept, and `a`, the applied slots: `num`, `err`, `est`, `mcq3`, `case3`), `final`, `promoCase` |
+| `skills` | Banking skills: `id`, `unit`, `name`; `typed: false` for a skill with no calculation |
+| `cases` | Deal files: `id`, `unit`, `title` (the company), `deal` (the tombstone's deal type), `lead`, `vars`, `let`, `when`, `facts` (label and value pairs), `tomb` (`value`, `line`), `pass`, `items` (the linked questions) |
+| `questions` | One per line: `id`, `unit`, `tier`, `type`, `skill`, `q`, `why`, `src` (where to reread), `pre: true` for a before-you-read question, and the fields for its type (below) |
+| `facts`, `badges` | Fun facts per chapter or book, and the badge shelf (`kind: "desk"` badges need their chapters desk-ready) |
 
-**Fixing a question.** Members can tap **Report this question**; the message carries its `id` (such as `ib3-28`). Find that line in `learn.json`, correct it, commit, then open `check.html`. Options are shuffled in the app, so the right answer can sit anywhere in the list; `answer` just points to it.
+| `type` | Fields |
+|---|---|
+| `tf` | `answer`: true or false |
+| `mcq` | `options`, `answer` (the number of the right option, counting from 0), `miss` (optional: what each wrong option shows, `null` for the right one) |
+| `two` | Answer and reason: `options` and `answer`, then `reason` with `q`, `options` and `answer`; `aq` labels the first part |
+| `num` | A calculation: `ans` (its formula), `in` (`R`, `Rm`, `Rbn`, `m`, `x`, `%` or none), `dp`, `tol`, `work` (the working shown after), `errs` (likely slips, each a formula `v` and a `why`), `steps` (for the worked example and the blank step: `t`, `v`, `in`, `dp`, `key`), `ask`, `hint`, `signed` |
+| `est` | An estimate in the head: `ans`, `band` (lowest and highest accepted), `secs` (target time), `in`, `dp` |
+| `err` | Find the mistake: `lines`, `bad` (the wrong line), `fix` with `q`, `options` and `answer` |
+| `order` | `items`, written in the right order (the app shuffles them) |
+| `dir` | Which way: `measures`, each with `name` and `dir` (`up`, `down` or `same`); `mag` asks for the size too |
+| `sort` | `cats` (two) and `items`, each with `t` and `c` (0 or 1) |
 
-**Learn's look.** Learn has two looks, and each member chooses with the **Society look** switch at the bottom of the Learn page (the choice stays on their device). **Stripes** is the default: 1970s racing stripes on cream, where the stripes carry meaning. The Learn header climbs one step for every level reached; each question type has a colour (recall teal, concept marigold, applied tangerine); passed chapters fill teal and full marks marigold; a pass breaks the stripes out of their range; a level-up climbs to the new level's ring. Burgundy is the action colour and red is kept for wrong answers and falling behind. Pretoria's jacarandas flower in the header and fall when a member passes. The **Society look** shows Learn in the app's own navy and silver. The default is one line in `app.js` (`var SKIN_DEFAULT = 'stripes';`); the look's artwork, medals and rings sit in `makeSkin()` and its styles in the "Learn skin: stripes" block at the end of `app.css`, so another look can slot in without touching the rest. The certificate keeps the Society look either way. Learn-only fonts: Michroma (big titles) and Fraunces (headings and scores); questions stay in IBM Plex Sans. Members can turn on **Sound effects** (a chime when they pass and an opening bell when they level up; off by default) and **Vibration** (on supported phones; on by default) under **Effects** on the Learn page; both settings stay on their device. Motion stops for anyone with reduced motion turned on.
+**Figures that change.** A question with `vars` draws new figures every try. Each variable is `[lowest, highest, step, example]` or `{"pick": [...], "base": ...}`; `let` works out the rest; `when` lists conditions that must come out above zero (a draw that fails is drawn again, and the example must pass them too). Formulas use `+ - * / ^`, brackets, `min`, `max`, `abs`, `floor`, `ceil`, `sqrt`, `ln`, `exp`, `pow` and `round(x, places)`, never code. In text, `{x|R2}` shows R12.35, `{x|R0m}` R1,235m, `{x|R1bn}` R1.2bn, `{x|1%}` 12.4%, `{x|1x}` 6.5×, and `{x|2}` a plain number. A deal file's variables are shared by all its questions.
+
+**Writing questions.** In our own words, never text pasted from the books. Applied cases use rands and fictional companies; the books' own historical figures stay in dollars. Give every wrong option a reason to tempt someone (a real misunderstanding), keep the options about the same length, and for calculations list the likely slips in `errs`, so a member who makes one is told what went wrong.
+
+**Fixing a question.** Members can tap **Report this question**; the message carries its `id` (such as `ib3-28`). Find that line in `learn.json`, correct it, commit, then open `check.html`. It checks the structure and then draws every question the way members see it, with the app's own engine: those with changing figures 120 times each, confirming the answer as displayed is marked right, that no listed slip would be marked right, and that no figure comes out broken. Options are shuffled in the app, so `answer` just points to the right one.
+
+**Learn's look.** Learn has two looks, and each member chooses with the **Society look** switch at the bottom of the Learn page (the choice stays on their device). **Stripes** is the default: 1970s racing stripes on cream, where the stripes carry meaning. The Learn header climbs one step for every level reached; each question type has a colour (recall teal, concept marigold, applied tangerine); passed chapters fill teal and full marks marigold; banking skills fill teal when secure and marigold when desk-ready; tombstones are espresso slabs with the stripes across the top; a pass breaks the stripes out of their range; a level-up climbs to the new level's ring. Burgundy is the action colour and red is kept for wrong answers and falling behind. Pretoria's jacarandas flower in the header and fall when a member passes. The **Society look** shows Learn in the app's own navy and silver, with navy tombstones carrying the TRS monogram. The default is one line in `app.js` (`var SKIN_DEFAULT = 'stripes';`); the look's artwork, medals and rings sit in `makeSkin()` and its styles in the "Learn skin: stripes" block of `app.css`, so another look can slot in without touching the rest. The certificate keeps the Society look either way. Learn-only fonts: Michroma (big titles) and Fraunces (headings and scores); questions stay in IBM Plex Sans. Members can turn on **Sound effects** (off by default) and **Vibration** (on by default) under **Effects** on the Learn page. Motion stops for anyone with reduced motion turned on.
 
 ## Role links
 
@@ -183,6 +215,6 @@ Each link opens straight to that role. Add `-analyst` to open the analyst view.
 - `fonts/`: IBM Plex Sans and Newsreader for the app; Fraunces and Michroma for Learn's stripes look
 - `sw.js`: offline support
 - `manifest.webmanifest`, `icons/`: home-screen install
-- `check.html`: the checker for both files
+- `check.html`: the checker for both files (it loads `app.js` to draw every Learn question with the app's own engine)
 - `cal/`: calendar feeds, one per member, and `cal/m/`, one file per meeting (built automatically; don't edit by hand)
 - `tools/build_ics.py`, `.github/workflows/calendar.yml`: what rebuilds the feeds

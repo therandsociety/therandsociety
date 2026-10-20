@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Data Check</title>
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <style>
 :root{--navy:#0F2340;--ink:#13203A;--muted:#56667C;--line:#DCE2E9;--page:#EEF1F5;--ok:#1E6B4A;--bad:#A3262A;--warn:#8A5A00}
 body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
@@ -29,6 +30,12 @@ a{color:var(--navy)}
   <div id="learn" class="box" aria-live="polite">Checking the reading programme…</div>
   <p class="lead" style="margin-top:20px">GitHub can take a few minutes to publish an edit. If a fix doesn't show yet, wait a minute and check again. <a href="./">Open the dashboard</a></p>
 </main>
+<div id="app" hidden></div>
+<script>window.TRS_CHECK = true;</script>
+<script src="vendor/preact.min.js"></script>
+<script src="vendor/hooks.umd.js"></script>
+<script src="vendor/htm.umd.js"></script>
+<script src="app.js"></script>
 <script>
 (function () {
   var out = document.getElementById('out');
@@ -140,22 +147,79 @@ a{color:var(--navy)}
     (Array.isArray(D.library) ? D.library : []).forEach(function (l, i) { if (!l || !l.title || !/^https:\/\/\S+$/.test(l.url || '')) errs.push('library item ' + (i + 1) + ' needs a <code>title</code> and a full https:// <code>url</code>.'); });
     return { errs: errs, warns: warns, ns: ns, na: na, nm: (D.members || []).length };
   }
-  // learn.json: books, chapters, levels, rules and the question bank
+  // learn.json: books, chapters, levels, rules, skills, deal files and the question bank. The structure is checked here;
+  // then every question is drawn with the app's own engine (loaded from app.js), so what passes here works in the app.
+  var TYPES = { tf: 'true or false', mcq: 'multiple choice', num: 'calculation', est: 'estimate', err: 'find the mistake', order: 'put in order', dir: 'which way', two: 'answer and reason', sort: 'sort' };
+  var IN = { '': 1, R: 1, Rm: 1, Rbn: 1, m: 1, x: 1, '%': 1 };
+  var SLOTS = /^(num|err|est|mcq3|c|r|case\d)$/;
+  var DRAWS = 120;
+  function idx(n, list) { return n >= 0 && n % 1 === 0 && Array.isArray(list) && n < list.length; }
+  function dupes(list) { return (list || []).some(function (x, k) { return list.indexOf(x) !== k; }); }
+  function checkQ(q, at, units, books, skills, errs, warns, inCase) {
+    var t = q.type;
+    if (!TYPES[t]) { errs.push(at + ': <code>type</code> must be one of ' + Object.keys(TYPES).join(', ') + '.'); return; }
+    if (!inCase && !units[q.unit] && !(q.sample && books[q.book])) errs.push(at + ': <code>unit</code> must be a chapter id.');
+    if (q.tier != null && [1, 2, 3].indexOf(q.tier) < 0) errs.push(at + ': <code>tier</code> must be 1, 2 or 3.');
+    if (!q.q) errs.push(at + ' has no question text (<code>q</code>).');
+    if (!q.why) warns.push(at + ' has no explanation (<code>why</code>).');
+    if (q.skill && !skills[q.skill]) errs.push(at + ': skill <code>' + esc(q.skill) + '</code> is not in <code>skills</code>.');
+    if (t === 'tf' && typeof q.answer !== 'boolean') errs.push(at + ': a true/false <code>answer</code> must be true or false.');
+    if (t === 'mcq' || t === 'two') {
+      if (!Array.isArray(q.options) || q.options.length < 2) errs.push(at + ' needs at least two <code>options</code>.');
+      else {
+        if (!idx(q.answer, q.options)) errs.push(at + ': <code>answer</code> must be the number of the right option, counting from 0.');
+        if (dupes(q.options)) errs.push(at + ' repeats an option.');
+        if (q.miss && q.miss.length !== q.options.length) warns.push(at + ': <code>miss</code> should have one entry per option (null for the right one).');
+        var lens = q.options.map(function (o) { return String(o).length; }), r = lens[q.answer];
+        if (q.options.length > 2 && lens.every(function (n, k) { return k === q.answer || r >= n + 12; })) warns.push(at + ': the right option is much longer than the others, which gives it away.');
+      }
+    }
+    if (t === 'two' && !(q.reason && Array.isArray(q.reason.options) && idx(q.reason.answer, q.reason.options))) errs.push(at + ' needs a <code>reason</code> with <code>options</code> and the right <code>answer</code>.');
+    if (t === 'num' || t === 'est') {
+      if (q.ans == null) errs.push(at + ' needs <code>ans</code> (the formula for the answer).');
+      if (!IN[q['in'] || '']) errs.push(at + ': <code>in</code> must be one of R, Rm, Rbn, m, x, % or left out.');
+      if (q.dp != null && !(q.dp >= 0 && q.dp <= 3 && q.dp % 1 === 0)) errs.push(at + ': <code>dp</code> (decimal places) must be 0 to 3.');
+      (q.steps || []).forEach(function (st, k) { if (!st || !st.t || st.v == null) errs.push(at + ': step ' + (k + 1) + ' needs <code>t</code> (what it is) and <code>v</code> (its formula).'); });
+      if (q.ask && !(Array.isArray(q.ask.options) && idx(q.ask.answer, q.ask.options))) errs.push(at + ': <code>ask</code> needs <code>options</code> and the right <code>answer</code>.');
+      if (t === 'est' && !(Array.isArray(q.band) && q.band.length === 2)) errs.push(at + ': an estimate needs <code>band</code>, the lowest and highest answers accepted.');
+    }
+    if (t === 'err' && !(Array.isArray(q.lines) && q.lines.length >= 2 && idx(q.bad, q.lines) && q.fix && Array.isArray(q.fix.options) && idx(q.fix.answer, q.fix.options))) errs.push(at + ' needs <code>lines</code>, the wrong line in <code>bad</code>, and a <code>fix</code> with options and an answer.');
+    if (t === 'order' && !(Array.isArray(q.items) && q.items.length >= 3)) errs.push(at + ' needs at least three <code>items</code>, in the right order.');
+    if (t === 'dir' && !(Array.isArray(q.measures) && q.measures.length && q.measures.every(function (m) { return m && m.name && /^(up|down|same)$/.test(m.dir); }))) errs.push(at + ': each of <code>measures</code> needs a <code>name</code> and a <code>dir</code> of up, down or same.');
+    if (t === 'sort' && !(Array.isArray(q.cats) && q.cats.length === 2 && Array.isArray(q.items) && q.items.length >= 2 && q.items.every(function (x) { return x && x.t && (x.c === 0 || x.c === 1); }))) errs.push(at + ' needs two <code>cats</code> and <code>items</code>, each with <code>t</code> and <code>c</code> (0 or 1).');
+  }
+  function numsUp(a) { return Array.isArray(a) && a.length && a.every(function (x, k) { return +x > 0 && (!k || +x > +a[k - 1]); }); }
   function checkLearn(L) {
-    var errs = [], warns = [], units = {}, books = {}, ids = {}, per = {}, tiers = [0, 0, 0], R = L.rules || {}, size = R.checkSize || 8;
+    var errs = [], warns = [], units = {}, books = {}, ids = {}, per = {}, tiers = [0, 0, 0], types = {}, R = L.rules || {}, size = R.checkSize || 8, skills = {}, unitBook = {}, flagged = {};
     if (!Array.isArray(L.books) || !L.books.length) errs.push('<code>books</code> must be a list with at least one book.');
     (L.books || []).forEach(function (b, i) {
       if (!b || !b.id) { errs.push('Book ' + (i + 1) + ' has no <code>id</code>.'); return; }
-      books[b.id] = true;
+      books[b.id] = b;
       if (!Array.isArray(b.units) || !b.units.length) errs.push('Book <code>' + esc(b.id) + '</code> has no <code>units</code> (chapters).');
       (b.units || []).forEach(function (u, j) {
         if (!u || !u.id) { errs.push('Book <code>' + esc(b.id) + '</code> chapter ' + (j + 1) + ' has no <code>id</code>.'); return; }
         if (units[u.id]) errs.push('Chapter id <code>' + esc(u.id) + '</code> is used twice.');
-        units[u.id] = b.id; per[u.id] = 0;
+        units[u.id] = b.id; per[u.id] = 0; unitBook[u.id] = b;
         if (!u.title) warns.push('Chapter <code>' + esc(u.id) + '</code> has no <code>title</code>.');
         if (u.mins != null && !(+u.mins > 0)) errs.push('Chapter <code>' + esc(u.id) + '</code>: <code>mins</code> must be a number of minutes.');
         if (u.ideas != null && !Array.isArray(u.ideas)) errs.push('Chapter <code>' + esc(u.id) + '</code>: <code>ideas</code> must be a list.');
       });
+      var c = b.check;
+      if (c) {
+        var at = 'Book <code>' + esc(b.id) + '</code> <code>check</code>';
+        if (!(c.pass > 0 && c.pass <= size)) errs.push(at + ': <code>pass</code> must be 1 to ' + size + ' (the check size).');
+        if (c.passCalc != null && !(c.passCalc >= 0 && c.passCalc <= (c.pass || size))) errs.push(at + ': <code>passCalc</code> must be no more than <code>pass</code>.');
+        (c.support || []).forEach(function (m, k) { if (!/^(walk|fade|solo)$/.test(m)) errs.push(at + ': <code>support</code> item ' + (k + 1) + ' must be walk, fade or solo.'); });
+        function plan(p, n, label) {
+          if (!p || !Array.isArray(p.a || [])) { errs.push(at + ' ' + label + ' must have <code>r</code>, <code>c</code> and a list <code>a</code>.'); return; }
+          var bad = (p.a || []).filter(function (x) { return !SLOTS.test(x); });
+          if (bad.length) errs.push(at + ' ' + label + ': unknown slots ' + bad.map(function (x) { return '<code>' + esc(x) + '</code>'; }).join(', ') + ' (use num, err, est, mcq3, c, r or case3).');
+          var total = (p.r || 0) + (p.c || 0) + (p.a || []).reduce(function (t, x) { var m = /^case(\d)$/.exec(x); return t + (m ? +m[1] : 1); }, 0);
+          if (total !== n) warns.push(at + ' ' + label + ' asks ' + total + ' questions; the session has ' + n + '.');
+        }
+        (c.plans || []).forEach(function (p, k) { plan(p, size, 'plan for Level ' + (k + 1)); });
+        if (c.final) plan(c.final, R.finalSize || 20, 'final');
+      }
     });
     if (!Array.isArray(L.levels) || !L.levels.length) errs.push('<code>levels</code> must be a list.');
     (L.levels || []).forEach(function (l, i, a) {
@@ -165,6 +229,13 @@ a{color:var(--navy)}
     if (R.checkPass > size) errs.push('<code>rules.checkPass</code> is more than <code>rules.checkSize</code>.');
     if (R.reviewPass > R.reviewSize) errs.push('<code>rules.reviewPass</code> is more than <code>rules.reviewSize</code>.');
     if (R.finalPass > R.finalSize) errs.push('<code>rules.finalPass</code> is more than <code>rules.finalSize</code>.');
+    var SC = L.schedule || {};
+    ['skill', 'miss'].forEach(function (k) { if (SC[k] != null && !numsUp(SC[k])) errs.push('<code>schedule.' + k + '</code> must list days that go up, such as [2, 7, 16, 35].'); });
+    if (SC.preThesis) {
+      if (typeof SC.preThesis.dateKey !== 'string') errs.push('<code>schedule.preThesis.dateKey</code> must name a date key in data.json, such as a-thesis{cycle}.');
+      (SC.preThesis.units || []).forEach(function (u) { if (!units[u]) errs.push('<code>schedule.preThesis.units</code>: <code>' + esc(u) + '</code> is not a chapter.'); });
+    }
+    Object.keys(L.xp || {}).forEach(function (k) { if (!(+L.xp[k] >= 0)) errs.push('<code>xp.' + esc(k) + '</code> must be a number.'); });
     var pg = L.programme || {}, st = day(pg.start), du = day(pg.due);
     if (isNaN(st) || isNaN(du) || du <= st) errs.push('<code>programme.start</code> and <code>programme.due</code> must be YYYY-MM-DD dates, start first.');
     (Array.isArray(pg.pauses) ? pg.pauses : []).forEach(function (x, i) {
@@ -172,32 +243,95 @@ a{color:var(--navy)}
       if (isNaN(a) || isNaN(b) || b < a) errs.push('<code>' + at + '</code>: <code>from</code> and <code>to</code> must be YYYY-MM-DD dates, from first.');
       else if (!isNaN(st) && !isNaN(du) && (a < st || b > du)) warns.push('<code>' + at + '</code> falls outside the programme dates.');
     });
+    (L.skills || []).forEach(function (s, i) {
+      if (!s || !s.id || !s.name) { errs.push('Skill ' + (i + 1) + ' needs an <code>id</code> and a <code>name</code>.'); return; }
+      if (skills[s.id]) errs.push('Skill <code>' + esc(s.id) + '</code> is listed twice.');
+      if (!units[s.unit]) errs.push('Skill <code>' + esc(s.id) + '</code>: <code>unit</code> must be a chapter id.');
+      skills[s.id] = { n: 0, unit: s.unit };
+    });
     (L.questions || []).forEach(function (q, i) {
       var at = 'Question ' + (q && q.id ? '<code>' + esc(q.id) + '</code>' : (i + 1));
       if (!q || !q.id) { errs.push(at + ' has no <code>id</code>.'); return; }
       if (ids[q.id]) errs.push(at + ': the id is used twice.'); ids[q.id] = true;
-      if (!units[q.unit] && !(q.sample && books[q.book])) errs.push(at + ': <code>unit</code> must be a chapter id.');
-      if ([1, 2, 3].indexOf(q.tier) < 0) errs.push(at + ': <code>tier</code> must be 1, 2 or 3.');
-      else tiers[q.tier - 1]++;
-      if (!q.q) errs.push(at + ' has no question text (<code>q</code>).');
-      if (!q.why) warns.push(at + ' has no explanation (<code>why</code>).');
-      if (q.type === 'tf') { if (typeof q.answer !== 'boolean') errs.push(at + ': a true/false <code>answer</code> must be true or false.'); }
-      else if (q.type === 'mcq') {
-        var o = q.options;
-        if (!Array.isArray(o) || o.length < 2) errs.push(at + ' needs at least two <code>options</code>.');
-        else {
-          if (!(q.answer >= 0 && q.answer < o.length && q.answer % 1 === 0)) errs.push(at + ': <code>answer</code> must be the number of the right option, counting from 0.');
-          if (o.some(function (x, k) { return o.indexOf(x) !== k; })) errs.push(at + ' repeats an option.');
-        }
-      } else errs.push(at + ': <code>type</code> must be tf or mcq.');
-      if (units[q.unit]) per[q.unit]++;
+      var e0 = errs.length; checkQ(q, at, units, books, skills, errs, warns, false); if (errs.length > e0) flagged[q.id] = 1;
+      types[q.type] = (types[q.type] || 0) + 1;
+      if ([1, 2, 3].indexOf(q.tier) >= 0) tiers[q.tier - 1]++;
+      if (q.skill && skills[q.skill]) skills[q.skill].n++;
+      var bk = unitBook[q.unit];
+      if (bk && bk.check && !q.skill && !q.pre) warns.push(at + ' has no <code>skill</code>; in ' + esc(bk.short || bk.title || bk.id) + ' every question should practise one.');
+      if (units[q.unit] && !q.pre) per[q.unit]++;
     });
+    var nCase = 0;
+    (L.cases || []).forEach(function (c, i) {
+      var at = 'Deal file ' + (c && c.id ? '<code>' + esc(c.id) + '</code>' : (i + 1));
+      if (!c || !c.id) { errs.push(at + ' has no <code>id</code>.'); return; }
+      if (ids[c.id]) errs.push(at + ': the id is used twice.'); ids[c.id] = true;
+      if (!units[c.unit]) errs.push(at + ': <code>unit</code> must be a chapter id.');
+      if (!c.title || !c.deal) warns.push(at + ' needs a company <code>title</code> and a <code>deal</code> type for its tombstone.');
+      if (!Array.isArray(c.facts) || !c.facts.length) errs.push(at + ' needs <code>facts</code>, each a [label, value] pair.');
+      if (!Array.isArray(c.items) || c.items.length < 3) errs.push(at + ' needs at least three linked questions in <code>items</code>.');
+      else if (c.pass > c.items.length) errs.push(at + ': <code>pass</code> is more than the number of questions.');
+      nCase++;
+      (c.items || []).forEach(function (q, k) {
+        var qa = at + ' question ' + (q && q.id ? '<code>' + esc(q.id) + '</code>' : (k + 1));
+        if (!q || !q.id) { errs.push(qa + ' has no <code>id</code>.'); return; }
+        if (ids[q.id]) errs.push(qa + ': the id is used twice.'); ids[q.id] = true;
+        var e1 = errs.length; checkQ(q, qa, units, books, skills, errs, warns, true); if (errs.length > e1) flagged[q.id] = 1;
+        types[q.type] = (types[q.type] || 0) + 1;
+        if (q.skill && skills[q.skill]) skills[q.skill].n++;
+      });
+    });
+    Object.keys(skills).forEach(function (s) { if (!skills[s].n) warns.push('Skill <code>' + esc(s) + '</code> has no questions yet.'); });
     Object.keys(per).forEach(function (u) {
       if (!per[u]) warns.push('Chapter <code>' + esc(u) + '</code> has no questions yet; members see “Questions coming soon”.');
       else if (per[u] < size) warns.push('Chapter <code>' + esc(u) + '</code> has ' + per[u] + ' questions; a check asks ' + size + '.');
     });
     (L.facts || []).forEach(function (f, i) { if (!f || !f.text || !(units[f.unit] || books[f.book])) errs.push('Fact ' + (i + 1) + ' needs <code>text</code> and a chapter <code>unit</code> or a <code>book</code>.'); });
-    return { errs: errs, warns: warns, nb: (L.books || []).length, nu: Object.keys(units).length, nq: Object.keys(ids).length, tiers: tiers };
+    var drawn = drawAll(L, errs, warns, flagged);
+    return { errs: errs, warns: warns, nb: (L.books || []).length, nu: Object.keys(units).length, nq: (L.questions || []).length, nd: Object.keys(ids).length - (L.questions || []).length - nCase, tiers: tiers, types: types, ns: Object.keys(skills).length, nc: nCase, drawn: drawn };
+  }
+  // every question as members will see it: templates drawn many times, each typed answer marked, each listed slip kept out
+  function drawAll(L, errs, warns, flagged) {
+    var E = window.TRS_ENGINE;
+    if (!E) { warns.push('The app’s engine (app.js) didn’t load, so questions weren’t drawn. Check app.js, then check again.'); return null; }
+    var LP;
+    try { LP = E.learnPrep(L); } catch (e) { errs.push('The app can’t read learn.json: ' + esc(e.message)); return null; }
+    LP.left.forEach(function (m) { if (!flagged[m.split(':')[0]]) errs.push('Left out of the app: <code>' + esc(m) + '</code>. Fix it so members get this question.'); });
+    var n = 0, bad = {};
+    function P(id, m) { if (!bad[id]) { bad[id] = 1; errs.push('<code>' + esc(id) + '</code>: ' + m); } }
+    function txt(t, id, where) { if (/[{}]|NaN|Infinity|undefined/.test(t || '')) P(id, where + ' shows a broken figure: “' + esc(String(t).slice(0, 90)) + '”.'); }
+    function typedOf(v, u, dp) { return E.showNum(v, u, dp).replace(/[R×%m]|bn/g, '').replace('−', '-'); }
+    Object.keys(LP.byId).forEach(function (id) {
+      var q = LP.byId[id], raw = q.raw, tmpl = !!(raw.vars || raw.let || q.caseId), runs = tmpl ? DRAWS : 1, hits = 0;
+      var modes = q.type === 'num' && raw.steps && raw.steps.length && !q.caseId ? ['solo', 'fade', 'walk'] : ['solo'];
+      if (raw.when && raw.when.length) {
+        try { var c0 = q.caseId ? E.TPL.build(LP.cases[q.caseId].def, null) : null, e0 = E.TPL.build(raw, null, c0); raw.when.forEach(function (w) { if (!(E.TPL.val(w, e0) > 0)) P(id, 'the written example fails its own condition <code>' + esc(w) + '</code>.'); }); } catch (e) { P(id, esc(e.message)); }
+      }
+      for (var k = 0; k < runs && !bad[id]; k++) {
+        var r = k === 0 && tmpl ? function () { return 0.5; } : E.seeded('check:' + id + ':' + k);
+        modes.forEach(function (mode) {
+          var it;
+          try { it = E.instItem(LP, q, { r: r, rx: E.seeded('checkx:' + id + ':' + k), mode: mode }); } catch (e) { P(id, esc(e.message)); return; }
+          n++;
+          txt(it.q, id, 'the question'); txt(it.why, id, 'the explanation');
+          (it.opts || []).concat(it.ropts || [], it.fix || []).forEach(function (o) { txt(o.t, id, 'an option'); });
+          (it.work || []).concat(it.lines || []).forEach(function (w) { txt(w, id, 'the working'); });
+          (it.facts || []).forEach(function (f) { txt(f[1], id, 'a deal fact'); });
+          if (it.opts && dupes(it.opts.map(function (o) { return o.t; }))) P(id, 'two options come out the same with some figures.');
+          if (it.type === 'num' || it.type === 'est') {
+            var tg = it.mode === 'fade' ? it.target : { v: it.ans, unit: it.unit, dp: it.dp };
+            if (!isFinite(tg.v)) { P(id, 'the answer isn’t a number with some figures.'); return; }
+            if (!E.gradeItem(it, { v: typedOf(tg.v, tg.unit, tg.dp), secs: 1 }).right) P(id, 'its own answer, typed as shown (' + esc(E.showNum(tg.v, tg.unit, tg.dp)) + '), is marked wrong. Check <code>dp</code> and <code>tol</code>.');
+            if (it.type === 'est' && !(it.band[0] <= it.ans && it.ans <= it.band[1])) P(id, 'the accepted band misses the answer.');
+            if (it.mode === 'solo') (it.errs || []).forEach(function (e) { if (E.gradeItem(it, { v: typedOf(e.v, it.unit, it.dp), secs: 1 }).right) hits++; });
+            (it.steps || []).forEach(function (st) { if (!isFinite(st.v)) P(id, 'a step isn’t a number with some figures.'); });
+          }
+          if (it.type === 'dir' && it.mag && !E.gradeItem(it, { v: typedOf(it.mag.ans, it.mag.unit, it.mag.dp), dirs: it.measures.map(function (m) { return m.dir; }), secs: 1 }).right) P(id, 'its own size answer is marked wrong.');
+        });
+      }
+      if (hits) P(id, 'a listed mistake (<code>errs</code>) would be marked right ' + hits + ' times in ' + DRAWS + ' draws. Add a <code>when</code> condition or drop that mistake.');
+    });
+    return { n: n, t: Object.keys(LP.byId).filter(function (id) { var x = LP.byId[id].raw; return x.vars || x.let || LP.byId[id].caseId; }).length };
   }
   function runLearn() {
     var box = document.getElementById('learn');
@@ -205,7 +339,7 @@ a{color:var(--navy)}
     fetch('learn.json?fresh=' + Date.now(), { cache: 'no-store' }).then(function (r) {
       if (!r.ok) throw new Error('learn.json could not be fetched (HTTP ' + r.status + ').');
       return r.text();
-    }).then(function (text) {
+    }).then(function (text) { return new Promise(function (ok) { box.textContent = 'Drawing every question the way members see it…'; setTimeout(function () { ok(text); }, 30); }); }).then(function (text) {
       var L;
       try { L = JSON.parse(text); } catch (e) {
         var w = where(text, e);
@@ -213,7 +347,9 @@ a{color:var(--navy)}
         return;
       }
       var r = checkLearn(L), h = '';
-      if (!r.errs.length) h += '<p class="ok">Reading programme: all good. ' + r.nb + ' books, ' + r.nu + ' chapters, ' + r.nq + ' questions (recall ' + r.tiers[0] + ', concept ' + r.tiers[1] + ', applied ' + r.tiers[2] + ').</p>';
+      var kinds = Object.keys(TYPES).filter(function (t) { return r.types[t]; }).map(function (t) { return r.types[t] + ' ' + TYPES[t]; }).join(', ');
+      if (!r.errs.length) h += '<p class="ok">Reading programme: all good. ' + r.nb + ' books, ' + r.nu + ' chapters, ' + r.nq + ' questions (recall ' + r.tiers[0] + ', concept ' + r.tiers[1] + ', applied ' + r.tiers[2] + '), '
+        + r.ns + ' skills and ' + r.nc + ' deal files with ' + r.nd + ' linked questions.</p><p style="margin-top:6px;color:var(--muted)">' + kinds + '.' + (r.drawn ? ' Every question was drawn the way members see it: the ' + r.drawn.t + ' with changing figures ' + DRAWS + ' times each, ' + r.drawn.n.toLocaleString('en-ZA') + ' in all, and each answer marked.' : '') + '</p>';
       else h += '<p class="bad">Reading programme: ' + r.errs.length + (r.errs.length === 1 ? ' problem' : ' problems') + ' to fix:</p><ul>' + r.errs.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
       if (r.warns.length) h += '<p class="warn" style="margin-top:12px">Worth a look:</p><ul>' + r.warns.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
       box.innerHTML = h;
