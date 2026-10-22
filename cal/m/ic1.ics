@@ -5,14 +5,14 @@ CALSCALE:GREGORIAN
 METHOD:PUBLISH
 BEGIN:VEVENT
 UID:ic1-meeting@therandsociety
-DTSTAMP:20261019T000000Z
+DTSTAMP:20261022T000000Z
 SUMMARY:Rand Society · Formal IC 1
 DESCRIPTION:Operating-pack review\, provisional workflow-test decisions\, c
- orrection owners and deadlines. Proceeds only with quorum.\n\nPre-reads by
-  Friday 4 December\, 17:00.\n\nMinutes by Tuesday 8 December\, 17:00.\n\nJ
- oin on Teams: https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXj
- oWTb3u9fTU\n\nOpen the app: https://therandsociety.github.io/therandsociet
- y/#meetings
+ orrection owners and deadlines. Proceeds only with quorum.\n\nConcept of t
+ he Meeting: President.\n\nPre-reads by Friday 4 December\, 17:00.\n\nMinut
+ es by Tuesday 8 December\, 17:00.\n\nJoin on Teams: https://teams.microsof
+ t.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU\n\nOpen the app: https://
+ therandsociety.github.io/therandsociety/#meetings
 DTSTART:20261206T150000Z
 DTEND:20261206T163000Z
 LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u

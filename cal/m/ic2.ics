@@ -5,13 +5,13 @@ CALSCALE:GREGORIAN
 METHOD:PUBLISH
 BEGIN:VEVENT
 UID:ic2-meeting@therandsociety
-DTSTAMP:20261019T000000Z
+DTSTAMP:20261022T000000Z
 SUMMARY:Rand Society · Formal IC 2
 DESCRIPTION:Sector readiness\, theme primer\, watchlist quality\, portfolio
-  capacity and corrective actions.\n\nMinutes by Tuesday 19 January\, 17:00
- .\n\nJoin on Teams: https://teams.microsoft.com/meet/3774135146398752?p=ao
- opiwXjoWTb3u9fTU\n\nOpen the app: https://therandsociety.github.io/therand
- society/#meetings
+  capacity and corrective actions.\n\nConcept of the Meeting: Head of Resea
+ rch.\n\nMinutes by Tuesday 19 January\, 17:00.\n\nJoin on Teams: https://t
+ eams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU\n\nOpen the 
+ app: https://therandsociety.github.io/therandsociety/#meetings
 DTSTART:20270117T150000Z
 DTEND:20270117T163000Z
 LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
