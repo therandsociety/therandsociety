@@ -56,7 +56,13 @@
   function span(ms) { var mins = Math.max(1, Math.round(ms / 60000)), h = Math.floor(mins / 60), m = mins % 60; return h ? h + ' h' + (m ? ' ' + m + ' min' : '') : m + ' min'; }
   // Live state of something happening today: a countdown to a deadline, or where a meeting stands.
   function live(it, now) {
-    if (!it || !it.current || it.range) return null;
+    if (!it || !it.current) return null;
+    // a deadline that runs over several days counts down on its last day, to the usual cut-off
+    if (it.range) {
+      if (it.type !== 'deadline' || it.nEnd !== 0 || !DEFAULT_TIME) return null;
+      var e = atSAST(it.endMs, DEFAULT_TIME);
+      return now < e ? { text: span(e - now) + ' left', tone: e - now <= 2 * 3600000 ? 'u-soon' : 'u-week' } : { text: 'Closed at ' + DEFAULT_TIME, tone: 'quiet' };
+    }
     if (it.type === 'meeting') {
       var a = atSAST(it.ms, '17:00'), b = atSAST(it.ms, '18:30');
       if (now < a) return { text: 'Starts in ' + span(a - now), tone: a - now <= 3600000 ? 'u-week' : 'when', join: a - now <= 30 * 60000 };
@@ -199,6 +205,7 @@
         else if (e.who === 'some') { label = 'If writing'; }
         else if (e.type === 'meeting') { label = 'Meeting'; tone = 'meet'; }
         var it = item(e, m, by(e.titleBy, id, e.title), by(e.detailBy, id, e.detail), part, label, tone, e.type === 'meeting' || part === 'lead' || e.who === 'some');
+        it.act = part === 'lead' && e.type === 'deadline' && !!by(e.labelBy, id, e.leadLabel);
         it.people = e.type === 'marker' ? [] : people(P, e, e.type === 'meeting', id);
         items.push(it);
       });
@@ -212,6 +219,7 @@
       var lead = part === 'lead';
       var it = item(e, m, by(e.titleBy, id, e.title), by(e.detailBy, id, e.detail), part,
         by(e.labelBy, id, lead ? (e.leadLabel || 'Due') : (e.supportLabel || 'You support')), lead ? 'lead' : 'support', lead);
+      it.act = lead && e.type === 'deadline' && !!by(e.labelBy, id, e.leadLabel);
       it.people = e.who === 'all' ? [{ k: 'Applies to', v: 'Every analyst' }] : people(P, e, false, id);
       items.push(it);
     });
@@ -282,7 +290,7 @@
   function stateTag(it) {
     switch (it.band) {
       case 'ok': return { text: 'Accepted', tone: 'ok' };
-      case 'sub': return { text: 'Submitted', tone: 'sub' };
+      case 'sub': return { text: it.act ? 'Done' : 'Submitted', tone: 'sub' };
       case 'rev': return { text: 'Revision needed', tone: 'u-week' };
       case 'min': return { text: 'Minor corrections', tone: 'okm' };
       case 'nc': return { text: 'Not completed', tone: 'u-soon' };
@@ -296,9 +304,12 @@
   // Bug fix: after 17:00 on its day a deadline is closed, and after 18:30 a meeting has ended, so neither stays "today".
   function closeOut(items, now) {
     items.forEach(function (it) {
-      if (!it.current || it.range) return;
-      var end = it.type === 'meeting' ? atSAST(it.ms, '18:30') : (it.type === 'deadline' && it.time ? atSAST(it.ms, it.time) : 0);
-      if (end && now >= end) { it.past = true; it.current = false; it.closed = true; it.soon = it.type === 'meeting' ? 'Ended' : 'Closed at ' + it.time; }
+      if (!it.current) return;
+      // a deadline over several days closes at the usual cut-off on its last day, like any deadline without a time
+      if (it.range && !(it.type === 'deadline' && it.nEnd === 0 && DEFAULT_TIME)) return;
+      var cut = it.range ? DEFAULT_TIME : it.time;
+      var end = it.type === 'meeting' ? atSAST(it.ms, '18:30') : (it.type === 'deadline' && cut ? atSAST(it.endMs, cut) : 0);
+      if (end && now >= end) { it.past = true; it.current = false; it.closed = true; it.soon = it.type === 'meeting' ? 'Ended' : 'Closed at ' + cut; }
     });
     return items;
   }
@@ -533,6 +544,19 @@
         ended: now >= end, chain: chain, minutesAt: chain.length ? chain[chain.length - 1].at : 0, link: it.link || P.teams };
     });
     var nextMeet = meetings.filter(function (x) { return !x.ended; })[0] || null;
+    // Coming up (computers): the next three weeks in both roles, after the cards above it
+    var seenC = {}, coming = [];
+    all.map(function (it) { return { it: it, lens: lens }; }).concat(oAll.map(function (it) { return { it: it, lens: otherLens }; })).forEach(function (x) {
+      var it = x.it;
+      if (seenC[it.key] || !it.isKey || (it.past && !it.closed) || it.closed) return;
+      if (next && it.key === next.key) return;
+      if (nextMeet && it.key === nextMeet.key) return;
+      if (it.type === 'marker' && !it.part) return;
+      if (it.ms - asOf > 21 * DAY) return;
+      seenC[it.key] = 1;
+      coming.push({ it: it, where: it.type === 'meeting' ? 'Meeting' : x.lens === 'analyst' ? 'Analyst' : m.roleShort || m.role });
+    });
+    coming.sort(function (a, b) { return a.it.ms - b.it.ms || P.order(a.it) - P.order(b.it); });
     var minutesDue = meetings.filter(function (x) { return x.ended && x.minutesAt && now < x.minutesAt; }).pop() || null;
     var badges = {
       today: all.concat(oAll).some(function (it) { return it.band === 'soon'; }) ? 'due' : '',
@@ -545,7 +569,7 @@
       m: m, mi: mi, lens: lens, phase: phase, hero: hero, phaseTag: phaseTag, all: all, shown: shown, groups: groups, pastCount: pastItems.length,
       queue: lens === 'society' ? reviewQueue(P, m, asOf) : null, searchRules: allRules(P, m, phase),
       progress: progress, nextKey: firstUp ? firstUp.key : null, next: next,
-      meetings: meetings, nextMeet: nextMeet, photos: P.photos || {}, att: att,
+      meetings: meetings, nextMeet: nextMeet, photos: P.photos || {}, att: att, coming: coming.slice(0, 6),
       checkFor: function (key) {
         var c = (P.checklists || []).filter(function (x) { return x.for.indexOf(key) >= 0; })[0];
         if (!c) return null;
@@ -554,7 +578,7 @@
       }, minutesDue: minutesDue, badges: badges, rulesAll: rulesAll,
       planLine: phase === 'closed' ? 'The term closed on ' + dMonth(T.close) + '.' : phaseName + ' · ' + stat3.v + ' ' + stat3.l,
       nextLive: live(next, st.now), teams: P.teams, submit: P.submit,
-      today: all.filter(function (it) { return it.current && it !== next && !it.range && it.part === 'lead' && it.type === 'deadline' && !isDone(it); })
+      today: all.filter(function (it) { return it.current && it !== next && (!it.range || it.nEnd === 0) && it.part === 'lead' && it.type === 'deadline' && !isDone(it); })
         .map(function (it) { return { it: it, live: live(it, st.now) }; }).filter(function (x) { return x.live; }), nextLabel: nextLabel, week: week, weekSummary: weekSummary, other: other, tl: tl, stats: stats, cycle: cycle, path: path, score: score,
       todayLong: wk(asOf) + ' ' + dMonth(asOf) + ' ' + t.getUTCFullYear() + ' · SAST',
       todayShort: wk(asOf).slice(0, 3) + ' ' + dShort(asOf),
@@ -630,11 +654,12 @@
         ${it.band === 'ok' ? html`<div class="mark"><span class="tag ok">Accepted</span><span>Recorded by the Society after quality review.</span></div>`
           : it.band === 'min' ? html`<div class="mark"><span class="tag okm">Minor corrections</span><span>Accepted subject to minor corrections. Correct and file by the stated date.</span></div>`
           : it.part === 'lead' && it.type === 'deadline' ? html`<div class="mark">
-            ${p.submit && it.band !== 'nc' ? html`<a class="link-btn hand-btn" href=${p.submit} target="_blank" rel="noopener" onClick=${function (ev) { p.A.handIn(ev); }}>Hand in on Drive<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}
-            <button class=${'mark-btn' + (it.submitted ? ' on' : '')} aria-pressed=${it.submitted ? 'true' : 'false'} onClick=${function () { p.toggleDone(it.key, it.title); }}>${it.submitted ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Submitted` : 'Mark as submitted'}</button>
-            ${it.submitted ? html`<button class="link-btn tell-btn" onClick=${function () { p.A.tellSociety(it.key); }}><${Ico} n="send" s=${15} w=${2} />Tell the Society</button>` : null}
+            ${p.submit && it.band !== 'nc' && !it.act ? html`<a class="link-btn hand-btn" href=${p.submit} target="_blank" rel="noopener" onClick=${function (ev) { p.A.handIn(ev); }}>Hand in on Drive<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}
+            <button class=${'mark-btn' + (it.submitted ? ' on' : '')} aria-pressed=${it.submitted ? 'true' : 'false'} onClick=${function () { p.toggleDone(it.key, it.title); }}>${it.submitted ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>${it.act ? 'Done' : 'Submitted'}` : it.act ? 'Mark as done' : 'Mark as submitted'}</button>
+            ${it.submitted && !it.act ? html`<button class="link-btn tell-btn" onClick=${function () { p.A.tellSociety(it.key); }}><${Ico} n="send" s=${15} w=${2} />Tell the Society</button>` : null}
             <span>${it.band === 'rev' ? (it.submitted ? 'You marked the revised version as submitted. It stays here until the Society records the outcome.' : 'The reviewer asked for changes. Mark it once you resubmit.')
               : it.band === 'nc' ? 'Recorded as not completed. It goes to the traffic-light review with a revised date.'
+              : it.act ? (it.submitted ? 'Saved on this device. Tap Done again to undo.' : 'Only you see this mark.')
               : it.submitted ? 'Saved on this device. Tell the Society so the reviewer knows it’s in; tap Submitted again to undo.' : p.submit ? 'Upload your work to the Society’s Drive folder, then mark it here. Only you see the mark; it turns green once the Society records it as accepted.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
           </div>` : null}
         ${p.check ? html`<${Checklist} c=${p.check} state=${p.checkState} toggle=${p.toggleCheck} />` : null}
@@ -708,11 +733,11 @@
     return html`<section class=${'card next' + (n && n.band ? ' b-' + n.band : '')} aria-labelledby="next-h">
       <div class="card-head"><h2 id="next-h" class="card-k">${M.nextLabel || 'Next for you'}</h2>${n ? html`<span class="live-chip" aria-live="polite"><${Tag} text=${chipText} tone=${chip} /></span>` : null}</div>
       ${n ? html`<button key=${n.key} class="next-main" onClick=${function () { A.openItem(n.key); }}>
-        <span class="datebox tnum" aria-hidden="true"><span class="d">${n.day}</span><span class="m">${n.mon}</span></span>
+        <span class="datebox tnum" aria-hidden="true"><span class="d">${n.range && n.current ? D(n.endMs).getUTCDate() : n.day}</span><span class="m">${n.range && n.current ? mon(n.endMs) : n.mon}</span></span>
         <span class="next-text"><span class="next-title">${n.title}</span><span class="next-meta"><${Tag} text=${n.tag.text} tone=${n.tag.tone} /><span class="tnum">${n.whenShort}</span></span></span>
       </button>` : html`<p class="next-empty">Nothing else is dated for you in this view.</p>`}
       ${n && L && L.join && joinLink(n) ? html`<div class="next-act"><a class="join" href=${joinLink(n)} target="_blank" rel="noopener"><${TeamsIcon} />Join on Teams</a><span>${L.text === 'Live now' ? 'The meeting is on' : 'Opens 30 minutes before'}</span></div>` : null}
-      ${canMark ? html`<div class="next-act">${M.submit && n.band !== 'nc' ? html`<a class="link-btn hand-btn" href=${M.submit} target="_blank" rel="noopener" onClick=${function (ev) { A.handIn(ev); }} aria-label="Hand in on the Society’s Google Drive (opens Drive)">Hand in<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}<button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Mark as submitted</button>${ck ? html`<button class="ck-chip" onClick=${function () { A.openItem(n.key); }} aria-label=${'Readiness checklist, ' + ck.done + ' of ' + ck.total + ' ticked'}><span class="ck-ring" style=${'--p:' + Math.round(100 * ck.done / ck.total)} aria-hidden="true"></span>Checklist ${ck.done}/${ck.total}</button>` : M.submit ? null : html`<span>Only you see this</span>`}</div>` : null}
+      ${canMark ? html`<div class="next-act">${M.submit && n.band !== 'nc' && !n.act ? html`<a class="link-btn hand-btn" href=${M.submit} target="_blank" rel="noopener" onClick=${function (ev) { A.handIn(ev); }} aria-label="Hand in on the Society’s Google Drive (opens Drive)">Hand in<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}<button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>${n.act ? 'Mark as done' : 'Mark as submitted'}</button>${ck ? html`<button class="ck-chip" onClick=${function () { A.openItem(n.key); }} aria-label=${'Readiness checklist, ' + ck.done + ' of ' + ck.total + ' ticked'}><span class="ck-ring" style=${'--p:' + Math.round(100 * ck.done / ck.total)} aria-hidden="true"></span>Checklist ${ck.done}/${ck.total}</button>` : M.submit && !n.act ? null : html`<span>Only you see this</span>`}</div>` : null}
       ${M.today.length ? html`<ul class="today" aria-label="Also today">${M.today.map(function (x) {
         var it = x.it, link = joinLink(it);
         return html`<li key=${it.key}>
@@ -734,6 +759,23 @@
         <span class="other-t"><span class="tt">${o.next.title}</span><span class="dt tnum">${o.next.whenShort} · ${o.next.soon.toLowerCase()}</span></span>
         <${Arrow} />
       </button>` : null}
+    </section>`;
+  }
+
+  // Computers only: what follows the next deadline over the next three weeks, in both roles, so Today's left column isn't empty.
+  function ComingUp(p) {
+    var M = p.M, A = p.A;
+    if (!M.coming.length) return null;
+    return html`<section class="card coming" aria-labelledby="cu-h">
+      <div class="card-head"><h2 id="cu-h" class="card-k">Coming up</h2><span class="count">Next three weeks</span></div>
+      <ol class="rows">${M.coming.map(function (x, ri) {
+        var it = x.it, tg = it.tag || { text: it.label, tone: it.tone };
+        return html`<li key=${it.key} style=${'--i:' + Math.min(ri, 8)}><button class=${'row' + (it.band ? ' b-' + it.band : '')} onClick=${function () { A.openAny(it.key); }}>
+          <span class="dd tnum"><b>${it.day}</b><small>${it.wk}</small></span>
+          <span class="tx"><span class="tt">${it.title}</span><span class="sub tnum">${x.where}${it.range ? ' · ' + it.sub : !it.band || it.band === 'far' ? ' · ' + it.soon : it.time && it.time !== DEFAULT_TIME ? ' · by ' + it.time : ''}</span></span>
+          <span class="tags">${tg.text ? html`<${Tag} text=${tg.text} tone=${tg.tone} />` : null}</span>
+        </button></li>`;
+      })}</ol>
     </section>`;
   }
 
@@ -1059,11 +1101,22 @@
     if (!x.link || !L || !L.join) return null;
     return html`<div class="mh-join"><a class="join" href=${x.link} target="_blank" rel="noopener"><${TeamsIcon} />Join on Teams</a><span>${L.text === 'Live now' ? 'The meeting is on' : 'Opens 30 minutes before'}</span></div>`;
   }
+  // After a meeting, the Member who minutes it sees the minutes deadline here until it passes (Tuesday 17:00).
+  function MinutesDue(p) {
+    var md = p.M.minutesDue, c = md && md.chain[md.chain.length - 1];
+    if (!md || !c || !c.mine) return null;
+    var left = c.at - p.now, soon = left <= 2 * DAY;
+    return html`<button class="nm-min" onClick=${function () { p.A.openAny(md.key); }}>
+      <span class="nm-min-t"><span class="nm-kind">Your minutes</span><b>${md.title}</b><small class="tnum">File the minutes and resolutions by ${c.when}</small></span>
+      <${Tag} text=${left <= DAY ? span(left) + ' left' : 'Due ' + wk(c.day).slice(0, 3)} tone=${soon ? 'u-soon' : 'u-week'} />
+    </button>`;
+  }
   function NextMeet(p) {
     var M = p.M, A = p.A, x = M.nextMeet;
-    if (!x) return null;
+    if (!x) return M.minutesDue ? html`<section class="card nmeet" aria-label="Minutes"><${MinutesDue} M=${M} A=${A} now=${p.now} /></section>` : null;
     var it = x.it, chip = chipFor(x), on = x.live && x.live.join;
     return html`<section class=${'card nmeet' + (on ? ' on' : '')} aria-labelledby="nm-h">
+      <${MinutesDue} M=${M} A=${A} now=${p.now} />
       <div class="card-head"><h2 id="nm-h" class="card-k">${on ? (x.live.text === 'Live now' ? 'Meeting now' : 'Starting soon') : 'Next meeting'}</h2><span class="live-chip" aria-live="polite"><${Tag} text=${chip.text} tone=${chip.tone} /></span></div>
       <button class="nm-main" onClick=${function () { A.openAny(it.key); }}>
         <span class="datebox slate tnum" aria-hidden="true"><span class="d">${it.day}</span><span class="m">${it.mon}</span></span>
@@ -1088,6 +1141,7 @@
       </div>
       <${JoinRow} x=${x} />
       <div class="mh-actions"><${MeetActions} it=${it} A=${p.A} /></div>
+      ${it.links.length ? html`<div class="mh-links"><${LinkRow} links=${it.links} /></div>` : null}
       ${x.chain.length ? html`<${Chain} chain=${x.chain} full=${true} />` : null}
       <div class="mh-sec"><h3>The meeting</h3><p>${x.detail}</p></div>
       ${x.aDetail ? html`<div class="mh-sec"><h3>As an analyst</h3><p>${x.aDetail}</p></div>` : null}
@@ -1309,9 +1363,12 @@
     function names(b) { return own.filter(function (it) { return it.band === b; }).map(function (it) { return it.title; }); }
     function next(list) { return list.filter(function (it) { return it.part === 'lead' && it.type === 'deadline' && !it.past && !isDone(it); })[0]; }
     var lines = ['The Rand Society · update from the ' + m.role + ' (' + m.sector + ' analyst) · ' + M.todayShort, ''];
-    var acc = names('ok').concat(names('min')), sub = names('sub'), rev = names('rev'), nc = names('nc');
+    var acc = names('ok').concat(names('min')), rev = names('rev'), nc = names('nc');
+    var sub = own.filter(function (it) { return it.band === 'sub' && !it.act; }).map(function (it) { return it.title; });
+    var did = own.filter(function (it) { return it.band === 'sub' && it.act; }).map(function (it) { return it.title; });
     if (acc.length) lines.push('Accepted: ' + acc.slice(-3).join('; '));
     if (sub.length) lines.push('Submitted, awaiting review: ' + sub.join('; '));
+    if (did.length) lines.push('Done: ' + did.join('; '));
     if (rev.length) lines.push('Revising: ' + rev.join('; '));
     if (nc.length) lines.push('Not completed, revised date needed: ' + nc.join('; '));
     var ns = next(soc), na = next(ana);
@@ -3855,7 +3912,8 @@
         store('trs-done', JSON.stringify(o));
         clearTimeout(toastT.current);
         toastT.current = setTimeout(function () { set({ toast: null }); }, on ? 9000 : 5000);
-        set({ done: o, toast: { text: on ? 'Marked as submitted' : 'No longer marked as submitted', title: title, key: k, tell: on } });
+        var ti = M.all.concat(M.other.all).filter(function (x) { return x.key === k; })[0], act = !!(ti && ti.act);
+        set({ done: o, toast: { text: on ? (act ? 'Marked as done' : 'Marked as submitted') : (act ? 'No longer marked as done' : 'No longer marked as submitted'), title: title, key: k, tell: on && !act } });
       },
       // one tap: the phone's share sheet (WhatsApp, Teams) with the message ready; elsewhere the message panel
       tellSociety: function (k) {
@@ -4069,11 +4127,11 @@
       var dailyToday = LM && LM.daily ? html`<${DailyCard} key="dqt" LM=${LM} LP=${LP} A=${A} compact=${true} />` : null;
       // meeting time: from 30 minutes before until it ends, the meeting (with Join on Teams) leads Today
       var meetNow = !!(M.nextMeet && M.nextMeet.live && M.nextMeet.live.join);
-      var nxc = html`<${NextCard} key="nx" M=${M} A=${A} />`, nmc = html`<${NextMeet} key="nm" M=${M} A=${A} />`;
+      var nxc = html`<${NextCard} key="nx" M=${M} A=${A} />`, nmc = html`<${NextMeet} key="nm" M=${M} A=${A} now=${st.now} />`;
       content = phone
         ? [changes].concat(meetNow ? [nmc, nxc] : [nxc], [st.showInstall && installWay(st) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
           html`<${Queue} key="q" M=${M} />`], meetNow ? [] : [nmc], [dailyToday])
-        : cols(meetNow ? [nmc, nxc] : [nxc], meetNow ? [html`<${Queue} key="q" M=${M} />`, dailyToday] : [nmc, html`<${Queue} key="q" M=${M} />`, dailyToday], changes ? [html`<div key="chw" class="wide">${changes}</div>`] : []);
+        : cols(meetNow ? [nmc, nxc, html`<${ComingUp} key="cu" M=${M} A=${A} />`] : [nxc, html`<${ComingUp} key="cu" M=${M} A=${A} />`], meetNow ? [html`<${Queue} key="q" M=${M} />`, dailyToday] : [nmc, html`<${Queue} key="q" M=${M} />`, dailyToday], changes ? [html`<div key="chw" class="wide">${changes}</div>`] : []);
     }
 
     var skinPage = tab === 'learn' && SKIN;

@@ -143,6 +143,18 @@ def build(D):
               placeholder='17:00'),
          dict(type='textarea', id='decision', label='Decision on record', description='The minutes or written resolution behind the change.',
               required=True)])
+    files['5-link.yml'] = form(
+        'Add a link', 'A template, agenda, pre-read or minutes on a date, shown in its panel in the app.',
+        'Link',
+        'Adds a link to a date: Members see it as a button in that date\u2019s panel (up to four per date). Use a Google Drive '
+        'share link to the file, kept on Restricted with Members added, so the link opens only for them. Adding a link with a '
+        'label the date already has replaces it. ' + PUBLIC,
+        [dict(type='dropdown', id='item', label='Date to link', options=dates(D), required=True),
+         dict(type='dropdown', id='action', label='Add or remove', options=['Add this link [add]', 'Remove the link with this label [remove]'],
+              default=0, required=True),
+         dict(type='input', id='label', label='Label', description='What the button says, in a few words.', placeholder='Thesis template', required=True),
+         dict(type='input', id='url', label='Link', description='The full address, starting https://. Not needed to remove a link.',
+              placeholder='https://drive.google.com/file/d/…')])
     files['config.yml'] = 'blank_issues_enabled: false\n'
     return files
 

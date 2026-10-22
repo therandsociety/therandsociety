@@ -3,7 +3,7 @@
    whenever the network allows and fall back to the last good copy, so an edit with a typo never blanks the app.
    Opening the app asks the network first and falls back to the saved copy after a few seconds, so a slow or stuck
    connection never leaves Safari waiting until it gives up ("the server stopped responding"). */
-var VERSION = '5b11d32357';
+var VERSION = '79cf8ccb0f';
 var SHELL = ["./", "index.html", "app.css", "app.js", "manifest.webmanifest", "fonts/fonts.css", "fonts/newsreader.woff2", "fonts/plex-sans-400.woff2", "fonts/plex-sans-500.woff2", "fonts/plex-sans-600.woff2", "fonts/plex-sans-700.woff2", "fonts/michroma.woff2", "fonts/fraunces-soft.woff2", "vendor/preact.min.js", "vendor/hooks.umd.js", "vendor/htm.umd.js", "icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 var SHELL_CACHE = 'trs-shell-' + VERSION;
 var DATA_CACHE = 'trs-data';

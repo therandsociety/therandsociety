@@ -47,7 +47,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   navigator.serviceWorker.addEventListener('controllerchange', function () { if (hadSW) window.dispatchEvent(new Event('trs-update')); hadSW = true; });
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
-      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') reg.update().catch(function () {}); });
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && reg && reg.update) reg.update().catch(function () {}); });
     }).catch(function () {});
   });
 }

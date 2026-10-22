@@ -4,14 +4,15 @@ A small installable web app. Members open the link, pick their role once, and ca
 
 ## Recording from your phone
 
-Four forms on GitHub do the common changes without touching `data.json`: open **[the forms](https://github.com/therandsociety/therandsociety/issues/new/choose)** (signed in as the Society's GitHub account) and choose one.
+Five forms on GitHub do the common changes without touching `data.json`: open **[the forms](https://github.com/therandsociety/therandsociety/issues/new/choose)** (signed in as the Society's GitHub account) and choose one.
 
 | Form | What it does |
 |---|---|
 | **Record a result** | Accepted, minor corrections, revision required or not completed, for one or more Members on a deliverable; or clears a record |
 | **Record attendance** | Present, excused or absent for each Member at a meeting that has happened |
 | **Post a notice** | A note on Today or a pop-up shown once per phone, signed by a role; or removes the current notice |
-| **Change a date** | Moves a deadline, meeting or milestone, with the decision on record; a meeting's pre-read moves with it, and a date that runs over several days keeps its length |
+| **Change a date** | Moves a deadline, meeting or milestone, with the decision on record; a meeting's pre-read and the thesis path move with it, a date that runs over several days keeps its length, and the reply lists any wording that still names the old date |
+| **Add a link** | Puts a template, agenda, pre-read or minutes on a date as a button in its panel (up to four per date); or removes one |
 
 Submitting a form opens an issue. Within a minute GitHub checks it against the dates file, writes the change, rebuilds the calendar feeds, replies on the issue with what changed, renames it (for example "Accepted: Capacity map completed · President") and closes it, so the closed issues read as a dated log of every decision. If something doesn't fit (a Member who doesn't lead that deliverable, a meeting that hasn't happened, a meeting moved off a Sunday, a date that isn't real) it replies with the reason, changes nothing and closes the issue. Only issues opened by the Society's account are applied. Issues are public, like this file: use roles, never names.
 
@@ -36,7 +37,7 @@ Each date is one block in the `society` list (Society-role work) or the `analyst
 |---|---|---|
 | `key` | A unique short name. Never reuse one. | `"nov6"` |
 | `date` | The day, written year-month-day. | `"2026-11-06"` |
-| `end` | Last day, for something that runs over several days. Members see "Starts tomorrow", "Runs to Sat 7 Nov" and "Ends today", and it turns solid orange only in its last two days. | `"2026-11-07"` |
+| `end` | Last day, for something that runs over several days. Members see "Starts tomorrow", "Runs to Sat 7 Nov" and "Ends today", and it turns solid orange only in its last two days. Its last day closes at `term.defaultTime` (17:00), like any deadline without a time. | `"2026-11-07"` |
 | `type` | `deadline`, `meeting` (Sunday 17:00 Teams meeting) or `marker` (a term milestone). | `"deadline"` |
 | `time` | A same-day cut-off. | `"17:00"` |
 | `title` | The line members see in the list. | `"Outlines and capacity map"` |
@@ -58,7 +59,7 @@ Each member's pitch cycle is the `cycle` field in the `members` list. Change a m
 
 ### Recording accepted work
 
-Members can mark their own deadlines as submitted (only they see that). When a piece of work passes the quality gate, record it so it turns green for that member, and everyone sees the same truth. Add a `status` to the date, naming each member by role id:
+Members can mark their own deadlines as submitted (only they see that). A deadline with its own lead label, such as "You receive", "You pre-clear" or "Comes to you", is something the Member does rather than hands in: it shows **Mark as done**, with no Hand in or Tell the Society. When a piece of work passes the quality gate, record it so it turns green for that member, and everyone sees the same truth. Add a `status` to the date, naming each member by role id:
 
 ```json
 "status": { "pres": "accepted", "coo": "revise" }
@@ -173,7 +174,7 @@ A bar along the bottom on phones, and a sidebar on computers, switches between f
 
 | Section | What it shows |
 |---|---|
-| **Today** | Your next deadline, the week ahead, the next meeting with its agenda, pre-reads and minutes dates, and "Waiting on you" for reviewers |
+| **Today** | Your next deadline, the week ahead, the next meeting with its agenda, pre-reads and minutes dates, and "Waiting on you" for reviewers. On a computer, **Coming up** lists the next three weeks in both roles. After a meeting, the Member who minutes it sees **Your minutes** until Tuesday 17:00 |
 | **Plan** | The term timeline and every date for the chosen role |
 | **Meetings** | The next meeting in full (who leads, what to prepare), every IC and learning session this term, and your part: your Concept of the Meeting slot and your attendance |
 | **Learn** | The required reading: level, question of the day, both books chapter by chapter, checks, review deck and badges. A new reader sees **How Learn works** first; sound, vibration and the look are under **Settings** |

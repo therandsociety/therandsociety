@@ -241,17 +241,94 @@ def move(D, f):
     if e.get('preread'):
         e['preread'] = (day(e['preread'], 'The pre-read date') + delta).isoformat()
         notes.append('Pre-reads move with it, to ' + nice(day(e['preread'], 'pre-read')) + '.')
+    # the thesis path (cycles) repeats the analyst dates and the Pitch ICs: keep it in step
+    key = e['key']
+    paths = []
+    for c, cy in (D.get('cycles') or {}).items():
+        lc = c.lower()
+        related = key in ('a-brief', 'a-cand') or (lst == 'analyst' and e.get('cycle') == c) or key == 'pic' + lc
+        if not related:
+            continue
+        moved = False
+        for st in cy.get('path', []):
+            if st.get('date') == old.isoformat():
+                st['date'] = new.isoformat(); moved = True
+        if key == 'pic' + lc and cy.get('pitch') == old.isoformat():
+            cy['pitch'] = new.isoformat(); moved = True
+        if moved:
+            paths.append(cy.get('name', 'Cycle ' + c))
+    if paths:
+        notes.append(('The thesis path for ' + paths[0] + ' moves' if len(paths) == 1 else 'The thesis paths for ' + ' and '.join(paths) + ' move') + ' with it.')
+    # wording elsewhere that still names the old date, such as "15 Jan" in a scorecard or a role's list
+    olds = [str(old.day) + ' ' + old.strftime('%b'), str(old.day) + ' ' + old.strftime('%B')]
+    hits = []
+    def scan(x, where):
+        if isinstance(x, dict):
+            for k2, v in x.items():
+                if k2 not in ('date', 'end', 'preread', 'pitch'):
+                    scan(v, where + '.' + k2 if where else k2)
+        elif isinstance(x, list):
+            for i, v in enumerate(x):
+                scan(v, where + '[' + str(i) + ']')
+        elif isinstance(x, str) and any(re.search(r'(?<!\d)' + re.escape(o) + r'\b', x) for o in olds):
+            hits.append(place(where) + ': “' + x + '”')
+    def place(where):
+        """members[0].owns[1].when -> 'Head of Research, What you own (Financials theme primer)'"""
+        m = re.match(r'members\[(\d+)\]\.owns\[(\d+)\]', where)
+        if m:
+            mm = D['members'][int(m[1])]
+            return role(mm) + ', What you own (' + mm['owns'][int(m[2])].get('name', '') + ')'
+        m = re.match(r'analystScorecard\[(\d+)\]', where)
+        if m:
+            return 'Analyst scorecard (' + D['analystScorecard'][int(m[1])].get('name', '') + ')'
+        return '`' + where + '`'
+    scan({k: v for k, v in D.items() if k not in ('_readme',)}, '')
     T = D.get('term', {})
     if T.get('start') and T.get('close') and not (day(T['start'], 'term.start') <= new <= day(T['close'], 'term.close')):
         notes.append('The new date is outside the term (' + T['start'] + ' to ' + T['close'] + ').')
     title = 'Moved: ' + e['title'] + ' · now ' + new.strftime('%a ') + str(new.day) + new.strftime(' %b')
     comment = ('**' + e['title'] + '** moves from ' + nice(old) + ' to ' + nice(new) + (', closing at ' + t if t else '') + '.\n\n'
                + (' '.join(notes) + '\n\n' if notes else '')
-               + 'Decision on record: ' + decision + '\n\nMembers see “Dates changed since your last visit” on their next visit, and calendars catch up on their next refresh. Dates that depend on this one are unchanged: move them with their own forms if the decision says so.')
+               + 'Decision on record: ' + decision + '\n\nMembers see “Dates changed since your last visit” on their next visit, and calendars catch up on their next refresh. Dates that depend on this one are unchanged: move them with their own forms if the decision says so.'
+               + ('\n\nThese lines in data.json still mention ' + olds[0] + '; edit them if they mean this date:\n' + '\n'.join('- ' + h for h in hits[:8]) if hits else ''))
     return title, comment
 
 
-FORMS = [({'Deliverable', 'Result'}, result), ({'Meeting'}, attendance), ({'What to do', 'Message'}, notice), ({'Date to change', 'New date'}, move)]
+def link(D, f):
+    lst, e = find(D, one(f.get('Date to link'), 'date'))
+    act = one(f.get('Add or remove'), 'action')
+    label = re.sub(r'\s+', ' ', f.get('Label', '')).strip()
+    if not label:
+        raise Stop('Give the link a label, such as Thesis template.')
+    if len(label) > 40:
+        raise Stop('Keep the label to 40 characters or fewer; it becomes a button.')
+    links = [l for l in (e.get('links') or []) if isinstance(l, dict)]
+    same = [l for l in links if l.get('label', '').lower() == label.lower()]
+    if act == 'remove':
+        if not same:
+            raise Stop('“' + e['title'] + '” has no link called “' + label + '”.')
+        links = [l for l in links if l not in same]
+        if links:
+            e['links'] = links
+        else:
+            e.pop('links', None)
+        return 'Link removed: ' + label + ' · ' + e['title'], 'The link **' + label + '** is removed from “' + e['title'] + '”.'
+    url = f.get('Link', '').strip()
+    if not re.fullmatch(r'https://\S+', url):
+        raise Stop('The link must be a full address starting https://.')
+    if not same and len(links) >= 4:
+        raise Stop('“' + e['title'] + '” already has four links, the most the app shows. Remove one first.')
+    if same:
+        same[0]['url'] = url; same[0]['label'] = label
+    else:
+        links.append({'label': label, 'url': url})
+    e['links'] = links
+    return ('Link: ' + label + ' · ' + e['title'],
+            '**' + label + '** is linked on “' + e['title'] + '” (' + nice(day(e['date'], 'date')) + ')' + (', replacing the old address' if same else '') + '.\n\n'
+            'Members see it as a button in that date\u2019s panel within a few minutes. Check the file is shared with the Members, or the button opens a request for access.')
+
+
+FORMS = [({'Deliverable', 'Result'}, result), ({'Meeting'}, attendance), ({'What to do', 'Message'}, notice), ({'Date to change', 'New date'}, move), ({'Date to link', 'Label'}, link)]
 
 
 def apply(D, body):
@@ -259,7 +336,7 @@ def apply(D, body):
     for need, fn in FORMS:
         if need <= set(f):
             return fn(D, f)
-    raise Stop('This doesn’t look like one of the Society’s forms. Open a new issue and choose Record a result, Record attendance, Post a notice or Change a date.')
+    raise Stop('This doesn’t look like one of the Society’s forms. Open a new issue and choose Record a result, Record attendance, Post a notice, Change a date or Add a link.')
 
 
 def check(D):
@@ -273,6 +350,9 @@ def check(D):
             for r, v in (e.get('status') or {}).items():
                 if r not in ids or v not in ('accepted', 'minor', 'revise', 'incomplete'):
                     raise Stop(e['key'] + ': a result is not valid.')
+            for l in (e.get('links') or []):
+                if not (isinstance(l, dict) and l.get('label') and re.fullmatch(r'https://\S+', l.get('url', ''))):
+                    raise Stop(e['key'] + ': a link needs a label and a full https:// address.')
             for r, v in (e.get('attendance') or {}).items():
                 if r not in ids or v not in ATTEND_WORD:
                     raise Stop(e['key'] + ': an attendance entry is not valid.')

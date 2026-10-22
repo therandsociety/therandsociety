@@ -946,6 +946,7 @@
       "date": "2027-02-09",
       "type": "deadline",
       "title": "Review comments back",
+      "leadLabel": "Comes to you",
       "detail": "Comments come back with written reasons. Address each one or give reasoned written disagreement.",
       "who": "all"
     },
@@ -980,6 +981,7 @@
       "date": "2027-02-15",
       "type": "deadline",
       "title": "Review comments back",
+      "leadLabel": "Comes to you",
       "detail": "Comments come back with written reasons. Address each one or give reasoned written disagreement.",
       "who": "all"
     },
