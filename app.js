@@ -684,7 +684,7 @@
         ${it.band === 'ok' ? html`<div class="mark"><span class="tag ok">Accepted</span><span>Recorded by the Society after quality review.</span></div>`
           : it.band === 'min' ? html`<div class="mark"><span class="tag okm">Minor corrections</span><span>Accepted subject to minor corrections. Correct and file by the stated date.</span></div>`
           : it.part === 'lead' && it.type === 'deadline' ? html`<div class="mark">
-            ${p.submit && it.band !== 'nc' && !it.act ? html`<a class="link-btn hand-btn" href=${p.submit} target="_blank" rel="noopener" onClick=${function (ev) { p.A.handIn(ev); }}>Hand in on Drive<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}
+            ${p.submit && it.band !== 'nc' && !it.act ? html`<a class="link-btn hand-btn" href=${p.submit} target="_blank" rel="noopener">Hand in on Drive<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}
             <button class=${'mark-btn' + (it.submitted ? ' on' : '')} aria-pressed=${it.submitted ? 'true' : 'false'} onClick=${function () { p.toggleDone(it.key, it.title); }}>${it.submitted ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>${it.act ? 'Done' : 'Submitted'}` : it.act ? 'Mark as done' : 'Mark as submitted'}</button>
             ${it.submitted && !it.act ? html`<button class="link-btn tell-btn" onClick=${function () { p.A.tellSociety(it.key); }}><${Ico} n="send" s=${15} w=${2} />Tell the Society</button>` : null}
             <span>${it.band === 'rev' ? (it.submitted ? 'You marked the revised version as submitted. It stays here until the Society records the outcome.' : 'The reviewer asked for changes. Mark it once you resubmit.')
@@ -768,7 +768,7 @@
         <span class="next-text"><span class="next-title">${n.title}</span><span class="next-meta"><${Tag} text=${n.tag.text} tone=${n.tag.tone} /><span class="tnum">${n.whenShort}</span></span></span>
       </button>` : html`<p class="next-empty">Nothing else is dated for you in this view.</p>`}
       ${n && L && L.join && joinLink(n) ? html`<div class="next-act"><a class="join" href=${joinLink(n)} target="_blank" rel="noopener"><${TeamsIcon} />Join on Teams</a><span>${L.text === 'Live now' ? 'The meeting is on' : 'Opens 30 minutes before'}</span></div>` : null}
-      ${canMark ? html`<div class="next-act">${M.submit && n.band !== 'nc' && !n.act ? html`<a class="link-btn hand-btn" href=${M.submit} target="_blank" rel="noopener" onClick=${function (ev) { A.handIn(ev); }} aria-label="Hand in on the Society’s Google Drive (opens Drive)">Hand in<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}<button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>${n.act ? 'Mark as done' : 'Mark as submitted'}</button>${ck ? html`<button class="ck-chip" onClick=${function () { A.openItem(n.key); }} aria-label=${'Readiness checklist, ' + ck.done + ' of ' + ck.total + ' ticked'}><span class="ck-ring" style=${'--p:' + Math.round(100 * ck.done / ck.total)} aria-hidden="true"></span>Checklist ${ck.done}/${ck.total}</button>` : M.submit && !n.act ? null : html`<span>Only you see this</span>`}</div>` : null}
+      ${canMark ? html`<div class="next-act">${M.submit && n.band !== 'nc' && !n.act ? html`<a class="link-btn hand-btn" href=${M.submit} target="_blank" rel="noopener" aria-label="Hand in on the Society’s Google Drive (opens Drive)">Hand in<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}<button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>${n.act ? 'Mark as done' : 'Mark as submitted'}</button>${ck ? html`<button class="ck-chip" onClick=${function () { A.openItem(n.key); }} aria-label=${'Readiness checklist, ' + ck.done + ' of ' + ck.total + ' ticked'}><span class="ck-ring" style=${'--p:' + Math.round(100 * ck.done / ck.total)} aria-hidden="true"></span>Checklist ${ck.done}/${ck.total}</button>` : M.submit && !n.act ? null : html`<span>Only you see this</span>`}</div>` : null}
       ${M.today.length ? html`<ul class="today" aria-label="Also today">${M.today.map(function (x) {
         var it = x.it, link = joinLink(it);
         return html`<li key=${it.key}>
@@ -1049,7 +1049,6 @@
     send: html`<path d="M21 3 10.5 13.5"></path><path d="M21 3l-6.5 18-4-7.5L3 9.5z"></path>`,
     idea: html`<path d="M9.5 18h5M10.5 21h3"></path><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2v.5h5V16c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"></path>`,
     flag: html`<path d="M5.5 21V4"></path><path d="M5.5 4.5h11.5l-2.3 4.3 2.3 4.2H5.5"></path>`,
-    globe: html`<circle cx="12" cy="12" r="8.5"></circle><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5z"></path>`,
     sliders: html`<path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle>`
   };
   function Ico(p) {
@@ -1397,88 +1396,6 @@
       <button class="m-act" onClick=${function () { A.openApology(it); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.4 7.6L3.5 21l1.4-4.8A8.5 8.5 0 1 1 21 12z"></path><path d="M9 9.5l6 5M15 9.5l-6 5"></path></svg>Can’t attend</button>
     </div>`;
   }
-  // Opening the Society Drive on a phone: a web page can't make the phone ask which app to use, so the app asks once (Drive
-  // app or browser), remembers the answer on this phone, and opens the Drive app directly: on iPhone through the app's
-  // googledrive:// link, on Android through an intent that falls back to the browser when the app isn't there.
-  var UA = navigator.userAgent || '';
-  function isAndroid() { return /Android/i.test(UA); }
-  function mobileOS() { return isIOS() || isAndroid(); }
-  function browserName() {
-    if (isIOS()) return /CriOS/.test(UA) ? 'Chrome' : /FxiOS/.test(UA) ? 'Firefox' : /EdgiOS/.test(UA) ? 'Edge' : 'Safari';
-    return /SamsungBrowser/.test(UA) ? 'Samsung Internet' : /Firefox\//.test(UA) ? 'Firefox' : /EdgA/.test(UA) ? 'Edge' : 'Chrome';
-  }
-  function driveWhere() {
-    var pref = mobileOS() ? read('trs-drive-open') : '';
-    return 'Where you hand in your work' + (pref === 'app' ? ' · opens in the Drive app' : pref === 'web' ? ' · opens in ' + browserName() : pref === 'gbox' ? ' · steps for Drive in GBox' : '');
-  }
-  function navTo(u) { if (window.TRS_TEST && window.TRS_TEST.nav) { window.TRS_TEST.nav(u); return; } window.location.href = u; }
-  function openWeb(url) { if (window.TRS_TEST && window.TRS_TEST.nav) { window.TRS_TEST.nav('web:' + url); return; } window.open(url, '_blank', 'noopener'); }
-  // If the Drive app can't be reached on Android (on Huawei phones it lives inside GBox, where Android can't see it),
-  // the browser comes back here with #drive-help and the app explains how to reach the folder instead.
-  function driveHelpUrl() { return String(location.href).replace(/#.*$/, '') + '#drive-help'; }
-  // must run inside the tap itself: phones only open another app from a user's tap
-  function openDrive(how, url, didntOpen) {
-    if (how === 'app' && isAndroid()) {
-      navTo('intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.google.android.apps.docs;S.browser_fallback_url=' + encodeURIComponent(driveHelpUrl()) + ';end');
-      return;
-    }
-    if (how === 'app' && isIOS()) {
-      navTo('googledrive://' + url);
-      // the page stays in view only if the app didn't open (not installed): offer the browser instead
-      setTimeout(function () { if (document.visibilityState === 'visible' && didntOpen) didntOpen(); }, 1800);
-      return;
-    }
-    openWeb(url);
-  }
-  function DriveSheet(p) {
-    var r = useState(true), remember = r[0], setRemember = r[1], cur = p.cur;
-    function pick(how) { p.choose(how, remember); }
-    function opt(how, title, sub) {
-      return html`<button class=${'drv-opt' + (cur === how ? ' on' : '')} onClick=${function () { pick(how); }}>
-        <span class="g-ic" aria-hidden="true"><${Ico} n=${how === 'web' ? 'globe' : how === 'gbox' ? 'phone' : 'file'} s=${20} /></span>
-        <span class="g-t"><b>${title}</b><small>${sub}</small></span>
-        ${cur === how ? html`<span class="drv-cur">Current</span>` : html`<${Arrow} />`}
-      </button>`;
-    }
-    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Open the Society Drive">
-      <div class="sheet-head"><span class="when">Hand in your work</span><${CloseBtn} onClose=${p.onClose} /></div>
-      <div class="sheet-body">
-        <h2 class="sheet-title">Open the Society Drive in</h2>
-        <div class="drv-opts">
-          ${opt('app', 'The Google Drive app', 'If it’s on this phone. Uploads straight from Files or Photos.')}
-          ${isAndroid() ? opt('gbox', 'Google Drive in GBox', 'Huawei phones: links can’t open GBox apps, so this shows the quick way in.') : null}
-          ${opt('web', browserName(), 'Opens the folder in the browser; sign in with your Google account if asked.')}
-        </div>
-        <label class="drv-rem"><input type="checkbox" checked=${remember} onChange=${function (e) { setRemember(e.currentTarget.checked); }} /><span>Remember on this phone. Change it any time under You, Society Drive.</span></label>
-      </div>
-    </${Sheet}>`;
-  }
-
-  // Google Drive inside GBox (Huawei): no link can open it, so the way in, the folder link to copy, and the browser.
-  function GboxSheet(p) {
-    var pr = useState(p.pref), pref = pr[0], setPref = pr[1];
-    function next(how) { setPref(how); p.setPref(how); }
-    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Open the Society Drive from Google Drive">
-      <div class="sheet-head"><span class="when">Hand in your work</span><${CloseBtn} onClose=${p.onClose} /></div>
-      <div class="sheet-body">
-        <h2 class="sheet-title">Open Drive from your home screen</h2>
-        <p class="share-note">${p.auto ? 'The Google Drive app didn’t open from the link. ' : ''}On Huawei phones Google apps run inside GBox, where links from other apps can’t reach them. Open the folder from Drive instead:</p>
-        <ol class="gbx-steps">
-          <li>Open <b>Google Drive</b> from your home screen.</li>
-          <li>Tap <b>Shared</b>, then the Society’s folder.</li>
-          <li>Tap <b>+</b>, then <b>Upload</b>, and choose your file.</li>
-          <li>Come back here and tap <b>Mark as submitted</b>.</li>
-        </ol>
-        <p class="gbx-tip">Star the folder once (<b>⋮</b>, then <b>Add to Starred</b>) and it waits under Starred.</p>
-        <div class="share-btns"><button class="share-btn" onClick=${p.web}>Or open it in ${browserName()}</button></div>
-        <div class="gbx-next" role="group" aria-label="Next time you tap Hand in">
-          <span>Next time Hand in</span>
-          <div class="seg"><button aria-pressed=${pref === 'gbox' ? 'true' : 'false'} onClick=${function () { next('gbox'); }}>Shows these steps</button><button aria-pressed=${pref === 'web' ? 'true' : 'false'} onClick=${function () { next('web'); }}>Opens ${browserName()}</button></div>
-        </div>
-      </div>
-    </${Sheet}>`;
-  }
-
   // A message ready to send: edit it, then share it, open WhatsApp or email, or copy it.
   function ShareSheet(p) {
     var s = useState(p.text), t = s[0], setT = s[1], c = useState(false), copied = c[0], setCopied = c[1], ref = useRef(null);
@@ -1657,7 +1574,7 @@
         ${row('cal', 'bell', 'Calendar reminders', 'Apple, Google, Outlook or Huawei', A.openCal)}
         ${row('sr', 'search', 'Search', 'Any date, meeting or rule', A.openSearch)}
         ${inst ? row('in', 'phone', 'Install the app', inst.v, inst.go) : null}
-        ${M.submit ? html`<li key="dr"><a class="grow" href=${M.submit} target="_blank" rel="noopener" onClick=${function (ev) { A.handIn(ev, true); }}><span class="g-ic" aria-hidden="true"><${Ico} n="file" s=${20} /></span><span class="g-t"><b>Society Drive</b><small>${driveWhere()}</small></span><${Arrow} /></a></li>` : null}
+        ${M.submit ? html`<li key="dr"><a class="grow" href=${M.submit} target="_blank" rel="noopener"><span class="g-ic" aria-hidden="true"><${Ico} n="file" s=${20} /></span><span class="g-t"><b>Society Drive</b><small>Where you hand in your work</small></span><${Arrow} /></a></li>` : null}
         ${row('fb', 'idea', 'Suggest an improvement', 'A message to the President, ready to send', function () { A.openFeedback('idea'); })}
         ${row('bug', 'flag', 'Report a problem', 'Sent with your role, phone and app version', function () { A.openFeedback('bug'); })}
         ${row('src', 'file', 'Where the dates come from', M.term.source + (M.updated ? '. Updated ' + M.updated + '.' : '.'), null)}
@@ -3884,13 +3801,8 @@
     }
     loadRef.current = load;
 
-    // back from an Android link the Drive app couldn't take: explain the way in (after the role picker on a first visit)
-    function driveHelpBack() {
-      try { history.replaceState(history.state, '', location.pathname + location.search); } catch (e) { /* not allowed here */ }
-      set(function (prev) { return prev.sheet && prev.sheet.first ? {} : { sheet: { kind: 'gbox', auto: true } }; });
-    }
     useEffect(function () {
-      if (location.hash === '#drive-help') driveHelpBack();
+      try { localStorage.removeItem('trs-drive-open'); } catch (e) { /* storage unavailable */ } // an old Drive-app choice, no longer used
       load(true);
       // the reading programme loads alongside the dates; Learn and the question of the day wait for it, nothing else does
       loadLearn().then(function (raw) { set({ LP: learnPrep(raw), learnErr: '' }); }).catch(function (e) { set({ learnErr: e && e.message ? e.message : 'unknown error' }); });
@@ -3910,7 +3822,6 @@
       function onMq() { set({ phone: isPhone() }); }
       if (phoneQuery) { if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', onMq); else if (phoneQuery.addListener) phoneQuery.addListener(onMq); }
       function onHash() {
-        if (location.hash === '#drive-help') { driveHelpBack(); return; }
         var t = tabFromHash();
         if (t) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* not allowed here */ } if (aRef.current) aRef.current.goTab(t); return; }
         set(function (prev) {
@@ -4134,27 +4045,6 @@
         if (typeof navigator.share === 'function' && st.phone) { try { navigator.share({ text: text }).catch(function () {}); return; } catch (e) { /* fall through */ } }
         set({ sheet: { kind: 'share', title: 'Send your pitch feedback', kicker: 'To ' + to, subject: text.split('\n')[0], text: text, rows: 10, note: 'Send it to ' + to + '. Edit it first if you like.' } });
       },
-      // Hand in: on a phone, the Drive app or the browser, as the member chose; "ask" (from You) always shows the choice
-      handIn: function (ev, ask) {
-        if (!mobileOS() || !P.submit) return;
-        if (ev) ev.preventDefault();
-        var pref = read('trs-drive-open');
-        if (pref === 'gbox' && !ask) { set({ sheet: { kind: 'gbox', back: st.sheet && st.sheet.kind !== 'gbox' ? st.sheet : null } }); return; }
-        if ((pref === 'app' || pref === 'web') && !ask) { openDrive(pref, P.submit, A.driveDidntOpen); return; }
-        set({ sheet: { kind: 'drive', back: st.sheet && st.sheet.kind !== 'drive' ? st.sheet : null } });
-      },
-      chooseDrive: function (how, remember) {
-        if (remember) store('trs-drive-open', how); else { try { localStorage.removeItem('trs-drive-open'); } catch (e) { /* storage unavailable */ } }
-        var back = st.sheet && st.sheet.back;
-        if (how === 'gbox') { set({ sheet: { kind: 'gbox', back: back || null } }); return; }
-        set({ sheet: back || null });
-        openDrive(how, P.submit, A.driveDidntOpen);
-      },
-      setDrivePref: function (how) { store('trs-drive-open', how); set(function (prev) { return { learnTick: prev.learnTick + 1 }; }); },
-      driveDidntOpen: function () {
-        clearTimeout(toastT.current); toastT.current = setTimeout(function () { set({ toast: null }); }, 9000);
-        set({ toast: { text: 'The Drive app didn’t open.', title: '', key: '', act: { label: 'Open in ' + browserName(), go: function () { set({ toast: null }); openWeb(P.submit); } } } });
-      },
       backupSaved: function () { var o = readMap('trs-backup'); o[M.m.id] = Date.now(); store('trs-backup', JSON.stringify(o)); set(function (prev) { return { learnTick: prev.learnTick + 1 }; }); },
       backupLater: function () { var o = readMap('trs-backup-later'); o[M.m.id] = Date.now(); store('trs-backup-later', JSON.stringify(o)); set(function (prev) { return { learnTick: prev.learnTick + 1 }; }); },
       hideHow: function () { store('trs-learn-how', '1'); set({ howOpen: false }); },
@@ -4247,11 +4137,6 @@
       sheet = html`<${CalSheet} key="cal" phone=${st.phone} m=${M.m} calBase=${calBase} android=${/Android/i.test(navigator.userAgent || '')} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'member') {
       sheet = html`<${MemberSheet} key="member" phone=${st.phone} members=${P.members} mi=${M.mi} first=${!!st.sheet.first} pick=${A.pick} onClose=${st.sheet.first ? function () {} : A.close} />`;
-    } else if (st.sheet && st.sheet.kind === 'drive' && P.submit) {
-      sheet = html`<${DriveSheet} key="drive" phone=${st.phone} cur=${read('trs-drive-open') || ''} choose=${A.chooseDrive} onClose=${function () { set({ sheet: st.sheet.back || null }); }} />`;
-    } else if (st.sheet && st.sheet.kind === 'gbox' && P.submit) {
-      sheet = html`<${GboxSheet} key="gbox" phone=${st.phone} url=${P.submit} auto=${!!st.sheet.auto} pref=${read('trs-drive-open') || ''} setPref=${A.setDrivePref}
-        web=${function () { openWeb(P.submit); }} onClose=${function () { set({ sheet: st.sheet.back || null }); }} />`;
     } else if (st.sheet && st.sheet.kind === 'pitch' && M.pitch && M.pitch.key === st.sheet.meeting) {
       var pp = P.members.filter(function (x) { return x.id === st.sheet.pres; })[0];
       if (pp) sheet = html`<${PitchSheet} key=${'pitch' + pp.id} phone=${st.phone} T=${M.pitch} pres=${pp} me=${M.m} send=${A.sendPitch} onClose=${A.close} />`;
@@ -4358,7 +4243,7 @@
       <${Footer} M=${M} A=${A} st=${st} />
       ${phone ? html`<${TabBar} M=${M} A=${A} tab=${tab} />` : null}
       ${st.updateReady && !st.toast && !inCheck ? html`<div class="toast" role="status"><span><b>A new version is ready</b></span><button onClick=${function () { location.reload(); }}>Refresh</button></div>` : null}
-      ${st.toast && !inCheck ? html`<div class=${'toast' + (st.toast.tell ? ' two' : '')} role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span>${st.toast.act ? html`<button onClick=${st.toast.act.go}>${st.toast.act.label}</button>` : st.toast.info ? null
+      ${st.toast && !inCheck ? html`<div class=${'toast' + (st.toast.tell ? ' two' : '')} role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span>${st.toast.info ? null
         : st.toast.tell ? html`<span class="t-btns"><button class="t-tell" onClick=${function () { A.tellSociety(st.toast.key); }}>Tell the Society</button><button onClick=${A.undo}>Undo</button></span>`
         : html`<button onClick=${A.undo}>Undo</button>`}</div>` : null}
       ${sheet}
