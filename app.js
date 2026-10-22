@@ -119,6 +119,8 @@
     if (!raw || !Array.isArray(raw.members) || !raw.members.length || !Array.isArray(raw.society)) throw new Error('The dates file has no members or Society dates.');
     var T = raw.term || {}, term = { name: T.name || 'H1', source: T.source || '', defaultTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(T.defaultTime || '') ? T.defaultTime : '' };
     DEFAULT_TIME = term.defaultTime;
+    // the share of meetings each Member attends (Constitution 2.6): 70% unless term.attendance says otherwise
+    term.attendance = typeof T.attendance === 'number' && T.attendance > 0 && T.attendance <= 100 ? T.attendance : 70;
     ['start', 'protectedEnd', 'resume', 'recessStart', 'recessEnd', 'fullProduction', 'close'].forEach(function (k) {
       term[k] = parseDay(T[k]);
       if (isNaN(term[k])) throw new Error('term.' + k + ' must be a YYYY-MM-DD date.');
@@ -168,16 +170,20 @@
   function item(e, m, title, detail, part, label, tone, isKey) {
     return { key: e.key, ms: e.ms, endMs: e.endMs, range: e.range, type: e.type, time: e.time || '', ic: e.ic || 0,
       title: fill(title, m), detail: fill(detail, m), part: part, label: label, tone: tone, isKey: isKey, people: [],
-      timeSet: e.timeSet || '', status: (e.status && e.status[m.id]) || '', link: /^https:\/\//.test(e.link || '') ? e.link : '', links: links(e.links), preread: e.preread || '' };
+      timeSet: e.timeSet || '', status: (e.status && e.status[m.id]) || '', link: /^https:\/\//.test(e.link || '') ? e.link : '', links: links(e.links), preread: e.preread || '',
+      concept: e.concept || '', attendance: e.attendance || null };
   }
   // Who leads and supports, in Society-role names, for the detail panel.
-  function people(P, e, everyone) {
+  function people(P, e, everyone, me) {
     var lead = [], sup = [];
     P.members.forEach(function (x) { var r = e.roles[x.id]; if (r === 'lead') lead.push(x.roleShort || x.role); else if (r === 'support') sup.push(x.roleShort || x.role); });
     var out = [];
     if (lead.length) out.push({ k: 'Leads', v: lead.length === P.members.length ? 'Every Member' : lead.join(', ') });
     if (sup.length) out.push({ k: 'Supports', v: sup.join(', ') });
     if (everyone) out.push({ k: 'Attends', v: 'All Members' });
+    // Concept of the Meeting: a five-to-ten-minute segment, one per Member across the full ICs
+    var cm = e.concept && P.members.filter(function (x) { return x.id === e.concept; })[0];
+    if (cm) out.push({ k: 'Concept', v: cm.id === me ? 'You present it' : cm.roleShort || cm.role });
     return out;
   }
 
@@ -193,7 +199,7 @@
         else if (e.who === 'some') { label = 'If writing'; }
         else if (e.type === 'meeting') { label = 'Meeting'; tone = 'meet'; }
         var it = item(e, m, by(e.titleBy, id, e.title), by(e.detailBy, id, e.detail), part, label, tone, e.type === 'meeting' || part === 'lead' || e.who === 'some');
-        it.people = e.type === 'marker' ? [] : people(P, e, e.type === 'meeting');
+        it.people = e.type === 'marker' ? [] : people(P, e, e.type === 'meeting', id);
         items.push(it);
       });
       return items;
@@ -206,16 +212,18 @@
       var lead = part === 'lead';
       var it = item(e, m, by(e.titleBy, id, e.title), by(e.detailBy, id, e.detail), part,
         by(e.labelBy, id, lead ? (e.leadLabel || 'Due') : (e.supportLabel || 'You support')), lead ? 'lead' : 'support', lead);
-      it.people = e.who === 'all' ? [{ k: 'Applies to', v: 'Every analyst' }] : people(P, e, false);
+      it.people = e.who === 'all' ? [{ k: 'Applies to', v: 'Every analyst' }] : people(P, e, false, id);
       items.push(it);
     });
     P.society.forEach(function (e) {
       if (e.type === 'meeting') {
         var note = P.analystMeetings[e.key];
         if (note && note.cycle && note.cycle !== cyc) note = null;
-        var pitch = !!(note && note.label);
-        var mt = item(e, m, (note && note.title) || e.title, (note && note.detail) || e.detail, pitch ? 'lead' : null, pitch ? note.label : 'Meeting', pitch ? 'lead' : 'meet', true);
-        mt.people = people(P, e, true);
+        var pitch = !!(note && note.label), mine = e.concept === id;
+        var det = ((note && note.detail) || e.detail || '') + (mine ? ' You present the Concept of the Meeting: five to ten minutes, with a one-page brief or slide.' : '');
+        var lab = pitch ? note.label + (mine ? ' · concept' : '') : mine ? 'Your concept' : 'Meeting';
+        var mt = item(e, m, (note && note.title) || e.title, det, pitch || mine ? 'lead' : null, lab, pitch || mine ? 'lead' : 'meet', true);
+        mt.people = people(P, e, true, id);
         items.push(mt);
       } else if (e.type === 'marker' && e.who === 'all') {
         items.push(item(e, m, e.title, e.detail, null, '', 'quiet', false));
@@ -232,7 +240,7 @@
   }
   function decorate(it, asOf) {
     var n = Math.round((it.ms - asOf) / DAY), nEnd = Math.round((it.endMs - asOf) / DAY);
-    it.n = n; it.past = nEnd < 0; it.current = n <= 0 && nEnd >= 0;
+    it.n = n; it.nEnd = nEnd; it.past = nEnd < 0; it.current = n <= 0 && nEnd >= 0;
     it.soon = it.current ? (it.range ? 'Now' : 'Today') : it.past ? 'Passed' : n === 1 ? 'Tomorrow' : 'In ' + n + ' days';
     var s = D(it.ms);
     it.day = s.getUTCDate(); it.wk = wk(it.ms).slice(0, 3); it.mon = mon(it.ms);
@@ -246,6 +254,7 @@
     return it;
   }
 
+  var ATT_WORD = { present: 'attended', absent: 'absent', excused: 'excused (approved absence)', wait: 'awaiting record', up: 'to come' };
   // Option B, "calm until it matters": only your own deadlines get colour, and only when they are close.
   //   far  (8+ days)  navy as usual        week (3-7 days) soft orange      soon (0-2 days) solid orange
   //   sub  you marked it submitted (this phone)    ok  the Society recorded it accepted    rev  revision needed
@@ -260,7 +269,14 @@
     if (it.status === 'incomplete') return 'nc';
     if (it.submitted) return 'sub';
     if (it.past) return since && it.ms >= since ? 'gap' : 'past';
+    // a deadline that runs over several days stays calm while it runs and turns solid orange in its last two days
+    if (it.range) return it.nEnd <= 2 ? 'soon' : it.n <= 7 ? 'week' : 'far';
     return it.n <= 2 ? 'soon' : it.n <= 7 ? 'week' : 'far';
+  }
+  // "Starts tomorrow", "Runs to Fri 11 Dec", "Ends today" for deadlines that run over several days
+  function rangeTag(it) {
+    if (it.current) return it.nEnd === 0 ? 'Ends today' : 'Runs to ' + wk(it.endMs).slice(0, 3) + ' ' + dShort(it.endMs);
+    return it.n === 1 ? 'Starts tomorrow' : 'Starts in ' + it.n + ' days';
   }
   function isDone(it) { return it.band === 'ok' || it.band === 'sub' || it.band === 'min'; }
   function stateTag(it) {
@@ -270,8 +286,8 @@
       case 'rev': return { text: 'Revision needed', tone: 'u-week' };
       case 'min': return { text: 'Minor corrections', tone: 'okm' };
       case 'nc': return { text: 'Not completed', tone: 'u-soon' };
-      case 'soon': return { text: it.current ? 'Due today' : it.n === 1 ? 'Due tomorrow' : 'Due in ' + it.n + ' days', tone: 'u-soon' };
-      case 'week': return { text: 'Due in ' + it.n + ' days', tone: 'u-week' };
+      case 'soon': return { text: it.range ? rangeTag(it) : it.current ? 'Due today' : it.n === 1 ? 'Due tomorrow' : 'Due in ' + it.n + ' days', tone: 'u-soon' };
+      case 'week': return { text: it.range ? rangeTag(it) : 'Due in ' + it.n + ' days', tone: 'u-week' };
       case 'gap': return { text: it.closed ? it.soon : 'Not marked', tone: 'quiet' };
       case 'past': return { text: it.closed ? it.soon : 'Passed', tone: 'quiet' };
       default: return { text: it.label, tone: it.tone };
@@ -437,6 +453,33 @@
       { v: String(stat3.v), l: stat3.l }
     ];
 
+    // Attendance and the Concept of the Meeting, from each meeting's "attendance" record and "concept" slot. Every meeting
+    // counts; an approved absence ("excused") leaves the count, and a meeting not yet recorded waits.
+    var req = T.attendance, att = { present: 0, absent: 0, excused: 0, wait: 0, up: 0, dots: [], slot: null };
+    P.society.forEach(function (e) {
+      if (e.type !== 'meeting') return;
+      var a = e.attendance && e.attendance[m.id], ended = atSAST(e.ms, '18:30') <= now;
+      var s = a === 'present' || a === 'absent' || a === 'excused' ? a : ended ? 'wait' : 'up';
+      att[s]++;
+      att.dots.push({ key: e.key, s: s, d: D(e.ms).getUTCDate(), mon: mon(e.ms), label: e.title + ', ' + wk(e.ms) + ' ' + dMonth(e.ms) + ': ' + ATT_WORD[s] });
+      if (e.concept === m.id && !att.slot) {
+        var n = Math.round((e.ms - asOf) / DAY);
+        att.slot = { key: e.key, ic: e.ic || 0, title: e.title, short: (e.ic ? 'IC ' + e.ic : e.title) + ' · ' + wk(e.ms).slice(0, 3) + ' ' + dShort(e.ms),
+          when: wk(e.ms) + ' ' + dMonth(e.ms) + ', 17:00',
+          tag: !ended ? { text: n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : 'In ' + n + ' days', tone: n <= 0 ? 'now' : n <= 7 ? 'u-week' : 'when' }
+            : s === 'present' ? { text: 'Presented', tone: 'ok' } : s === 'wait' ? { text: 'Awaiting record', tone: 'quiet' } : { text: 'To rearrange', tone: 'u-week' } };
+      }
+    });
+    att.req = req; att.held = att.present + att.absent; att.pct = att.held ? Math.round(100 * att.present / att.held) : null;
+    att.count = att.held ? att.present + ' of ' + att.held + ' ' + plural(att.held, 'meeting') + ' (' + att.pct + '%)' : '';
+    att.text = att.held ? att.count + ' · ' + req + '% required' : req + '% required · ' + (att.wait ? 'none recorded yet' : 'none held yet');
+    att.tag = !att.held ? null : att.pct >= req ? { text: 'On track', tone: 'ok' } : { text: 'Below ' + req + '%', tone: 'u-week' };
+    // below the line: how many of the meetings still to come bring the count back to the requirement
+    if (att.held && att.pct < req) {
+      for (var kk = 1; kk <= att.up; kk++) if (100 * (att.present + kk) / (att.held + kk) >= req) { att.need = kk; break; }
+      if (!att.need) att.best = Math.round(100 * (att.present + att.up) / (att.held + att.up));
+    }
+
     // panels
     var cycle = P.cycles[m.cycle || 'A'] || { name: 'Pitch IC', path: [], pitch: NaN };
     var curSet = false;
@@ -446,7 +489,11 @@
       return { label: s.label, when: dShort(s.ms), state: state };
     });
     var pitchText = isNaN(cycle.pitch) ? cycle.name : dShort(cycle.pitch) + ', ' + cycle.name;
-    var score = P.analystScorecard.map(function (r) { return { name: nbsp(by(r.nameBy, m.id, r.name)), when: nbsp(String(r.when || '').replace('{pitch}', pitchText)) }; });
+    // "live" rows show this Member's own figure: their concept slot, or their attendance so far
+    var score = P.analystScorecard.map(function (r) {
+      var live = r.live === 'concept' && att.slot ? att.slot.short : r.live === 'attendance' ? (att.held ? att.count.replace(/ meetings? /, ' ') + ' · ' + req + '% required' : req + '% of meetings') : '';
+      return { name: nbsp(by(r.nameBy, m.id, r.name)), when: nbsp(live || String(r.when || '').replace('{pitch}', pitchText)) };
+    });
     var shared = (P.rules.shared || []).map(function (r) {
       var c = { id: r.id, title: r.title, body: nbsp(String(r.body || '').replace(/\{time\}/g, DEFAULT_TIME || '17:00')), chip: r.chip || '', tone: 'quiet' };
       if (r.id === 'deadlines' && DEFAULT_TIME) c.chip = DEFAULT_TIME;
@@ -479,7 +526,9 @@
         c.state = now >= c.at ? 'done' : c.meet && now >= start ? 'live' : nextSet ? 'todo' : 'next';
         if (c.state !== 'done') nextSet = true;
       });
+      var rec = it.attendance && it.attendance[m.id];
       return { key: it.key, it: it, ms: it.ms, title: it.title, kind: it.ic ? 'Investment Committee' : /^learning/i.test(it.title) ? 'Learning session' : 'Meeting',
+        att: rec === 'present' ? { text: 'Attended', tone: 'quiet' } : rec === 'excused' ? { text: 'Excused', tone: 'quiet' } : rec === 'absent' ? { text: 'Absent', tone: 'u-week' } : null,
         parts: parts, detail: it.detail, aDetail: a && a.detail && a.detail !== it.detail ? a.detail : '', live: live(it, now),
         ended: now >= end, chain: chain, minutesAt: chain.length ? chain[chain.length - 1].at : 0, link: it.link || P.teams };
     });
@@ -496,7 +545,7 @@
       m: m, mi: mi, lens: lens, phase: phase, hero: hero, phaseTag: phaseTag, all: all, shown: shown, groups: groups, pastCount: pastItems.length,
       queue: lens === 'society' ? reviewQueue(P, m, asOf) : null, searchRules: allRules(P, m, phase),
       progress: progress, nextKey: firstUp ? firstUp.key : null, next: next,
-      meetings: meetings, nextMeet: nextMeet, photos: P.photos || {},
+      meetings: meetings, nextMeet: nextMeet, photos: P.photos || {}, att: att,
       checkFor: function (key) {
         var c = (P.checklists || []).filter(function (x) { return x.for.indexOf(key) >= 0; })[0];
         if (!c) return null;
@@ -558,11 +607,11 @@
     }
     function down(ev) { drag.current = { y: ev.clientY, dy: 0 }; try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (e) { /* older browser */ } }
     function move(ev) { var d = drag.current; if (!d || !ref.current) return; d.dy = Math.max(0, ev.clientY - d.y); ref.current.style.transform = 'translateY(' + d.dy + 'px)'; }
-    function up() { var d = drag.current; drag.current = null; if (!d) return; if (d.dy > 90) p.onClose(); else if (ref.current) ref.current.style.transform = ''; }
+    function up() { var d = drag.current; drag.current = null; if (!d) return; if (d.dy > 90 && !p.locked) p.onClose(); else if (ref.current) ref.current.style.transform = ''; }
     return html`<div>
-      <div class="scrim" onClick=${p.onClose}></div>
+      <div class="scrim" onClick=${p.locked ? null : p.onClose}></div>
       <div ref=${ref} class=${'sheet ' + (p.phone ? 'bottom-sheet' : 'side-sheet') + (p.skin && SKIN ? ' ' + SKIN : '')} role="dialog" aria-modal="true" aria-label=${p.label} tabindex="-1" onKeyDown=${onKey}>
-        ${p.phone ? html`<div class="grab" onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up} aria-hidden="true"><i></i></div>` : null}
+        ${p.phone && !p.locked ? html`<div class="grab" onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up} aria-hidden="true"><i></i></div>` : null}
         ${p.children}
       </div>
     </div>`;
@@ -583,9 +632,10 @@
           : it.part === 'lead' && it.type === 'deadline' ? html`<div class="mark">
             ${p.submit && it.band !== 'nc' ? html`<a class="link-btn hand-btn" href=${p.submit} target="_blank" rel="noopener">Hand in on Drive<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}
             <button class=${'mark-btn' + (it.submitted ? ' on' : '')} aria-pressed=${it.submitted ? 'true' : 'false'} onClick=${function () { p.toggleDone(it.key, it.title); }}>${it.submitted ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Submitted` : 'Mark as submitted'}</button>
+            ${it.submitted ? html`<button class="link-btn tell-btn" onClick=${function () { p.A.tellSociety(it.key); }}><${Ico} n="send" s=${15} w=${2} />Tell the Society</button>` : null}
             <span>${it.band === 'rev' ? (it.submitted ? 'You marked the revised version as submitted. It stays here until the Society records the outcome.' : 'The reviewer asked for changes. Mark it once you resubmit.')
               : it.band === 'nc' ? 'Recorded as not completed. It goes to the traffic-light review with a revised date.'
-              : it.submitted ? 'Saved on this device. Tap again to undo.' : p.submit ? 'Upload your work to the Society’s Drive folder, then mark it here. Only you see the mark; it turns green once the Society records it as accepted.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
+              : it.submitted ? 'Saved on this device. Tell the Society so the reviewer knows it’s in; tap Submitted again to undo.' : p.submit ? 'Upload your work to the Society’s Drive folder, then mark it here. Only you see the mark; it turns green once the Society records it as accepted.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
           </div>` : null}
         ${p.check ? html`<${Checklist} c=${p.check} state=${p.checkState} toggle=${p.toggleCheck} />` : null}
         <${LinkRow} links=${it.links} />
@@ -599,12 +649,15 @@
       </div>
     </${Sheet}>`;
   }
+  // On a first visit nothing is ticked and the panel stays until a role is chosen, so no one starts on someone else's dates.
   function MemberSheet(p) {
-    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Choose your role">
-      <div class="sheet-head"><span class="when">Saved on this device</span><${CloseBtn} onClose=${p.onClose} /></div>
+    var first = !!p.first;
+    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} locked=${first} label="Choose your role">
+      <div class="sheet-head"><span class="when">${first ? 'Welcome' : 'Saved on this device'}</span>${first ? null : html`<${CloseBtn} onClose=${p.onClose} />`}</div>
       <h2 class="pick-title">Choose your role</h2>
+      ${first ? html`<p class="pick-note">Your deadlines, meetings and reading follow from it. It’s saved on this device, and you can change it any time.</p>` : null}
       <ul class="pick">${p.members.map(function (m, i) {
-        var cur = i === p.mi;
+        var cur = !first && i === p.mi;
         return html`<li key=${m.id}><button onClick=${function () { p.pick(i); }} aria-current=${cur ? 'true' : 'false'}>
           <span class="nm"><b>${m.role}</b><span>${m.sector} analyst</span></span>
           ${cur ? html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F2340" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>` : null}
@@ -920,7 +973,10 @@
     file: html`<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path>`,
     sound: html`<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path>`,
     buzz: html`<rect x="8" y="3.5" width="8" height="17" rx="2"></rect><path d="M4.5 8.5v7M19.5 8.5v7M2 10.5v3M22 10.5v3"></path>`,
-    send: html`<path d="M21 3 10.5 13.5"></path><path d="M21 3l-6.5 18-4-7.5L3 9.5z"></path>`
+    send: html`<path d="M21 3 10.5 13.5"></path><path d="M21 3l-6.5 18-4-7.5L3 9.5z"></path>`,
+    idea: html`<path d="M9.5 18h5M10.5 21h3"></path><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2v.5h5V16c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"></path>`,
+    flag: html`<path d="M5.5 21V4"></path><path d="M5.5 4.5h11.5l-2.3 4.3 2.3 4.2H5.5"></path>`,
+    sliders: html`<path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle>`
   };
   function Ico(p) {
     var I = ICONS[p.n];
@@ -1052,7 +1108,7 @@
         return html`<li key=${x.key} style=${'--i:' + Math.min(ri, 8)}><button class=${'row' + (x.ended ? ' past' : '') + (isNext ? ' is-next' : '')} onClick=${function () { A.openAny(x.key); }}>
           <span class="dd tnum"><b>${it.day}</b><small>${it.mon}</small></span>
           <span class="tx"><span class="tt">${x.title}</span><span class="sub tnum">${line}${st.phone && x.parts.length ? html` · <b class=${'part ' + x.parts[0].tone}>${x.parts.map(function (q) { return q.text; }).join(', ')}</b>` : null}</span></span>
-          <span class="tags">${st.phone ? null : x.parts.map(function (q, qi) { return html`<${Tag} key=${qi} text=${q.text} tone=${q.tone} />`; })}</span>
+          <span class="tags">${x.att ? html`<${Tag} text=${x.att.text} tone=${x.att.tone} />` : st.phone ? null : x.parts.map(function (q, qi) { return html`<${Tag} key=${qi} text=${q.text} tone=${q.tone} />`; })}</span>
         </button></li>`;
       })}</ol>
     </section>`;
@@ -1060,6 +1116,28 @@
   function MeetHow(p) {
     var r = p.M.rulesAll[0].items.filter(function (x) { return x.id === 'meet'; })[0];
     return r ? html`<section class="card rcard" aria-labelledby="mw-h"><span class="card-k">How meetings run</span><h2 id="mw-h">${r.title}</h2><p>${r.body}</p></section>` : null;
+  }
+
+  // Your part this term: the meeting where you present the Concept of the Meeting, and your attendance against the 70% rule.
+  function AttendCard(p) {
+    var M = p.M, A = p.A, T = M.att, sl = T.slot;
+    var fill = T.held ? T.pct : 0;
+    return html`<section class="card att-card" aria-labelledby="at-h">
+      <div class="card-head"><h2 id="at-h" class="card-k">Your part this term</h2></div>
+      ${sl ? html`<button class="att-slot" onClick=${function () { A.openAny(sl.key); }}>
+        <span class="att-t"><span class="att-k">Concept of the Meeting</span><b>${sl.title}</b><small class="tnum">${sl.when} · five to ten minutes, with a one-page brief or slide</small></span>
+        <${Tag} text=${sl.tag.text} tone=${sl.tag.tone} />
+      </button>` : html`<div class="att-slot"><span class="att-t"><span class="att-k">Concept of the Meeting</span><b>Slot to be confirmed</b><small>Five to ten minutes at a full IC, with a one-page brief or slide.</small></span></div>`}
+      <div class="att-block">
+        <div class="att-top"><span class="att-k">Attendance</span>${T.tag ? html`<${Tag} text=${T.tag.text} tone=${T.tag.tone} />` : null}</div>
+        <p class="att-big tnum">${T.held ? html`<b>${T.present} of ${T.held}</b> ${plural(T.held, 'meeting')} (${T.pct}%) · ${T.req}% required` : html`<b>${T.req}%</b> required · ${T.wait ? 'none recorded yet' : 'none held yet'}`}</p>
+        <div class="att-bar" role="img" aria-label=${T.text}><i class=${'att-fill' + (T.held && T.pct < T.req ? ' low' : '')} style=${'width:' + fill + '%'}></i><i class="att-req" style=${'left:' + T.req + '%'}></i></div>
+        <ol class="att-dots" aria-label="Meetings this term">${T.dots.map(function (d) {
+          return html`<li key=${d.key} class=${'ad ' + d.s} title=${d.label}><i aria-hidden="true"></i><span class="tnum" aria-hidden="true"><b>${d.d}</b>${d.mon}</span><span class="vh">${d.label}</span></li>`;
+        })}</ol>
+        <p class="att-note">${T.need ? 'Attend the next ' + (T.need === 1 ? 'meeting' : T.need + ' meetings') + ' to be back at ' + T.req + '%. ' : T.best != null ? (T.up ? 'Attending every meeting still to come brings you to ' + T.best + '%. ' : '') : ''}Approved absences, including a notified November exam exemption, don’t count against you. Recorded from the minutes after each meeting.</p>
+      </div>
+    </section>`;
   }
 
   // ---------- role ----------
@@ -1190,6 +1268,40 @@
   }
   // messages leave the app as plain text: ordinary spaces instead of the app's non-breaking ones
   function plain(t) { return String(t).replace(/\u00a0/g, ' '); }
+  // a moment in SAST as "Fri 6 Nov, 16:42"
+  function stampSAST(ms) { var loc = ms + 2 * 3600000, day = loc - ((loc % DAY) + DAY) % DAY; return wk(day).slice(0, 3) + ' ' + dShort(day) + ', ' + clockSAST(ms); }
+  // "Tell the Society": the private tick as a dated message, e.g. "Submitted: Capacity map completed · President · Fri 6 Nov, 16:42"
+  function tellText(it, m, lens, at) {
+    var who = (m.roleShort || m.role) + (lens === 'analyst' ? ', ' + m.sector + ' analyst' : '');
+    return plain('Submitted: ' + String(it.title).replace(/ submitted$/i, '') + ' · ' + who + ' · ' + stampSAST(at));
+  }
+  // The phone, browser and app version, so the President can trace a problem without asking
+  function deviceLine() {
+    var ua = navigator.userAgent || '', dev = 'Computer', os = '', br = '';
+    var ios = /OS (\d+)[_.](\d+)/.exec(ua), and = /Android (\d+(?:\.\d+)?)/.exec(ua);
+    if (/iPhone|iPod/.test(ua)) dev = 'iPhone'; else if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) dev = 'iPad';
+    else if (and) dev = 'Android phone'; else if (/Windows/.test(ua)) dev = 'Windows computer'; else if (/Macintosh/.test(ua)) dev = 'Mac';
+    if ((dev === 'iPhone' || dev === 'iPad') && ios) os = 'iOS ' + ios[1] + '.' + ios[2]; else if (and) os = 'Android ' + and[1];
+    br = /CriOS|EdgiOS|FxiOS/.test(ua) ? { CriOS: 'Chrome', EdgiOS: 'Edge', FxiOS: 'Firefox' }[/CriOS|EdgiOS|FxiOS/.exec(ua)[0]]
+      : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'browser';
+    return [dev + (os ? ', ' + os : ''), br, standalone() ? 'home-screen app' : 'in the browser'].join(' · ');
+  }
+  // the version is the name of the service worker's saved copy of the app (the newest, if an update is waiting)
+  function appVersion() {
+    try {
+      if (!window.caches || !caches.keys) return Promise.resolve('');
+      return caches.keys().then(function (ks) { var v = ks.filter(function (k) { return /^trs-shell-/.test(k); }).pop(); return v ? v.replace('trs-shell-', '') : ''; }).catch(function () { return ''; });
+    } catch (e) { return Promise.resolve(''); }
+  }
+  var TAB_NAME = { today: 'Today', plan: 'Plan', meet: 'Meetings', learn: 'Learn', you: 'You' };
+  function feedbackText(kind, m, version, tab, now) {
+    var foot = '— ' + (m.roleShort || m.role) + ' · app ' + (version || 'not saved for offline yet') + ' · ' + deviceLine()
+      + (kind === 'bug' ? ' · ' + window.innerWidth + '×' + window.innerHeight : '') + ' · ' + stampSAST(now);
+    var body = kind === 'bug'
+      ? ['Problem in the members’ app', '', 'What happened:', '', 'What I expected:', '', 'Where: ' + (TAB_NAME[tab] || 'Today')]
+      : ['Suggestion for the members’ app', '', 'What would help:', '', 'Why it matters:'];
+    return plain(body.concat(['', foot]).join('\n'));
+  }
 
   // ---------- Society board: each Member's recorded quality-gate result on shared deliverables ----------
   function boardModel(P, asOf, me) {
@@ -1285,7 +1397,8 @@
         ${row('sr', 'search', 'Search', 'Any date, meeting or rule', A.openSearch)}
         ${inst ? row('in', 'phone', 'Install the app', inst.v, inst.go) : null}
         ${M.submit ? html`<li key="dr"><a class="grow" href=${M.submit} target="_blank" rel="noopener"><span class="g-ic" aria-hidden="true"><${Ico} n="file" s=${20} /></span><span class="g-t"><b>Society Drive</b><small>Where you hand in your work</small></span><${Arrow} /></a></li>` : null}
-        ${row('up', 'send', 'Send my update', 'Your week in one message, ready for WhatsApp, Teams or email', A.openUpdate)}
+        ${row('fb', 'idea', 'Suggest an improvement', 'A message to the President, ready to send', function () { A.openFeedback('idea'); })}
+        ${row('bug', 'flag', 'Report a problem', 'Sent with your role, phone and app version', function () { A.openFeedback('bug'); })}
         ${row('src', 'file', 'Where the dates come from', M.term.source + (M.updated ? '. Updated ' + M.updated + '.' : '.'), null)}
       </ul>
       ${sync ? html`<div class=${'sync ' + sync.state} aria-live="polite"><i aria-hidden="true"></i><span>${sync.text}</span><button onClick=${A.refresh} disabled=${sync.busy}>${sync.busy ? 'Checking…' : 'Refresh'}</button></div>` : null}
@@ -2440,33 +2553,52 @@
       play: function (kind) { var p = prefs(); if (p.sound) sting(kind); if (p.buzz) buzz(kind); } };
   })();
 
-  function FxCard() {
-    var s = useState(Fx.prefs), fx = s[0], setFx = s[1], buzz = Fx.canBuzz();
+  // Learn's settings in one panel: sound, vibration and the look, with the how-it-works card one tap away.
+  function fxSummary() {
+    var fx = Fx.prefs(), bits = [fx.sound ? 'Sound on' : 'Sound off'];
+    if (Fx.canBuzz()) bits.push(fx.buzz ? 'vibration on' : 'vibration off');
+    bits.push(SKIN ? 'stripes look' : 'Society look');
+    return bits.join(' · ');
+  }
+  function SettingsSheet(p) {
+    var s = useState(Fx.prefs), fx = s[0], setFx = s[1], buzz = Fx.canBuzz(), A = p.A, society = !SKIN;
     function flip(k) {
       var n = { sound: fx.sound, buzz: fx.buzz }; n[k] = !fx[k];
       Fx.save(n); setFx(n);
       if (n[k]) { if (k === 'sound') Fx.sting('pass'); else Fx.buzz('pass'); }
     }
-    function row(k, ic, label, note) {
-      return html`<li key=${k}><button class="grow fx-row" role="switch" aria-checked=${fx[k] ? 'true' : 'false'} aria-labelledby=${'fx-' + k} aria-describedby=${'fx-' + k + 'd'} onClick=${function () { flip(k); }}>
+    function sw(k, ic, label, note, on, go) {
+      return html`<li key=${k}><button class="grow fx-row" role="switch" aria-checked=${on ? 'true' : 'false'} aria-labelledby=${'fx-' + k} aria-describedby=${'fx-' + k + 'd'} onClick=${go}>
         <span class="g-ic" aria-hidden="true"><${Ico} n=${ic} s=${20} /></span>
         <span class="g-t"><b id=${'fx-' + k}>${label}</b><small id=${'fx-' + k + 'd'}>${note}</small></span>
         <span class="sw" aria-hidden="true"></span>
       </button></li>`;
     }
-    return html`<section class="card glist-card fx-card" aria-labelledby="fx-h">
-      <div class="card-head"><h2 id="fx-h" class="card-k">Effects</h2></div>
-      <ul class="glist">${row('sound', 'sound', 'Sound effects', 'A short chime when you pass, and a bell when you level up')}${buzz ? row('buzz', 'buzz', 'Vibration', 'A short buzz when you pass') : null}</ul>
-    </section>`;
+    return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label="Learn settings">
+      <div class="sheet-head"><span class="when">Saved on this device</span><${CloseBtn} onClose=${p.onClose} /></div>
+      <div class="sheet-body">
+        <h2 class="sheet-title">Learn settings</h2>
+        <ul class="glist set-list">
+          ${sw('sound', 'sound', 'Sound effects', 'A short chime when you pass, and a bell when you level up', fx.sound, function () { flip('sound'); })}
+          ${buzz ? sw('buzz', 'buzz', 'Vibration', 'A short buzz when you pass', fx.buzz, function () { flip('buzz'); }) : null}
+          ${sw('look', 'sliders', 'Society look', 'Show Learn in the Society’s navy and silver', society, function () { A.setLook(society ? 'stripes' : ''); })}
+          ${gRow('how', 'learn', 'How Learn works', 'Four steps, from reading to the certificate', A.showHow)}
+        </ul>
+      </div>
+    </${Sheet}>`;
   }
-
-  function LookBar(p) {
-    var on = !SKIN;
-    return html`<section class="look-bar" aria-label="Look">
-      <button class="look-row" role="switch" aria-checked=${on ? 'true' : 'false'} aria-labelledby="look-l" aria-describedby="look-d" onClick=${function () { p.A.setLook(on ? 'stripes' : ''); }}>
-        <span class="look-t"><b id="look-l">Society look</b><small id="look-d">Show Learn in the Society’s navy and silver</small></span>
-        <span class="sw" aria-hidden="true"></span>
-      </button>
+  // For a new reader: the loop in four steps, from the programme's own rules.
+  function LearnHow(p) {
+    var LP = p.LP, R = LP.R, A = p.A;
+    return html`<section class="card how-card" aria-labelledby="hw-h">
+      <div class="card-head"><h2 id="hw-h" class="card-k">How Learn works</h2><button class="txt-btn" onClick=${A.hideHow}>Got it</button></div>
+      <ol class="how">
+        <li><b>Read a chapter.</b> Open it from your book and tick each section as you finish it.</li>
+        <li><b>Take its check.</b> ${R.checkSize} questions; pass with ${R.checkPass} to open the next chapter. Missed it? Try again the next day.</li>
+        <li><b>Keep it fresh.</b> The question of the day and Practice bring back what you missed until it sticks.</li>
+        <li><b>Level up.</b> Checks earn XP and badges. Pass a book’s final, ${R.finalPass} of ${R.finalSize}, for its certificate.</li>
+      </ol>
+      <p class="how-foot">Your progress stays on this phone; a backup code moves it to a new one.</p>
     </section>`;
   }
 
@@ -2768,11 +2900,11 @@
   function ProgressCard(p) {
     var A = p.A;
     return html`<section class="card glist-card" aria-labelledby="lp-h">
-      <div class="card-head"><h2 id="lp-h" class="card-k">Your progress</h2></div>
+      <div class="card-head"><h2 id="lp-h" class="card-k">Progress and settings</h2></div>
       <ul class="glist">
         ${gRow('sh', 'send', 'Share my progress', 'Your level, chapters and badges in one message', A.shareProgress)}
-        ${gRow('bk', 'phone', 'Moving to a new phone', 'Copy a backup code, then paste it on the new phone', A.openBackup)}
-        ${gRow('sv', 'file', 'Saved on this device', 'Only you see your progress. Nothing is sent anywhere.', null)}
+        ${gRow('bk', 'phone', 'Moving to a new phone', 'Your progress stays on this phone. A backup code moves it.', A.openBackup)}
+        ${gRow('st', 'sliders', 'Settings', fxSummary(), A.openSettings)}
       </ul>
     </section>`;
   }
@@ -3425,7 +3557,7 @@
           var mi = hsh.mi != null ? hsh.mi : saved != null ? saved : 0;
           if (hsh.mi != null) store('trs-member', P.members[mi].id);
           if (hsh.lens) store('trs-lens', hsh.lens);
-          return { P: P, err: null, mi: mi, lens: hsh.lens || prev.lens, source: res.source, sheet: hsh.mi == null && saved == null ? { kind: 'member' } : null };
+          return { P: P, err: null, mi: mi, lens: hsh.lens || prev.lens, source: res.source, sheet: hsh.mi == null && saved == null ? { kind: 'member', first: true } : null };
         });
       }).catch(function (e) {
         if (first) { hideSplash(true); set({ err: e && e.message ? e.message : 'unknown error' }); }
@@ -3467,7 +3599,8 @@
       }
       window.addEventListener('hashchange', onHash);
       function onKey(ev) {
-        if (ev.key === 'Escape') set({ sheet: null });  // an open check handles Escape itself (it asks before leaving)
+        // an open check handles Escape itself (it asks before leaving); the first-visit role picker waits for a choice
+        if (ev.key === 'Escape') set(function (prev) { return prev.sheet && prev.sheet.first ? {} : { sheet: null }; });
         var tag = (ev.target && ev.target.tagName) || '';
         if (ev.key === '/' && !sheetRef.current && !/INPUT|TEXTAREA|SELECT/.test(tag)) { ev.preventDefault(); set({ sheet: { kind: 'search' } }); }
       }
@@ -3477,7 +3610,7 @@
         if (ignorePop.current) { ignorePop.current = false; return; }
         if (sheetRef.current) {
           // a check that has started asks before Back leaves it (leaving counts as a try)
-          if (quizGuard.current && quizGuard.current()) { try { history.pushState(tabRef.current === 'today' ? { trsSheet: 1 } : { trsSheet: 1, trsTab: tabRef.current }, ''); } catch (e) { /* not allowed here */ } return; }
+          if ((quizGuard.current && quizGuard.current()) || sheetRef.current.first) { try { history.pushState(tabRef.current === 'today' ? { trsSheet: 1 } : { trsSheet: 1, trsTab: tabRef.current }, ''); } catch (e) { /* not allowed here */ } return; }
           set({ sheet: null }); return;
         }
         var t = (ev && ev.state && ev.state.trsTab) || 'today';
@@ -3645,9 +3778,33 @@
         if (on) o[id] = Date.now(); else delete o[id];
         store('trs-done', JSON.stringify(o));
         clearTimeout(toastT.current);
-        toastT.current = setTimeout(function () { set({ toast: null }); }, 5000);
-        set({ done: o, toast: { text: on ? 'Marked as submitted' : 'No longer marked as submitted', title: title, key: k } });
+        toastT.current = setTimeout(function () { set({ toast: null }); }, on ? 9000 : 5000);
+        set({ done: o, toast: { text: on ? 'Marked as submitted' : 'No longer marked as submitted', title: title, key: k, tell: on } });
       },
+      // one tap: the phone's share sheet (WhatsApp, Teams) with the message ready; elsewhere the message panel
+      tellSociety: function (k) {
+        var it = M.all.filter(function (x) { return x.key === k; })[0], lens = M.lens;
+        if (!it) { it = M.other.all.filter(function (x) { return x.key === k; })[0]; lens = M.other.lens; }
+        if (!it) return;
+        var text = tellText(it, M.m, lens, st.done[M.m.id + ':' + k] || Date.now());
+        clearTimeout(toastT.current); set({ toast: null });
+        if (typeof navigator.share === 'function' && st.phone) { try { navigator.share({ text: text }).catch(function () {}); return; } catch (e) { /* fall through to the panel */ } }
+        set({ sheet: { kind: 'share', title: 'Tell the Society', kicker: it.title, subject: 'Submitted: ' + plain(it.title), text: text, rows: 3,
+          note: 'Send it to the Society’s WhatsApp group or Teams chat, so the reviewer knows it’s in.' } });
+      },
+      openFeedback: function (kind) {
+        var tab = st.tab, now = Date.now();
+        appVersion().then(function (v) {
+          set({ sheet: { kind: 'share', title: kind === 'bug' ? 'Report a problem' : 'Suggest an improvement', kicker: 'To the President',
+            subject: (kind === 'bug' ? 'Problem in the members’ app · ' : 'Suggestion for the members’ app · ') + (M.m.roleShort || M.m.role),
+            text: feedbackText(kind, M.m, v, tab, now), rows: 10,
+            note: kind === 'bug' ? 'Say what happened, then send it to the President on WhatsApp, Teams or email. Keep the last line: it says which version and phone you’re on.'
+              : 'Fill in the two lines, then send it to the President on WhatsApp, Teams or email.' } });
+        });
+      },
+      openSettings: function () { set({ sheet: { kind: 'lset' } }); },
+      hideHow: function () { store('trs-learn-how', '1'); set({ howOpen: false }); },
+      showHow: function () { set({ sheet: null, howOpen: true }); setTimeout(function () { try { window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }, 80); },
       say: function (text) { clearTimeout(toastT.current); toastT.current = setTimeout(function () { set({ toast: null }); }, 4000); set({ toast: { text: text, title: '', key: '', info: true } }); },
       undo: function () { var t = st.toast; if (t) A.toggleDone(t.key, t.title); set({ toast: null }); },
       openOther: function (k) { store('trs-lens', M.other.lens); set({ lens: M.other.lens, showPast: false, sheet: { kind: 'item', key: k } }); },
@@ -3735,7 +3892,9 @@
     } else if (st.sheet && st.sheet.kind === 'cal') {
       sheet = html`<${CalSheet} key="cal" phone=${st.phone} m=${M.m} calBase=${calBase} android=${/Android/i.test(navigator.userAgent || '')} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'member') {
-      sheet = html`<${MemberSheet} key="member" phone=${st.phone} members=${P.members} mi=${M.mi} pick=${A.pick} onClose=${A.close} />`;
+      sheet = html`<${MemberSheet} key="member" phone=${st.phone} members=${P.members} mi=${M.mi} first=${!!st.sheet.first} pick=${A.pick} onClose=${st.sheet.first ? function () {} : A.close} />`;
+    } else if (st.sheet && st.sheet.kind === 'lset') {
+      sheet = html`<${SettingsSheet} key="lset" phone=${st.phone} A=${A} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'quiz' && LP) {
       sheet = html`<${Quiz} key=${'quiz' + st.sheet.id} spec=${st.sheet.spec} LP=${LP} A=${A} onClose=${A.close} role=${M.m.role} day=${learnDay} dueLeft=${LM ? LM.practice.n : 0} best=${LM && LM.practice.sprint ? LM.practice.sprint.best : 0} guard=${quizGuard} bloom=${bloom} />`;
     } else if (st.sheet && st.sheet.kind === 'unit' && LM) {
@@ -3781,7 +3940,8 @@
         : cols([board, html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`], [html`<${TermCard} key="tc" M=${M} A=${A} />`]);
     } else if (tab === 'meet') {
       head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow="Sundays · 17:00 to 18:30 · Teams" title="Meetings" text="Three of the four Members make quorum." />`;
-      content = cols([html`<${MeetHero} key="mh" M=${M} A=${A} />`], [html`<${MeetList} key="ml" M=${M} A=${A} st=${st} />`, html`<${MeetHow} key="mw" M=${M} />`]);
+      var mh = html`<${MeetHero} key="mh" M=${M} A=${A} />`, ml = html`<${MeetList} key="ml" M=${M} A=${A} st=${st} />`, atc = html`<${AttendCard} key="at" M=${M} A=${A} />`, mw = html`<${MeetHow} key="mw" M=${M} />`;
+      content = phone ? [mh, ml, atc, mw] : cols([mh, atc], [ml, mw]);
     } else if (tab === 'learn') {
       head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${LP ? LP.title : 'Required reading'} title="Learn" lvl=${LM ? LM.lv.cur.n : 1} bloom=${bloom} text=${LP && !isNaN(LP.due) ? 'Two books by ' + dMonth(LP.due) + NB + D(LP.due).getUTCFullYear() + '.' : 'The Society’s required reading.'} />`;
       if (!LM) content = [html`<section key="ll" class="card rcard"><span class="card-k">Learn</span><p>${st.learnErr ? 'The reading programme couldn’t load (' + st.learnErr + '). Check your connection, then reopen the app.' : 'Loading the reading programme…'}</p></section>`];
@@ -3789,10 +3949,11 @@
         var lvc = html`<${LevelCard} key="lv" LM=${LM} LP=${LP} A=${A} role=${m.role} />`, dqc = html`<${DailyCard} key="dq" LM=${LM} LP=${LP} A=${A} />`;
         var bks = LM.books.map(function (x) { return html`<${BookCard} key=${'bk' + x.b.id} bk=${x} LP=${LP} A=${A} open=${!!st.bookOpen[x.b.id]} />`; });
         var prc = html`<${PracticeCard} key="pr" LM=${LM} A=${A} />`, dkc = html`<${DeskCard} key="dk" LM=${LM} A=${A} />`, dlc = html`<${DealsCard} key="dl" LM=${LM} LP=${LP} A=${A} role=${m.role} />`;
-        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} />`, fxc = html`<${FxCard} key="fx" />`;
+        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} />`;
         var ltc = window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null;
-        content = phone ? [lvc, dqc, prc].concat(bks, [dkc, dlc, pcc, bdc, pgc, fxc, ltc]) : cols([lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, dlc, pgc, fxc, ltc]);
-        content = content.concat([html`<div key="lk" class="wide"><${LookBar} A=${A} /></div>`]);
+        // a new reader (nothing passed yet) sees how Learn works until they close it; Settings brings it back
+        var how = st.howOpen || (!read('trs-learn-how') && !LM.passed) ? html`<${LearnHow} key="hw" LP=${LP} A=${A} />` : null;
+        content = phone ? [how, lvc, dqc, prc].concat(bks, [dkc, dlc, pcc, bdc, pgc, ltc]) : cols([how, lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, dlc, pgc, ltc]);
       }
     } else if (tab === 'you') {
       var rc = roleCards(M, A);
@@ -3828,7 +3989,9 @@
       <${Footer} M=${M} A=${A} st=${st} />
       ${phone ? html`<${TabBar} M=${M} A=${A} tab=${tab} />` : null}
       ${st.updateReady && !st.toast && !inCheck ? html`<div class="toast" role="status"><span><b>A new version is ready</b></span><button onClick=${function () { location.reload(); }}>Refresh</button></div>` : null}
-      ${st.toast && !inCheck ? html`<div class="toast" role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span>${st.toast.info ? null : html`<button onClick=${A.undo}>Undo</button>`}</div>` : null}
+      ${st.toast && !inCheck ? html`<div class=${'toast' + (st.toast.tell ? ' two' : '')} role="status"><span><b>${st.toast.text}</b> ${st.toast.title}</span>${st.toast.info ? null
+        : st.toast.tell ? html`<span class="t-btns"><button class="t-tell" onClick=${function () { A.tellSociety(st.toast.key); }}>Tell the Society</button><button onClick=${A.undo}>Undo</button></span>`
+        : html`<button onClick=${A.undo}>Undo</button>`}</div>` : null}
       ${sheet}
       ${st.side ? html`<${TurnScreen} />` : null}
     </div>`;

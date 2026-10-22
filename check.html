@@ -106,6 +106,19 @@ a{color:var(--navy)}
             if (e.links.length > 4) warns.push(at + ' has ' + e.links.length + ' links; the app shows the first four.');
           }
         }
+        // the Concept of the Meeting slot (a member id) and the attendance record after the meeting
+        if (e.concept != null) {
+          if (e.type !== 'meeting') warns.push(at + ': <code>concept</code> only counts on meetings.');
+          if (!ids[e.concept]) errs.push(at + ': <code>concept</code> must be a member id (hor, pres, pm or coo).');
+        }
+        if (e.attendance != null) {
+          if (e.type !== 'meeting') warns.push(at + ': <code>attendance</code> only counts on meetings.');
+          Object.keys(e.attendance || {}).forEach(function (r) {
+            if (!ids[r]) warns.push(at + ': <code>attendance</code> names <code>' + esc(r) + '</code>, which is not a member id.');
+            if (['present', 'excused', 'absent'].indexOf(e.attendance[r]) < 0) errs.push(at + ': <code>attendance</code> for <code>' + esc(r) + '</code> must be present, excused or absent.');
+          });
+          if (!isNaN(s) && s > day(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date()))) warns.push(at + ' has an <code>attendance</code> record but has not happened yet.');
+        }
         if (e.preread != null) {
           var pr = day(e.preread);
           if (e.type !== 'meeting') warns.push(at + ': <code>preread</code> only shows on meetings.');
@@ -116,6 +129,14 @@ a{color:var(--navy)}
       return list.length;
     }
     var ns = events(D.society, 'society'), na = events(D.analyst || [], 'analyst');
+    // one Concept of the Meeting per Member
+    var slots = {}; (D.society || []).forEach(function (e) { if (e && e.type === 'meeting' && e.concept) (slots[e.concept] = slots[e.concept] || []).push(e.key); });
+    (D.members || []).forEach(function (m) {
+      var n = (slots[m.id] || []).length;
+      if (!n) warns.push('No meeting has <code>"concept": "' + esc(m.id) + '"</code>, so that Member’s Concept of the Meeting shows as to be confirmed.');
+      else if (n > 1) warns.push('<code>' + esc(m.id) + '</code> presents the Concept of the Meeting at ' + n + ' meetings (' + slots[m.id].map(esc).join(', ') + '); the app shows the first.');
+    });
+    if (D.term && D.term.attendance != null && !(typeof D.term.attendance === 'number' && D.term.attendance > 0 && D.term.attendance <= 100)) errs.push('<code>term.attendance</code> must be a percentage, such as 70.');
     // reviewer lists: each row names analyst keys; {cycle} becomes each member's pitch cycle
     var akeys = {}; (D.analyst || []).forEach(function (e) { if (e && e.key) akeys[e.key] = true; });
     Object.keys(D.reviewQueues || {}).forEach(function (r) {

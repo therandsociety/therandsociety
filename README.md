@@ -21,7 +21,7 @@ Each date is one block in the `society` list (Society-role work) or the `analyst
 |---|---|---|
 | `key` | A unique short name. Never reuse one. | `"nov6"` |
 | `date` | The day, written year-month-day. | `"2026-11-06"` |
-| `end` | Last day, for something that runs over several days. | `"2026-11-07"` |
+| `end` | Last day, for something that runs over several days. Members see "Starts tomorrow", "Runs to Sat 7 Nov" and "Ends today", and it turns solid orange only in its last two days. | `"2026-11-07"` |
 | `type` | `deadline`, `meeting` (Sunday 17:00 Teams meeting) or `marker` (a term milestone). | `"deadline"` |
 | `time` | A same-day cut-off. | `"17:00"` |
 | `title` | The line members see in the list. | `"Outlines and capacity map"` |
@@ -33,6 +33,8 @@ Each date is one block in the `society` list (Society-role work) or the `analyst
 | `cycle` | Analyst dates only: `A` or `B`. Only members in that pitch cycle see it. | `"A"` |
 | `status` | Quality-gate result per member: `accepted`, `minor`, `revise` or `incomplete` (see below). | `{"pm": "accepted"}` |
 | `preread` | Meetings only: the day pre-reads go out (17:00). Leave it out and the meeting shows no pre-read step. | `"2027-02-13"` |
+| `concept` | Meetings only: the role id of the Member who presents the Concept of the Meeting there. | `"hor"` |
+| `attendance` | Meetings only, after the meeting: `present`, `excused` (an approved absence) or `absent` per member. | `{"pres": "present", "pm": "excused"}` |
 | `links` | Up to four links shown on the date: a template, folder or pre-read. Full https:// addresses only. | `[{"label": "Thesis template", "url": "https://…"}]` |
 
 Deadlines without a `time` close at `term.defaultTime` (17:00). Members see this in the Rules panel, and the calendar feeds use it for reminders.
@@ -57,6 +59,18 @@ The four outcomes follow Term Plan 19.1:
 | `incomplete` | Orange, "Not completed" |
 
 Analyst deadlines live in the `analyst` list; for example, accepted sector briefs go on the `a-brief` item. Every Member sees every recorded result on the **Society board** (Plan section), in keeping with equal standing and the collective traffic-light reviews.
+
+### Concept of the Meeting and attendance
+
+Each Member presents one five-to-ten-minute Concept of the Meeting at a full IC (Term Plan 5.1 and 13.4). The slots are set on the meetings with `concept`: IC 1 the President, IC 2 the Head of Research, IC 3 the COO and IC 6 the Portfolio Manager (decided 22 October 2026). Each Member sees their slot under **Your part this term** on Meetings, as "Your concept" on that meeting, in their scorecard and in their calendar; everyone sees who presents at each IC in the meeting's panel.
+
+After each meeting, record attendance from the minutes:
+
+```json
+"attendance": { "pres": "present", "hor": "present", "pm": "excused", "coo": "present" }
+```
+
+Every meeting counts: the six ICs and the three learning sessions. `excused` is an approved absence, including a notified November exam exemption, and leaves the count; `absent` counts against it. Members see "3 of 4 meetings (75%) · 70% required", green "On track" at or above the line and orange "Below 70%" under it, with how many of the meetings still to come bring them back. The requirement is 70% (Constitution 2.6); `term.attendance` changes it. A meeting that has ended without a record shows as "awaiting record" and doesn't count either way. Scorecard rows with `"live": "concept"` or `"live": "attendance"` show each Member's own slot and count instead of their `when` text.
 
 ### Reviewer lists ("Waiting on you")
 
@@ -104,6 +118,14 @@ Delete the block when it's no longer needed.
 
 **A message that opens over the app.** Add `"popup": true` and the notice opens as a message the first time each member opens the app (after the role picker on a first visit), once per phone. Optional fields: `from` (the line above the title, such as "From the President"), `points` (a short list shown under the text), `close` (a paragraph after the list), `sign` (a role, never a name), `button` (the closing button; "Got it" if left out) and `until` (YYYY-MM-DD: no one sees it after that day). In `text` and `close`, a blank line (`\n\n`) starts a new paragraph. Give it a new `id` each time, or members who saw the last one won't see it.
 
+### Messages from Members
+
+The app writes three messages that Members send themselves on WhatsApp, Teams or email; nothing is stored online.
+
+- **Tell the Society.** After **Mark as submitted**, one tap opens the phone's share sheet with "Submitted: Capacity map completed · President · Fri 6 Nov, 16:42" (also in the deadline's panel). The tick stays private; the message is the dated record the reviewer sees.
+- **Suggest an improvement** and **Report a problem** (under You) open a message to the President with two lines to fill in and a last line naming the Member's role, the app version, the phone and browser, and, for a problem, the screen size and section.
+- **Send my update** (under You) and **Can't attend** (on each meeting), as before.
+
 ### Calendar reminders
 
 Members can subscribe to their own calendar from the app ("Get reminders in your calendar" under the term plan). The feeds live in `cal/` and are rebuilt automatically by GitHub (see `.github/workflows/calendar.yml`) a minute or two after you change `data.json`. Calendar apps refresh subscribed calendars on their own schedule: Apple Calendar within a few hours, Google Calendar sometimes up to a day. Google also ignores the built-in reminders, so members on Google switch on notifications for the calendar once. If the site moves to a new address, update `site.url` so the links inside calendar entries point to it.
@@ -130,15 +152,17 @@ On phones the app stays upright unless the member has auto-rotate switched on: `
 
 ## Sections
 
+On a first visit the app asks for the member's role before anything else, with nothing ticked, and the panel stays until one is chosen.
+
 A bar along the bottom on phones, and a sidebar on computers, switches between five sections (Today, Plan, Meetings, Learn and You). Each keeps its own scroll position; tapping the current one returns to the top, and the phone's Back button returns to Today before it leaves the app.
 
 | Section | What it shows |
 |---|---|
 | **Today** | Your next deadline, the week ahead, the next meeting with its agenda, pre-reads and minutes dates, and "Waiting on you" for reviewers |
 | **Plan** | The term timeline and every date for the chosen role |
-| **Meetings** | The next meeting in full (who leads, what to prepare), and every IC and learning session this term |
-| **Learn** | The required reading: level, question of the day, both books chapter by chapter, checks, review deck and badges |
-| **You** | What the role owns and its safeguard (or the analyst's coverage, thesis path and scorecard), Send my update, the Library, rules, calendar reminders and installing the app |
+| **Meetings** | The next meeting in full (who leads, what to prepare), every IC and learning session this term, and your part: your Concept of the Meeting slot and your attendance |
+| **Learn** | The required reading: level, question of the day, both books chapter by chapter, checks, review deck and badges. A new reader sees **How Learn works** first; sound, vibration and the look are under **Settings** |
+| **You** | What the role owns and its safeguard (or the analyst's coverage, thesis path and scorecard), Send my update, Suggest an improvement, Report a problem, the Library, rules, calendar reminders and installing the app |
 
 Meetings come from the `meeting` items in `society` (with `analystMeetings` for the analyst notes). Around each Sunday meeting the app shows the agenda (Friday 17:00) and minutes (Tuesday 17:00), as the Master Calendar's meeting protocol sets. A pre-read step appears only where a meeting has a `preread` date: the calendar sets one on Friday 4 December for IC 1 and on the Saturday before each Pitch IC. Each meeting has **Add to calendar** (a calendar file built with the feeds, in `cal/m/`) and **Can't attend** (a ready apology for an official channel). An orange dot on Today means something you lead is due within two days; a dot on Meetings means a meeting is today.
 
@@ -205,7 +229,7 @@ The Learn section turns the two required books (The Intelligent Investor and Inv
 
 **Fixing a question.** Members can tap **Report this question**; the message carries its `id` (such as `ib3-28`). Find that line in `learn.json`, correct it, commit, then open `check.html`. It checks the structure and then draws every question the way members see it, with the app's own engine: those with changing figures 120 times each, confirming the answer as displayed is marked right, that no listed slip would be marked right, and that no figure comes out broken. Options are shuffled in the app, so `answer` just points to the right one.
 
-**Learn's look.** Learn has two looks, and each member chooses with the **Society look** switch at the bottom of the Learn page (the choice stays on their device). **Stripes** is the default: 1970s racing stripes on cream, where the stripes carry meaning. The Learn header climbs one step for every level reached; each question type has a colour (recall teal, concept marigold, applied tangerine); passed chapters fill teal and full marks marigold; banking skills fill teal when secure and marigold when desk-ready; tombstones are espresso slabs with the stripes across the top; a pass breaks the stripes out of their range; a level-up climbs to the new level's ring. Burgundy is the action colour and red is kept for wrong answers and falling behind. Pretoria's jacarandas flower in the header and fall when a member passes. The **Society look** shows Learn in the app's own navy and silver, with navy tombstones carrying the TRS monogram. The default is one line in `app.js` (`var SKIN_DEFAULT = 'stripes';`); the look's artwork, medals and rings sit in `makeSkin()` and its styles in the "Learn skin: stripes" block of `app.css`, so another look can slot in without touching the rest. The certificate keeps the Society look either way. Learn-only fonts: Michroma (big titles) and Fraunces (headings and scores); questions stay in IBM Plex Sans. Members can turn on **Sound effects** (off by default) and **Vibration** (on by default) under **Effects** on the Learn page. Motion stops for anyone with reduced motion turned on.
+**Learn's look.** Learn has two looks, and each member chooses with the **Society look** switch under **Settings** on the Learn page (the choice stays on their device). **Stripes** is the default: 1970s racing stripes on cream, where the stripes carry meaning. The Learn header climbs one step for every level reached; each question type has a colour (recall teal, concept marigold, applied tangerine); passed chapters fill teal and full marks marigold; banking skills fill teal when secure and marigold when desk-ready; tombstones are espresso slabs with the stripes across the top; a pass breaks the stripes out of their range; a level-up climbs to the new level's ring. Burgundy is the action colour and red is kept for wrong answers and falling behind. Pretoria's jacarandas flower in the header and fall when a member passes. The **Society look** shows Learn in the app's own navy and silver, with navy tombstones carrying the TRS monogram. The default is one line in `app.js` (`var SKIN_DEFAULT = 'stripes';`); the look's artwork, medals and rings sit in `makeSkin()` and its styles in the "Learn skin: stripes" block of `app.css`, so another look can slot in without touching the rest. The certificate keeps the Society look either way. Learn-only fonts: Michroma (big titles) and Fraunces (headings and scores); questions stay in IBM Plex Sans. Members can turn on **Sound effects** (off by default) and **Vibration** (on by default) under **Settings** on the Learn page. Motion stops for anyone with reduced motion turned on.
 
 ## Role links
 

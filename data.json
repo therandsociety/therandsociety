@@ -1,6 +1,6 @@
 {
   "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD and times HH:MM (SAST). After saving, open check.html on the site to confirm the file is valid. README.md explains every field.",
-  "updated": "2026-10-19",
+  "updated": "2026-10-22",
   "notice": {
     "id": "2026-10-22-exams-done",
     "popup": true,
@@ -443,6 +443,7 @@
       "preread": "2026-12-04",
       "type": "meeting",
       "ic": 1,
+      "concept": "pres",
       "title": "Formal IC 1",
       "detail": "Operating-pack review, provisional workflow-test decisions, correction owners and deadlines. Proceeds only with quorum.",
       "who": "all",
@@ -555,6 +556,7 @@
       "date": "2027-01-17",
       "type": "meeting",
       "ic": 2,
+      "concept": "hor",
       "title": "Formal IC 2",
       "detail": "Sector readiness, theme primer, watchlist quality, portfolio capacity and corrective actions.",
       "who": "all",
@@ -619,6 +621,7 @@
       "date": "2027-01-31",
       "type": "meeting",
       "ic": 3,
+      "concept": "coo",
       "title": "Formal IC 3: Interim Progress Report",
       "detail": "Traffic-Light Review 2, Interim Progress Report approval, candidate readiness and February sequencing.",
       "who": "all",
@@ -870,6 +873,7 @@
       "date": "2027-02-28",
       "type": "meeting",
       "ic": 6,
+      "concept": "pm",
       "title": "Formal IC 6 and H1 close",
       "detail": "Traffic-Light Review 3, scorecard, H2 recommendations, final approvals and the closing resolution.",
       "who": "all",
@@ -1018,7 +1022,7 @@
   ],
   "analystMeetings": {
     "ic1": {
-      "detail": "Operating-pack review. Every full IC carries a five-to-ten-minute Concept of the Meeting: present yours at IC 1, 2, 3 or 6."
+      "detail": "Operating-pack review and provisional workflow-test decisions."
     },
     "ic2": {
       "detail": "Sector readiness: your brief, watchlist quality and portfolio capacity."
@@ -1069,11 +1073,13 @@
     },
     {
       "name": "Concept of the Meeting",
-      "when": "5 to 10 minutes at a full IC"
+      "when": "5 to 10 minutes at a full IC",
+      "live": "concept"
     },
     {
       "name": "Attendance",
-      "when": "70% of formal meetings"
+      "when": "70% of meetings, ICs and learning sessions",
+      "live": "attendance"
     },
     {
       "name": "Handover note and peer evaluation",

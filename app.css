@@ -1202,21 +1202,12 @@ button.bk-nm:hover{background:var(--mist)}
 .fx-row{grid-template-columns:38px minmax(0,1fr) auto;color:var(--ink)}
 .sw{--sw-off:#6C84A6;--sw-bg:#EEF1F5;position:relative;flex:none;width:46px;height:28px;border-radius:999px;background:var(--sw-bg);box-shadow:inset 0 0 0 1.5px var(--sw-off);transition:background-color 200ms ease,box-shadow 200ms ease}
 .sw::after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:var(--sw-off);transition:transform 220ms var(--ease),background-color 200ms ease}
-.board.stripes .sw{--sw-off:#8C7A70;--sw-bg:#F1E7D6}
+.board.stripes .sw,.sheet.stripes .sw{--sw-off:#8C7A70;--sw-bg:#F1E7D6}
 [role="switch"][aria-checked="true"] .sw{background:var(--cta,var(--navy));box-shadow:none}
 [role="switch"][aria-checked="true"] .sw::after{transform:translateX(18px);background:#FFFFFF}
 .qz-deco{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .qz-confetti i{position:absolute;top:-16px;left:var(--x);width:7px;height:12px;border-radius:2px;background:var(--c);opacity:0;animation:confetti 2.6s var(--d) cubic-bezier(.25,.6,.4,1) both}
 @keyframes confetti{0%{opacity:1;transform:translate(0,0) rotate(var(--r)) scale(var(--k))}85%{opacity:1}100%{opacity:0;transform:translate(var(--dx),105vh) rotate(calc(var(--r) + 540deg)) scale(var(--k))}}
-/* the look switch at the bottom of the Learn page */
-.look-bar{display:flex;justify-content:center;padding:4px 0 0}
-.look-row{display:flex;align-items:center;gap:16px;width:100%;max-width:560px;min-height:60px;padding:10px 16px;box-sizing:border-box;border-radius:12px;text-align:left;color:var(--ink);border:1px solid var(--line);background:var(--card)}
-.look-row:hover{background:var(--card-2)}
-.look-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.look-t b{font-size:14.5px;font-weight:600}
-.look-t small{font-size:12.5px;line-height:1.4;color:var(--muted)}
-.board.stripes .look-row{border-color:var(--line)}
-.board.stripes .look-row:hover{background:#FBF1E3}
 @media (prefers-reduced-motion:reduce){.qz-confetti{display:none}}
 
 /* ---------- Learn: practice, banking skills, deal files ----------
@@ -1829,3 +1820,56 @@ html.stripes-on body::before{background:#811638}
 .nt-list li::marker{color:var(--slate)}
 .nt-sign{margin:2px 0 4px;font-family:var(--serif);font-size:18px;color:var(--navy)}
 .nt-go{margin-top:4px}
+
+/* ---------- 22 October: your part this term, Tell the Society, first visit, Learn settings ---------- */
+/* Your part this term (Meetings): the concept slot, then attendance against the 70% rule */
+.att-card{padding-bottom:18px}
+.att-slot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;width:calc(100% - 24px);margin:10px 12px 0;padding:10px 12px;box-sizing:border-box;border-radius:8px;text-align:left}
+button.att-slot:hover{background:var(--card-2)}
+.att-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.att-k{font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--slate)}
+.att-t b{font-family:var(--serif);font-weight:500;font-size:20px;line-height:1.2;color:var(--navy)}
+.att-t small{font-size:12.5px;line-height:1.4;color:var(--muted)}
+.att-block{margin:8px 24px 0;padding:14px 0 0;border-top:1px solid var(--line-2)}
+.att-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.att-big{margin:6px 0 10px;font-size:14px;color:var(--muted)}
+.att-big b{font-family:var(--serif);font-weight:500;font-size:22px;color:var(--navy);margin-right:2px}
+.att-bar{position:relative;height:8px;border-radius:999px;background:var(--mist)}
+.att-fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--navy);transition:width 500ms var(--ease)}
+.att-fill.low{background:var(--due)}
+.att-req{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:1px;background:var(--slate)}
+.att-dots{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:2px}
+.ad{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.ad i{width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:1.5px solid var(--silver-2);background:var(--card)}
+.ad.present i{background:var(--navy);border-color:var(--navy)}
+.ad.excused i{border-color:var(--slate);background:repeating-linear-gradient(135deg,var(--mist) 0 2px,var(--card) 2px 4px)}
+.ad.absent i{background:var(--due);border-color:var(--due)}
+.ad.wait i{border-style:dashed;border-color:var(--slate-2)}
+.ad span{display:flex;flex-direction:column;align-items:center;font-size:10.5px;line-height:1.15;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ad span b{font-size:12.5px;font-weight:600;color:var(--ink);letter-spacing:0}
+.ad.up span b{color:var(--muted);font-weight:500}
+.att-note{margin:12px 0 0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+@media (max-width:759px){.att-slot{width:calc(100% - 8px);margin:8px 4px 0}.att-block{margin:8px 16px 0}}
+
+/* Tell the Society: after a tick, in the panel and in the toast */
+.tell-btn{gap:7px}
+.tell-btn .ico{flex:none}
+.toast.two{flex-wrap:wrap;gap:6px 12px;padding:10px 10px 10px 16px;width:min(440px,calc(100vw - 32px))}
+.toast.two > span:first-child{flex:1 1 100%;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.t-btns{display:flex;gap:8px;margin-left:auto}
+.toast .t-tell{background:var(--on-navy);color:var(--navy)}
+
+/* first visit: the role picker explains itself */
+.pick-note{margin:0;padding:0 24px 8px;font-size:14px;line-height:1.5;color:var(--muted)}
+@media (max-width:759px){.pick-note{padding:0 20px 8px}}
+
+/* Learn: how it works, for a new reader; settings in one panel */
+.how-card{padding-bottom:18px}
+.how{list-style:none;counter-reset:how;margin:10px 0 0;padding:0 24px;display:flex;flex-direction:column;gap:10px}
+.how li{counter-increment:how;position:relative;padding-left:36px;font-size:14px;line-height:1.5;color:var(--muted)}
+.how li::before{content:counter(how);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--navy);color:var(--on-navy);font-size:12.5px;font-weight:600;font-variant-numeric:lining-nums tabular-nums}
+.how li b{color:var(--ink);font-weight:600}
+.how-foot{margin:14px 24px 0;padding-top:12px;border-top:1px solid var(--line-2);font-size:12.5px;line-height:1.5;color:var(--muted)}
+.board.stripes .how li::before{background:var(--cta);color:#FFF6E6}
+@media (max-width:759px){.how{padding:0 16px}.how-foot{margin:14px 16px 0}}
+.set-list{margin:6px -12px 0;padding:0}

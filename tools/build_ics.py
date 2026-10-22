@@ -34,6 +34,10 @@ def utc(d, hhmm):
 def by(mp, mid, fallback):
     return (mp or {}).get(mid) or fallback
 
+def role_of(data, mid):
+    m = next((x for x in data.get('members', []) if x.get('id') == mid), None)
+    return (m.get('roleShort') or m.get('role')) if m else mid
+
 def build(data, member, site_url, stamp):
     mid, cyc = member['id'], member.get('cycle', 'A')
     sector = member.get('sector', '')
@@ -64,6 +68,12 @@ def build(data, member, site_url, stamp):
                     labels = []
                 labels.append(note['label'])
             desc = fill(detail) + ('\n\nAs an analyst: ' + fill(note['detail']) if note and note.get('detail') else '')
+            # the Concept of the Meeting: this member's own slot, or who presents it
+            if e.get('concept') == mid:
+                labels.append('Your concept')
+                desc += '\n\nYou present the Concept of the Meeting: five to ten minutes, with a one-page brief or slide.'
+            elif e.get('concept'):
+                desc += '\n\nConcept of the Meeting: ' + role_of(data, e['concept']) + '.'
             link = e.get('link') or (data.get('site') or {}).get('teams') or ''
             events.append(dict(key=e['key'], date=e['date'], time='17:00', end_time='18:30', summary=title + (' · ' + ' · '.join(labels) if labels else ''), desc=desc, kind='meeting', link=link))
         elif part == 'lead' or who == 'some':
@@ -113,6 +123,8 @@ def build_meeting(data, e, site_url, stamp):
     link = e.get('link') or (data.get('site') or {}).get('teams') or ''
     app = site_url.rstrip('/') + '/#meetings'
     desc = str(e.get('detail') or '')
+    if e.get('concept'):
+        desc += '\n\nConcept of the Meeting: ' + role_of(data, e['concept']) + '.'
     if e.get('preread'):
         desc += '\n\nPre-reads by ' + longday(day(e['preread'])) + ', 17:00.'
     desc += '\n\nMinutes by ' + longday(d0 + dt.timedelta(days=2)) + ', 17:00.'
