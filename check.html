@@ -61,6 +61,9 @@ a{color:var(--navy)}
     ['start', 'protectedEnd', 'resume', 'recessStart', 'recessEnd', 'fullProduction', 'close'].forEach(function (k) { if (isNaN(day(T[k]))) errs.push('<code>term.' + k + '</code> must be a real date written YYYY-MM-DD.'); });
     if (T.defaultTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(T.defaultTime)) errs.push('<code>term.defaultTime</code> must look like 17:00.');
     if (D.notice && (!D.notice.id || !D.notice.text)) errs.push('<code>notice</code> needs both an <code>id</code> and a <code>text</code>.');
+    if (D.notice && D.notice.until && isNaN(day(D.notice.until))) errs.push('<code>notice.until</code> must be a YYYY-MM-DD date.');
+    if (D.notice && D.notice.points != null && !(Array.isArray(D.notice.points) && D.notice.points.every(function (t) { return typeof t === 'string'; }))) errs.push('<code>notice.points</code> must be a list of lines of text.');
+    if (D.notice && D.notice.until && !isNaN(day(D.notice.until)) && day(D.notice.until) < day(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date()))) warns.push('<code>notice</code> has passed its <code>until</code> date, so no one sees it now. Delete the block when you are ready.');
     if (D.site && D.site.url && !/^https:\/\//.test(D.site.url)) errs.push('<code>site.url</code> must start with https://');
     if (D.site && D.site.teams && !/^https:\/\//.test(D.site.teams)) errs.push('<code>site.teams</code> must be a full https:// Teams link.');
     Object.keys(D.photos || {}).forEach(function (k) {

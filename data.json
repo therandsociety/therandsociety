@@ -1,6 +1,23 @@
 {
   "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD and times HH:MM (SAST). After saving, open check.html on the site to confirm the file is valid. README.md explains every field.",
   "updated": "2026-10-19",
+  "notice": {
+    "id": "2026-10-22-exams-done",
+    "popup": true,
+    "until": "2026-11-08",
+    "from": "From the President",
+    "title": "Congratulations on finishing your exams",
+    "text": "Well done to every Member on completing the exam season. Putting your studies first through Academic Priority took real discipline, and I’m grateful for the hard work and dedication each of you gave it. You’ve earned a proper rest this week.\n\nThe Society reopens on Sunday 1 November 2026, when active Society work resumes. To be ready:",
+    "points": [
+      "Your first deliverables are due on Friday 6 November at 17:00. Today shows yours.",
+      "First drafts and Traffic-Light Review 1 follow on Friday 13 November.",
+      "Learn opens on 1 November: our two required books, by 28 February 2027.",
+      "Add the app to your home screen and switch on calendar reminders. Each meeting in the app now carries its Teams link."
+    ],
+    "close": "I’m proud of how this team has carried itself, and I look forward to building the Society with you from 1 November.",
+    "sign": "President & IC Chair",
+    "button": "Ready for 1 November"
+  },
   "site": {
     "url": "https://therandsociety.github.io/therandsociety/",
     "teams": "https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU"

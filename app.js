@@ -148,7 +148,10 @@
       cycles: cycles, updated: parseDay(raw.updated), order: order, reviewQueues: raw.reviewQueues || {}, photos: sectionPhotos(raw.photos),
       checklists: (Array.isArray(raw.checklists) ? raw.checklists : []).filter(function (c) { return c && c.id && Array.isArray(c.for) && Array.isArray(c.items) && c.items.length; }),
       library: (Array.isArray(raw.library) ? raw.library : []).filter(function (l) { return l && l.title && /^https:\/\/\S+$/.test(l.url || ''); }),
-      notice: raw.notice && raw.notice.id && raw.notice.text ? raw.notice : null,
+      // a notice shows once per device: as a note on Today, or with "popup": true as a message that opens over the app;
+      // "until" (YYYY-MM-DD) stops it showing to anyone who first opens the app after that day
+      notice: raw.notice && raw.notice.id && raw.notice.text ? Object.assign({}, raw.notice, { untilMs: parseDay(raw.notice.until),
+        points: (Array.isArray(raw.notice.points) ? raw.notice.points : []).filter(function (t) { return typeof t === 'string' && t.trim(); }) }) : null,
       teams: (raw.site && /^https:\/\//.test(raw.site.teams || '') && raw.site.teams) || '',
       siteUrl: (raw.site && raw.site.url) || ''
     };
@@ -694,6 +697,23 @@
       })}</ul>` : null}
       ${more > 0 ? html`<p class="ch-more">and ${more} more in the term plan.</p>` : null}
     </section>`;
+  }
+
+  // A message to every Member, shown once over the app (data.json "notice" with "popup": true)
+  function NoticeSheet(p) {
+    var N = p.N, paras = function (t) { return String(t || '').split(/\n\s*\n/).map(function (x) { return nbsp(x.trim()); }).filter(Boolean); };
+    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label=${N.title || 'Notice'}>
+      <div class="sheet-head"><span class="when">${N.from || 'From the Society'}</span><${CloseBtn} onClose=${p.onClose} /></div>
+      <div class="sheet-body nt">
+        <div class="nt-mark" aria-hidden="true"><${Logo} size=${30} /></div>
+        ${N.title ? html`<h2 class="sheet-title">${N.title}</h2>` : null}
+        ${paras(N.text).map(function (t, i) { return html`<p key=${'a' + i} class="nt-p">${t}</p>`; })}
+        ${N.points.length ? html`<ul class="nt-list">${N.points.map(function (t, i) { return html`<li key=${i}>${nbsp(t)}</li>`; })}</ul>` : null}
+        ${paras(N.close).map(function (t, i) { return html`<p key=${'c' + i} class="nt-p">${t}</p>`; })}
+        ${N.sign ? html`<p class="nt-sign">${N.sign}</p>` : null}
+        <button class="pill wide nt-go" onClick=${p.onClose}>${N.button || 'Got it'}</button>
+      </div>
+    </${Sheet}>`;
   }
 
   function InstallCard(p) {
@@ -3512,12 +3532,21 @@
       var m = st.P.members[clamp(st.mi, 0, st.P.members.length - 1)], cur = snapshotFor(st.P, m), prev = readSnaps()[m.id];
       var items = prev ? diffSnap(prev, cur, st.asOf) : [];
       var seenNotice = read('trs-notice') || '', N = st.P.notice;
-      var showNotice = N && N.id !== seenNotice;
+      var showNotice = N && !N.popup && N.id !== seenNotice && !(N.untilMs < st.asOf);
       if (!items.length) saveSnap(m.id, cur);
       if (!items.length && !showNotice) { if (st.changes) set({ changes: null }); return; }
       set({ changes: { member: m.id, snap: cur, items: items, noticeId: showNotice ? N.id : '',
         title: showNotice ? (N.title || 'Notice') : 'Dates changed since your last visit', text: showNotice ? N.text : '' } });
     }, [st.P, st.mi]);
+
+    // A pop-up notice opens once nothing else is open (after the role picker on a first visit) and counts as seen once shown.
+    useEffect(function () {
+      if (!st.P || st.sheet) return;
+      var N = st.P.notice;
+      if (!N || !N.popup || N.id === (read('trs-notice') || '') || N.untilMs < st.asOf) return;
+      set({ sheet: { kind: 'notice' } });
+    }, [st.P, !!st.sheet]);
+    useEffect(function () { if (st.sheet && st.sheet.kind === 'notice' && st.P && st.P.notice) store('trs-notice', st.P.notice.id); }, [st.sheet && st.sheet.kind]);
 
     // Learn's skin reaches the edges of the screen too: the page behind the bounce, the status bar and the browser bar
     var skinKey = !SK ? '' : st.sheet && st.sheet.kind === 'quiz' ? 'quiz' : st.tab === 'learn' && st.P ? 'learn' : '';
@@ -3697,6 +3726,8 @@
       sheet = html`<${ShareSheet} key=${'share' + st.sheet.subject} phone=${st.phone} onClose=${A.close} title=${st.sheet.title} kicker=${st.sheet.kicker} subject=${st.sheet.subject} text=${st.sheet.text} note=${st.sheet.note} rows=${st.sheet.rows} />`;
     } else if (st.sheet && st.sheet.kind === 'search') {
       sheet = html`<${SearchSheet} key="search" phone=${st.phone} M=${M} onClose=${A.close} openAny=${A.openAny} openRule=${A.openRule} />`;
+    } else if (st.sheet && st.sheet.kind === 'notice' && P.notice) {
+      sheet = html`<${NoticeSheet} key="notice" phone=${st.phone} N=${P.notice} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'cal') {
       sheet = html`<${CalSheet} key="cal" phone=${st.phone} m=${M.m} calBase=${calBase} android=${/Android/i.test(navigator.userAgent || '')} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'member') {

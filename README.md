@@ -102,6 +102,8 @@ You don't need to: when a date, end date or time changes, each member sees a sho
 
 Delete the block when it's no longer needed.
 
+**A message that opens over the app.** Add `"popup": true` and the notice opens as a message the first time each member opens the app (after the role picker on a first visit), once per phone. Optional fields: `from` (the line above the title, such as "From the President"), `points` (a short list shown under the text), `close` (a paragraph after the list), `sign` (a role, never a name), `button` (the closing button; "Got it" if left out) and `until` (YYYY-MM-DD: no one sees it after that day). In `text` and `close`, a blank line (`\n\n`) starts a new paragraph. Give it a new `id` each time, or members who saw the last one won't see it.
+
 ### Calendar reminders
 
 Members can subscribe to their own calendar from the app ("Get reminders in your calendar" under the term plan). The feeds live in `cal/` and are rebuilt automatically by GitHub (see `.github/workflows/calendar.yml`) a minute or two after you change `data.json`. Calendar apps refresh subscribed calendars on their own schedule: Apple Calendar within a few hours, Google Calendar sometimes up to a day. Google also ignores the built-in reminders, so members on Google switch on notifications for the calendar once. If the site moves to a new address, update `site.url` so the links inside calendar entries point to it.
