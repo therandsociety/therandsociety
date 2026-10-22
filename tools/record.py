@@ -328,7 +328,89 @@ def link(D, f):
             'Members see it as a button in that date\u2019s panel within a few minutes. Check the file is shared with the Members, or the button opens a request for access.')
 
 
-FORMS = [({'Deliverable', 'Result'}, result), ({'Meeting'}, attendance), ({'What to do', 'Message'}, notice), ({'Date to change', 'New date'}, move), ({'Date to link', 'Label'}, link)]
+OUTCOME_WORD = {'approved': 'Approved', 'rejected': 'Not approved', 'deferred': 'Deferred', 'noted': 'Noted'}
+
+
+def decision(D, f):
+    where = one(f.get('Taken at'), 'meeting')
+    if where == 'resolution':
+        d = day(f.get('Date of a written resolution'), 'The date of a written resolution')
+        place = 'Written resolution'
+        meeting = ''
+    else:
+        lst, e = find(D, where)
+        if e.get('type') != 'meeting':
+            raise Stop('“' + e['title'] + '” is not a meeting.')
+        d = day(e['date'], 'The meeting date')
+        place, meeting = e['title'], e['key']
+    if d > today():
+        raise Stop(place + ' is on ' + nice(d) + ', which hasn’t happened yet. Record decisions from the minutes.')
+    title = re.sub(r'\s+', ' ', f.get('Decision', '')).strip()
+    rationale = f.get('Rationale', '').strip()
+    if not title or not rationale:
+        raise Stop('A decision needs a one-line decision and its rationale.')
+    out = one(f.get('Outcome'), 'outcome')
+    if out not in OUTCOME_WORD:
+        raise Stop('Choose an outcome from the list.')
+    owner = one(f.get('Owner'), 'owner')
+    if owner != 'none':
+        member(D, owner)
+    rv = f.get('Review on', '').strip()
+    if rv.lower() == 'none':
+        review = ''
+    elif rv:
+        r = day(rv, 'Review on')
+        if r <= d:
+            raise Stop('The review date must be after the decision.')
+        review = r.isoformat()
+    else:
+        review = (d + dt.timedelta(days=30)).isoformat()
+    ds = D.setdefault('decisions', [])
+    n = 1 + sum(1 for x in ds if x.get('date') == d.isoformat())
+    rec = {'id': 'D-' + d.isoformat() + '-' + str(n), 'date': d.isoformat(), 'title': title, 'outcome': out, 'rationale': rationale}
+    if meeting:
+        rec['meeting'] = meeting
+    if f.get('Vote', '').strip():
+        rec['vote'] = f['Vote'].strip()
+    if owner != 'none':
+        rec['owner'] = owner
+    if review:
+        rec['review'] = review
+    ds.append(rec)
+    ds.sort(key=lambda x: (x.get('date', ''), x.get('id', '')))
+    return (OUTCOME_WORD[out] + ': ' + title + ' · ' + (('IC ' + str(e.get('ic'))) if meeting and e.get('ic') else place),
+            '**' + OUTCOME_WORD[out] + ':** ' + title + ' (' + place + ', ' + nice(d) + ').\n\n'
+            + ('Vote: ' + rec['vote'] + '\n\n' if rec.get('vote') else '') + 'Rationale: ' + rationale + '\n\n'
+            + ('Owner: the ' + role(member(D, owner)) + '.\n\n' if owner != 'none' else '')
+            + ('Review on ' + nice(day(review, 'review')) + ': the register shows a prompt from a week before.' if review else 'No review date.')
+            + '\n\nIt appears in the decision register on the Meetings page within a few minutes.')
+
+
+def review_decision(D, f):
+    did = one(f.get('Decision to review'), 'decision')
+    if did == 'none':
+        raise Stop('There are no decisions to review yet.')
+    rec = next((x for x in D.get('decisions') or [] if x.get('id') == did), None)
+    if not rec:
+        raise Stop('There is no decision ' + did + ' in data.json. The form may be out of date: reload it and try again.')
+    note = f.get('What happened', '').strip()
+    if not note:
+        raise Stop('Say what happened: did it play out as the rationale expected?')
+    rec['reviewed'] = {'date': today().isoformat(), 'note': note}
+    nx = f.get('Next review', '').strip()
+    if nx:
+        r = day(nx, 'Next review')
+        if r <= today():
+            raise Stop('The next review must be after today.')
+        rec['review'] = r.isoformat()
+    else:
+        rec.pop('review', None)
+    return ('Reviewed: ' + rec['title'],
+            '**Reviewed:** ' + rec['title'] + ' (decided ' + nice(day(rec['date'], 'date')) + ').\n\n' + note
+            + ('\n\nNext review on ' + nice(day(rec['review'], 'review')) + '.' if rec.get('review') else '\n\nNo further review is set.'))
+
+
+FORMS = [({'Deliverable', 'Result'}, result), ({'Meeting'}, attendance), ({'What to do', 'Message'}, notice), ({'Date to change', 'New date'}, move), ({'Date to link', 'Label'}, link), ({'Taken at', 'Decision', 'Rationale'}, decision), ({'Decision to review', 'What happened'}, review_decision)]
 
 
 def apply(D, body):
@@ -336,12 +418,18 @@ def apply(D, body):
     for need, fn in FORMS:
         if need <= set(f):
             return fn(D, f)
-    raise Stop('This doesn’t look like one of the Society’s forms. Open a new issue and choose Record a result, Record attendance, Post a notice, Change a date or Add a link.')
+    raise Stop('This doesn’t look like one of the Society’s forms. Open a new issue and choose one of the Society’s forms.')
 
 
 def check(D):
     """The same basics check.html enforces, for what the forms can change."""
     ids = {m['id'] for m in D.get('members', [])}
+    for rec in D.get('decisions') or []:
+        day(rec.get('date', ''), 'decision date')
+        if rec.get('outcome') not in OUTCOME_WORD or not rec.get('title'):
+            raise Stop('A decision in data.json is not valid.')
+        if rec.get('review'):
+            day(rec['review'], 'review date')
     for lst in ('society', 'analyst'):
         for e in D.get(lst, []):
             day(e['date'], e['key'] + ' date')

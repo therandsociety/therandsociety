@@ -4,7 +4,7 @@ A small installable web app. Members open the link, pick their role once, and ca
 
 ## Recording from your phone
 
-Five forms on GitHub do the common changes without touching `data.json`: open **[the forms](https://github.com/therandsociety/therandsociety/issues/new/choose)** (signed in as the Society's GitHub account) and choose one.
+Seven forms on GitHub do the common changes without touching `data.json`: open **[the forms](https://github.com/therandsociety/therandsociety/issues/new/choose)** (signed in as the Society's GitHub account) and choose one.
 
 | Form | What it does |
 |---|---|
@@ -13,6 +13,8 @@ Five forms on GitHub do the common changes without touching `data.json`: open **
 | **Post a notice** | A note on Today or a pop-up shown once per phone, signed by a role; or removes the current notice |
 | **Change a date** | Moves a deadline, meeting or milestone, with the decision on record; a meeting's pre-read and the thesis path move with it, a date that runs over several days keeps its length, and the reply lists any wording that still names the old date |
 | **Add a link** | Puts a template, agenda, pre-read or minutes on a date as a button in its panel (up to four per date); or removes one |
+| **Record a decision** | Adds an IC decision or written resolution to the decision register: outcome, vote, rationale, owner and a review date (a month later unless you say otherwise) |
+| **Review a decision** | Records how a decision played out, which closes its review prompt, and sets the next review if there is one |
 
 Submitting a form opens an issue. Within a minute GitHub checks it against the dates file, writes the change, rebuilds the calendar feeds, replies on the issue with what changed, renames it (for example "Accepted: Capacity map completed · President") and closes it, so the closed issues read as a dated log of every decision. If something doesn't fit (a Member who doesn't lead that deliverable, a meeting that hasn't happened, a meeting moved off a Sunday, a date that isn't real) it replies with the reason, changes nothing and closes the issue. Only issues opened by the Society's account are applied. Issues are public, like this file: use roles, never names.
 
@@ -88,6 +90,14 @@ After each meeting, record attendance from the minutes:
 
 Every meeting counts: the six ICs and the three learning sessions. `excused` is an approved absence, including a notified November exam exemption, and leaves the count; `absent` counts against it. Members see "3 of 4 meetings (75%) · 70% required", green "On track" at or above the line and orange "Below 70%" under it, with how many of the meetings still to come bring them back. The requirement is 70% (Constitution 2.6); `term.attendance` changes it. A meeting that has ended without a record shows as "awaiting record" and doesn't count either way. Scorecard rows with `"live": "concept"` or `"live": "attendance"` show each Member's own slot and count instead of their `when` text.
 
+### Decision register
+
+Decisions live in `decisions` (added by the forms): `id`, `date`, `meeting` (a meeting key; left out for a written resolution), `title`, `outcome` (`approved`, `rejected`, `deferred` or `noted`), `vote`, `rationale`, `owner` (a role id), `review` (YYYY-MM-DD) and, once reviewed, `reviewed` (`date` and `note`). Members see the register on the Meetings page once the first decision is recorded, newest first; each meeting's panel lists the decisions taken there. From a week before a review date until the review is recorded, the decision shows "Review" in orange with the question "did it play out as the rationale expected?" (Term Plan 11 and 12.6; the Stanford and Addepar practice of revisiting decisions).
+
+### Pitch feedback
+
+From the pre-read day of each Pitch IC until a week after it, the Meetings page (and Today, from the meeting until three days after) shows **Pitch feedback**: each Member scores every presenting analyst except themselves, 1 to 5, on the Term Plan's research-review criteria (evidence, structure, valuation, risks, catalysts and internal consistency, section 11), adds the strongest point and what to strengthen, and sends it to the presenter and the Head of Research. Drafts stay on the phone; nothing is stored online.
+
 ### Reviewer lists ("Waiting on you")
 
 The Head of Research and Portfolio Manager see a **Waiting on you** card listing the work other Members will send them for review. It appears a fortnight before the work arrives and drops off once its review date has passed or the work is accepted. The rows come from `reviewQueues`, keyed by the reviewer's role id:
@@ -150,7 +160,7 @@ Members can subscribe to their own calendar from the app ("Get reminders in your
 
 ### Where Members hand in work
 
-Put the Society's Google Drive folder in `site.submit`. Every deadline a member leads then shows **Hand in on Drive** next to **Mark as submitted**, on Today and in the deadline's panel, and **Society Drive** appears under You. Keep the folder's General access on **Restricted** and add each Member as an Editor: this file is public, so the link must not open the folder by itself. A date's own `links` (a template, say) still show as well. On a phone, the first tap on **Hand in** asks where to open the folder: the Google Drive app or the browser (Safari, Chrome and so on). The answer is remembered on that phone, and **Society Drive** under You shows it and changes it. The app opens the Drive app directly (on iPhone through the app's own `googledrive://` link, on Android through an intent that falls back to the browser if the app isn't installed); if the Drive app doesn't open on an iPhone, the app offers the browser instead.
+Put the Society's Google Drive folder in `site.submit`. Every deadline a member leads then shows **Hand in on Drive** next to **Mark as submitted**, on Today and in the deadline's panel, and **Society Drive** appears under You. Keep the folder's General access on **Restricted** and add each Member as an Editor: this file is public, so the link must not open the folder by itself. A date's own `links` (a template, say) still show as well. On a phone, the first tap on **Hand in** asks where to open the folder: the Google Drive app or the browser (Safari, Chrome and so on), and on Android also Google Drive in GBox. The answer is remembered on that phone, and **Society Drive** under You shows it and changes it. The app opens the Drive app directly (on iPhone through the app's own `googledrive://` link, on Android through an intent that falls back to the browser if the app isn't installed); if the Drive app doesn't open on an iPhone, the app offers the browser instead. On Huawei phones Google apps run inside GBox, which no link can reach: when the Drive app can't be opened, Android comes back to the app (`#drive-help`) and it shows the way in from Drive's home-screen icon (Shared, then the folder), with the browser as the other choice; members can make either the default.
 
 ### Teams links and today
 
@@ -161,6 +171,8 @@ On the day of a meeting the app counts down to 17:00, shows "Live now" during it
 Add `?asof=2027-02-10` to the address to see the dashboard as it will look on that date, and `&now=16:45` to preview a time of day. Members never see this unless they type it.
 
 ### Opening and updating
+
+In the installed app on a phone, pulling down at the top of a page checks the dates again ("Dates up to date"); if a new version is waiting, it loads that instead.
 
 The full launch screen plays on the first open of each day; after that the app opens in about a second with a slimmer header. After you publish a change to the app itself, open copies show **A new version is ready · Refresh**. Under the term plan, members see when the dates were last checked, or that they are offline and seeing the saved copy, with a **Refresh** button. Press `/` on a computer (or tap the magnifier beside "Term plan") to search dates, meetings and rules.
 
@@ -176,7 +188,7 @@ A bar along the bottom on phones, and a sidebar on computers, switches between f
 |---|---|
 | **Today** | Your next deadline, the week ahead, the next meeting with its agenda, pre-reads and minutes dates, and "Waiting on you" for reviewers. On a computer, **Coming up** lists the next three weeks in both roles. After a meeting, the Member who minutes it sees **Your minutes** until Tuesday 17:00 |
 | **Plan** | The term timeline and every date for the chosen role |
-| **Meetings** | The next meeting in full (who leads, what to prepare), every IC and learning session this term, and your part: your Concept of the Meeting slot and your attendance |
+| **Meetings** | The next meeting in full (who leads, what to prepare), every IC and learning session this term, your part (your Concept of the Meeting slot and your attendance), the decision register, and pitch feedback around each Pitch IC |
 | **Learn** | The required reading: level, question of the day, both books chapter by chapter, checks, review deck and badges. A new reader sees **How Learn works** first; sound, vibration and the look are under **Settings** |
 | **You** | What the role owns and its safeguard (or the analyst's coverage, thesis path and scorecard), Send my update, Suggest an improvement, Report a problem, the Library, rules, calendar reminders and installing the app |
 

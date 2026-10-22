@@ -93,6 +93,16 @@ def form(name, about, title, intro, fields):
     return '\n'.join(lines) + '\n'
 
 
+OUTCOMES = [('approved', 'Approved'), ('rejected', 'Not approved'), ('deferred', 'Deferred'), ('noted', 'Noted')]
+
+
+def decisions(D):
+    out = []
+    for d in sorted(D.get('decisions') or [], key=lambda x: (x.get('date', ''), x.get('id', '')), reverse=True):
+        out.append(short(day(d['date'])) + ' · ' + d.get('title', d['id']) + ' [' + d['id'] + ']')
+    return out or ['No decisions recorded yet [none]']
+
+
 def build(D):
     members = D.get('members', [])
     files = {}
@@ -155,6 +165,26 @@ def build(D):
          dict(type='input', id='label', label='Label', description='What the button says, in a few words.', placeholder='Thesis template', required=True),
          dict(type='input', id='url', label='Link', description='The full address, starting https://. Not needed to remove a link.',
               placeholder='https://drive.google.com/file/d/…')])
+    files['6-decision.yml'] = form(
+        'Record a decision', 'An IC decision or written resolution, with its vote, rationale and review date, for the decision register.',
+        'Decision',
+        'Adds the decision to the register on the Meetings page, with a review date (a month later unless you say otherwise) '
+        'so the IC can check whether it played out as the rationale expected. Record it from the approved minutes. ' + PUBLIC,
+        [dict(type='dropdown', id='meeting', label='Taken at', options=meetings(D) + ['Written resolution [resolution]'], required=True),
+         dict(type='input', id='date', label='Date of a written resolution', description='YYYY-MM-DD. Only for a written resolution; a meeting uses its own date.'),
+         dict(type='input', id='title', label='Decision', description='One line, such as: Approve the Portfolio Framework.', required=True),
+         dict(type='dropdown', id='outcome', label='Outcome', options=[t + ' [' + k + ']' for k, t in OUTCOMES], required=True),
+         dict(type='input', id='vote', label='Vote', description='As minuted, roles not names.', placeholder='3 for, 0 against, 1 absent'),
+         dict(type='textarea', id='rationale', label='Rationale', description='Why, in two or three lines.', required=True),
+         dict(type='dropdown', id='owner', label='Owner', options=[member_label(m) for m in members] + ['No owner [none]'], required=True),
+         dict(type='input', id='review', label='Review on', description='Optional, YYYY-MM-DD. Leave blank for a month after the decision; write none for no review.')])
+    files['7-review.yml'] = form(
+        'Review a decision', 'Record how a decision played out, and set the next review if there is one.',
+        'Review',
+        'Closes the review prompt on the decision register and keeps what the IC concluded. ' + PUBLIC,
+        [dict(type='dropdown', id='decision', label='Decision to review', options=decisions(D), required=True),
+         dict(type='textarea', id='note', label='What happened', description='Did it play out as the rationale expected? What would you do differently?', required=True),
+         dict(type='input', id='next', label='Next review', description='Optional, YYYY-MM-DD.')])
     files['config.yml'] = 'blank_issues_enabled: false\n'
     return files
 

@@ -1,0 +1,30 @@
+# Built by tools/forms.py from data.json. Edit that script, not this file.
+name: "Review a decision"
+description: "Record how a decision played out, and set the next review if there is one."
+title: "Review"
+body:
+  - type: markdown
+    attributes:
+      value: "Closes the review prompt on the decision register and keeps what the IC concluded. This page is public and stays as the dated record: use roles, never names."
+  - type: dropdown
+    id: decision
+    attributes:
+      label: "Decision to review"
+      options:
+        - "No decisions recorded yet [none]"
+    validations:
+      required: true
+  - type: textarea
+    id: note
+    attributes:
+      label: "What happened"
+      description: "Did it play out as the rationale expected? What would you do differently?"
+    validations:
+      required: true
+  - type: input
+    id: next
+    attributes:
+      label: "Next review"
+      description: "Optional, YYYY-MM-DD."
+    validations:
+      required: false

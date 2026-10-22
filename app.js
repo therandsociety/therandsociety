@@ -156,6 +156,11 @@
       cycles: cycles, updated: parseDay(raw.updated), order: order, reviewQueues: raw.reviewQueues || {}, photos: sectionPhotos(raw.photos),
       checklists: (Array.isArray(raw.checklists) ? raw.checklists : []).filter(function (c) { return c && c.id && Array.isArray(c.for) && Array.isArray(c.items) && c.items.length; }),
       library: (Array.isArray(raw.library) ? raw.library : []).filter(function (l) { return l && l.title && /^https:\/\/\S+$/.test(l.url || ''); }),
+      // the decision register (added by the Record a decision form): newest first
+      decisions: (Array.isArray(raw.decisions) ? raw.decisions : []).filter(function (d) { return d && d.id && d.title && !isNaN(parseDay(d.date)); }).map(function (d) {
+        return { id: d.id, ms: parseDay(d.date), meeting: d.meeting || '', title: d.title, outcome: d.outcome || 'noted', vote: d.vote || '', rationale: d.rationale || '', owner: d.owner || '',
+          reviewMs: parseDay(d.review), reviewed: d.reviewed && d.reviewed.note ? { ms: parseDay(d.reviewed.date), note: d.reviewed.note } : null };
+      }).sort(function (a, b) { return b.ms - a.ms || (a.id < b.id ? 1 : -1); }),
       // a notice shows once per device: as a note on Today, or with "popup": true as a message that opens over the app;
       // "until" (YYYY-MM-DD) stops it showing to anyone who first opens the app after that day
       notice: raw.notice && raw.notice.id && raw.notice.text ? Object.assign({}, raw.notice, { untilMs: parseDay(raw.notice.until),
@@ -544,6 +549,31 @@
         ended: now >= end, chain: chain, minutesAt: chain.length ? chain[chain.length - 1].at : 0, link: it.link || P.teams };
     });
     var nextMeet = meetings.filter(function (x) { return !x.ended; })[0] || null;
+    // The decision register, with a review prompt from a week before each review date until the review is recorded
+    var OUT = { approved: ['Approved', 'lead'], rejected: ['Not approved', 'quiet'], deferred: ['Deferred', 'support'], noted: ['Noted', 'support'] };
+    var decisions = (P.decisions || []).map(function (d) {
+      var mt = d.meeting && P.society.filter(function (e) { return e.key === d.meeting; })[0];
+      var ow = d.owner && P.members.filter(function (x) { return x.id === d.owner; })[0];
+      var open = !isNaN(d.reviewMs) && !(d.reviewed && d.reviewed.ms >= d.reviewMs), due = open && d.reviewMs - asOf <= 7 * DAY;
+      return { id: d.id, ms: d.ms, meeting: d.meeting, title: nbsp(d.title), vote: d.vote, rationale: d.rationale, reviewed: d.reviewed,
+        place: mt ? (mt.ic ? 'IC ' + mt.ic : mt.title) : 'Written resolution', when: wk(d.ms).slice(0, 3) + ' ' + dShort(d.ms),
+        out: { text: (OUT[d.outcome] || OUT.noted)[0], tone: (OUT[d.outcome] || OUT.noted)[1] }, owner: ow ? (ow.id === m.id ? 'You' : ow.roleShort || ow.role) : '',
+        due: due, review: !open ? null : { text: d.reviewMs < asOf ? 'Review overdue' : d.reviewMs === asOf ? 'Review today' : 'Review ' + wk(d.reviewMs).slice(0, 3) + ' ' + dShort(d.reviewMs), tone: due ? 'u-week' : 'quiet', long: dLong(d.reviewMs) } };
+    });
+
+    // Pitch feedback: from the pre-read day of a Pitch IC to a week after it, Members score each presenting analyst's thesis
+    // on the Term Plan's research-review criteria and send the scores to the presenter and the Head of Research.
+    var pitch = null;
+    P.society.forEach(function (e) {
+      var note = e.type === 'meeting' && P.analystMeetings[e.key];
+      if (!note || !note.cycle) return;
+      var pr = parseDay(e.preread), from = isNaN(pr) ? e.ms - DAY : pr, start = atSAST(e.ms, '17:00');
+      if (asOf < from || asOf > e.ms + 7 * DAY) return;
+      pitch = { key: e.key, title: e.title, ms: e.ms, cycle: note.cycle, started: now >= start, today: asOf === e.ms,
+        when: wk(e.ms) + ' ' + dMonth(e.ms) + ', 17:00', recent: now >= start && asOf <= e.ms + 3 * DAY,
+        presenters: P.members.filter(function (x) { return (x.cycle || 'A') === note.cycle; }), me: (m.cycle || 'A') === note.cycle };
+    });
+
     // Coming up (computers): the next three weeks in both roles, after the cards above it
     var seenC = {}, coming = [];
     all.map(function (it) { return { it: it, lens: lens }; }).concat(oAll.map(function (it) { return { it: it, lens: otherLens }; })).forEach(function (x) {
@@ -569,7 +599,7 @@
       m: m, mi: mi, lens: lens, phase: phase, hero: hero, phaseTag: phaseTag, all: all, shown: shown, groups: groups, pastCount: pastItems.length,
       queue: lens === 'society' ? reviewQueue(P, m, asOf) : null, searchRules: allRules(P, m, phase),
       progress: progress, nextKey: firstUp ? firstUp.key : null, next: next,
-      meetings: meetings, nextMeet: nextMeet, photos: P.photos || {}, att: att, coming: coming.slice(0, 6),
+      meetings: meetings, nextMeet: nextMeet, photos: P.photos || {}, att: att, coming: coming.slice(0, 6), pitch: pitch, decisions: decisions,
       checkFor: function (key) {
         var c = (P.checklists || []).filter(function (x) { return x.for.indexOf(key) >= 0; })[0];
         if (!c) return null;
@@ -665,6 +695,7 @@
         ${p.check ? html`<${Checklist} c=${p.check} state=${p.checkState} toggle=${p.toggleCheck} />` : null}
         <${LinkRow} links=${it.links} />
         ${it.type === 'meeting' && !it.past ? html`<${MeetActions} it=${it} A=${p.A} />` : null}
+        ${p.decs && p.decs.length ? html`<div class="dec-in"><span class="card-k">Decisions</span><ul>${p.decs.map(function (d) { return html`<li key=${d.id}><span>${d.title}</span><${Tag} text=${d.out.text} tone=${d.out.tone} /></li>`; })}</ul></div>` : null}
         ${it.people.length ? html`<dl class="who">${it.people.map(function (x) { return html`<div key=${x.k}><dt>${x.k}</dt><dd>${x.v}</dd></div>`; })}</dl>` : null}
       </div>
       <div class="sheet-foot">
@@ -1173,6 +1204,96 @@
     return r ? html`<section class="card rcard" aria-labelledby="mw-h"><span class="card-k">How meetings run</span><h2 id="mw-h">${r.title}</h2><p>${r.body}</p></section>` : null;
   }
 
+  // ---------- decision register ----------
+  function DecisionCard(p) {
+    var M = p.M, L = M.decisions, o = useState(''), open = o[0], setOpen = o[1], a = useState(false), all = a[0], setAll = a[1];
+    if (!L.length) return null;
+    var due = L.filter(function (d) { return d.due; }).length, rows = all ? L : L.slice(0, 5);
+    return html`<section class="card dec-card" aria-labelledby="dc-h">
+      <div class="card-head"><h2 id="dc-h" class="card-k">Decision register</h2><span class="count tnum">${L.length} ${plural(L.length, 'decision')}${due ? ' · ' + due + ' due for review' : ''}</span></div>
+      <ul class="dec-list">${rows.map(function (d) {
+        var on = open === d.id;
+        return html`<li key=${d.id} class=${on ? 'on' : ''}>
+          <button class="dec-row" aria-expanded=${on ? 'true' : 'false'} onClick=${function () { setOpen(on ? '' : d.id); }}>
+            <span class="dec-t"><b>${d.title}</b><small class="tnum">${d.when} · ${d.place}${d.owner ? ' · ' + d.owner : ''}</small></span>
+            <span class="dec-tags"><${Tag} text=${d.out.text} tone=${d.out.tone} />${d.review && d.due ? html`<${Tag} text=${d.review.text} tone=${d.review.tone} />` : null}</span>
+          </button>
+          ${on ? html`<div class="dec-more">
+            ${d.vote ? html`<p><span>Vote</span>${d.vote}</p>` : null}
+            <p><span>Rationale</span>${d.rationale}</p>
+            ${d.reviewed ? html`<p><span>Reviewed</span>${d.reviewed.note}${!isNaN(d.reviewed.ms) ? ' (' + dShort(d.reviewed.ms) + ')' : ''}</p>` : null}
+            ${d.review ? html`<p class=${d.due ? 'dec-due' : ''}><span>Review</span>${d.due ? 'Due ' + d.review.long + ': did it play out as the rationale expected?' : d.review.long}</p>` : null}
+          </div>` : null}
+        </li>`;
+      })}</ul>
+      ${L.length > 5 ? html`<button class="past-btn" onClick=${function () { setAll(!all); }} aria-expanded=${all ? 'true' : 'false'}><${Chev} open=${all} />${all ? 'Show the latest five' : 'Show all ' + L.length}</button>` : null}
+    </section>`;
+  }
+
+  // ---------- pitch feedback ----------
+  var PITCH_CRIT = [['ev', 'Evidence', 'Sources and facts behind the case'], ['st', 'Structure', 'A clear argument, easy to follow'],
+    ['va', 'Valuation', 'Method, assumptions and the price that makes sense'], ['ri', 'Risks', 'What could go wrong, and how much it matters'],
+    ['ca', 'Catalysts', 'What makes the value show, and when'], ['ic', 'Internal consistency', 'Numbers, story and recommendation agree']];
+  function readPfb() { try { return JSON.parse(read('trs-pfb') || '{}') || {}; } catch (e) { return {}; } }
+  function pfbDraft(me, mk, pid) { var a = readPfb(); return ((a[me] || {})[mk] || {})[pid] || { s: {} }; }
+  function savePfb(me, mk, pid, d) { var a = readPfb(); a[me] = a[me] || {}; a[me][mk] = a[me][mk] || {}; a[me][mk][pid] = d; store('trs-pfb', JSON.stringify(a)); }
+  function pfbAvg(d) { var v = PITCH_CRIT.map(function (c) { return d.s[c[0]] || 0; }); return v.every(Boolean) ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : 0; }
+  function pfbText(T, pres, me, d) {
+    var avg = pfbAvg(d), sc = PITCH_CRIT.map(function (c) { return c[1] + ' ' + d.s[c[0]] + '/5'; });
+    return plain(['Pitch feedback · ' + T.title,
+      'For the ' + (pres.roleShort || pres.role) + ' (' + pres.sector + ' analyst) · from the ' + (me.roleShort || me.role) + (d.co ? '\nCompany: ' + d.co : ''), '',
+      sc.slice(0, 3).join(' · '), sc.slice(3).join(' · '), 'Average ' + avg.toFixed(1) + ' out of 5', '',
+      'Strongest point: ' + (d.best || '–'), 'To strengthen: ' + (d.imp || '–')].join('\n'));
+  }
+  function PitchCard(p) {
+    var M = p.M, A = p.A, T = M.pitch;
+    if (!T) return null;
+    var others = T.presenters.filter(function (x) { return x.id !== M.m.id; });
+    return html`<section class="card pfb-card" aria-labelledby="pf-h">
+      <div class="card-head"><h2 id="pf-h" class="card-k">Pitch feedback</h2><span class="count">${T.title.replace(/^Formal IC \d+: /, '')}</span></div>
+      <p class="pfb-lead">${T.started ? 'Score each thesis on the six review criteria and send it to the presenter and the Head of Research.' : 'Read the pre-reads, then score each thesis at the meeting on ' + T.when + '.'}${T.me ? ' You present at this one, so the others score yours.' : ''}</p>
+      <ul class="pfb-list">${others.map(function (x) {
+        var d = pfbDraft(M.m.id, T.key, x.id), n = PITCH_CRIT.filter(function (c) { return d.s[c[0]]; }).length;
+        var state = d.sent ? { text: 'Sent', tone: 'sub' } : n ? { text: n + ' of 6 scored', tone: 'when' } : null;
+        return html`<li key=${x.id}><button class="pfb-row" onClick=${function () { A.openPitch(T.key, x.id); }}>
+          <span class="pfb-t"><b>${x.roleShort || x.role}</b><small>${x.sector} analyst</small></span>
+          ${state ? html`<${Tag} text=${state.text} tone=${state.tone} />` : html`<span class="pfb-go">Score</span>`}<${Arrow} />
+        </button></li>`;
+      })}</ul>
+    </section>`;
+  }
+  function PitchSheet(p) {
+    var T = p.T, pres = p.pres, me = p.me, init = pfbDraft(me.id, T.key, pres.id);
+    var ds = useState(init), d = ds[0], setD = ds[1];
+    function upd(patch) { var n = Object.assign({}, d, patch, { sent: patch.sent != null ? patch.sent : d.sent }); setD(n); savePfb(me.id, T.key, pres.id, n); }
+    function score(k, v) { var s2 = Object.assign({}, d.s); s2[k] = v; upd({ s: s2 }); }
+    var avg = pfbAvg(d), toHor = pres.id === 'hor' ? 'the Head of Research' : 'the ' + (pres.roleShort || pres.role) + ' and the Head of Research';
+    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label=${'Pitch feedback for the ' + (pres.roleShort || pres.role)}>
+      <div class="sheet-head"><span class="when">${T.title}</span><${CloseBtn} onClose=${p.onClose} /></div>
+      <div class="sheet-body">
+        <h2 class="sheet-title">${pres.roleShort || pres.role}’s pitch</h2>
+        <p class="share-note">${pres.sector} analyst. Score 1 (weak) to 5 (excellent) on the Term Plan’s review criteria. It saves on this phone as you go.</p>
+        <label class="pfb-co"><span>Company</span><input type="text" value=${d.co || ''} placeholder="Optional" onInput=${function (e) { upd({ co: e.currentTarget.value }); }} /></label>
+        <div class="pfb-crit">${PITCH_CRIT.map(function (c) {
+          return html`<div key=${c[0]} class="pfb-c" role="radiogroup" aria-labelledby=${'pc-' + c[0]}>
+            <span class="pfb-ct"><b id=${'pc-' + c[0]}>${c[1]}</b><small>${c[2]}</small></span>
+            <span class="pfb-sc">${[1, 2, 3, 4, 5].map(function (v) {
+              var on = d.s[c[0]] === v;
+              return html`<button key=${v} role="radio" aria-checked=${on ? 'true' : 'false'} aria-label=${c[1] + ' ' + v + ' out of 5'} class=${on ? 'on' : ''} onClick=${function () { score(c[0], v); }}>${v}</button>`;
+            })}</span>
+          </div>`;
+        })}</div>
+        <label class="pfb-tx"><span>Strongest point</span><textarea class="share-text" rows="2" value=${d.best || ''} onInput=${function (e) { upd({ best: e.currentTarget.value }); }}></textarea></label>
+        <label class="pfb-tx"><span>To strengthen</span><textarea class="share-text" rows="2" value=${d.imp || ''} onInput=${function (e) { upd({ imp: e.currentTarget.value }); }}></textarea></label>
+        <div class="pfb-foot">
+          <span class="pfb-avg tnum">${avg ? 'Average ' + avg.toFixed(1) + ' out of 5' : PITCH_CRIT.filter(function (c) { return d.s[c[0]]; }).length + ' of 6 scored'}</span>
+          <button class="pill" disabled=${!avg} onClick=${function () { upd({ sent: Date.now() }); p.send(pfbText(T, pres, me, d), toHor); }}>${d.sent ? 'Send again' : 'Send'}</button>
+        </div>
+        <p class="pfb-note">Goes to ${toHor} on WhatsApp, Teams or email.${d.sent ? ' Sent ' + stampSAST(d.sent) + '.' : ''}</p>
+      </div>
+    </${Sheet}>`;
+  }
+
   // Your part this term: the meeting where you present the Concept of the Meeting, and your attendance against the 70% rule.
   function AttendCard(p) {
     var M = p.M, A = p.A, T = M.att, sl = T.slot;
@@ -1288,14 +1409,17 @@
   }
   function driveWhere() {
     var pref = mobileOS() ? read('trs-drive-open') : '';
-    return 'Where you hand in your work' + (pref === 'app' ? ' · opens in the Drive app' : pref === 'web' ? ' · opens in ' + browserName() : '');
+    return 'Where you hand in your work' + (pref === 'app' ? ' · opens in the Drive app' : pref === 'web' ? ' · opens in ' + browserName() : pref === 'gbox' ? ' · steps for Drive in GBox' : '');
   }
   function navTo(u) { if (window.TRS_TEST && window.TRS_TEST.nav) { window.TRS_TEST.nav(u); return; } window.location.href = u; }
   function openWeb(url) { if (window.TRS_TEST && window.TRS_TEST.nav) { window.TRS_TEST.nav('web:' + url); return; } window.open(url, '_blank', 'noopener'); }
+  // If the Drive app can't be reached on Android (on Huawei phones it lives inside GBox, where Android can't see it),
+  // the browser comes back here with #drive-help and the app explains how to reach the folder instead.
+  function driveHelpUrl() { return String(location.href).replace(/#.*$/, '') + '#drive-help'; }
   // must run inside the tap itself: phones only open another app from a user's tap
   function openDrive(how, url, didntOpen) {
     if (how === 'app' && isAndroid()) {
-      navTo('intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.google.android.apps.docs;S.browser_fallback_url=' + encodeURIComponent(url) + ';end');
+      navTo('intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.google.android.apps.docs;S.browser_fallback_url=' + encodeURIComponent(driveHelpUrl()) + ';end');
       return;
     }
     if (how === 'app' && isIOS()) {
@@ -1311,7 +1435,7 @@
     function pick(how) { p.choose(how, remember); }
     function opt(how, title, sub) {
       return html`<button class=${'drv-opt' + (cur === how ? ' on' : '')} onClick=${function () { pick(how); }}>
-        <span class="g-ic" aria-hidden="true"><${Ico} n=${how === 'app' ? 'file' : 'globe'} s=${20} /></span>
+        <span class="g-ic" aria-hidden="true"><${Ico} n=${how === 'web' ? 'globe' : how === 'gbox' ? 'phone' : 'file'} s=${20} /></span>
         <span class="g-t"><b>${title}</b><small>${sub}</small></span>
         ${cur === how ? html`<span class="drv-cur">Current</span>` : html`<${Arrow} />`}
       </button>`;
@@ -1322,9 +1446,35 @@
         <h2 class="sheet-title">Open the Society Drive in</h2>
         <div class="drv-opts">
           ${opt('app', 'The Google Drive app', 'If it’s on this phone. Uploads straight from Files or Photos.')}
+          ${isAndroid() ? opt('gbox', 'Google Drive in GBox', 'Huawei phones: links can’t open GBox apps, so this shows the quick way in.') : null}
           ${opt('web', browserName(), 'Opens the folder in the browser; sign in with your Google account if asked.')}
         </div>
         <label class="drv-rem"><input type="checkbox" checked=${remember} onChange=${function (e) { setRemember(e.currentTarget.checked); }} /><span>Remember on this phone. Change it any time under You, Society Drive.</span></label>
+      </div>
+    </${Sheet}>`;
+  }
+
+  // Google Drive inside GBox (Huawei): no link can open it, so the way in, the folder link to copy, and the browser.
+  function GboxSheet(p) {
+    var pr = useState(p.pref), pref = pr[0], setPref = pr[1];
+    function next(how) { setPref(how); p.setPref(how); }
+    return html`<${Sheet} phone=${p.phone} onClose=${p.onClose} label="Open the Society Drive from Google Drive">
+      <div class="sheet-head"><span class="when">Hand in your work</span><${CloseBtn} onClose=${p.onClose} /></div>
+      <div class="sheet-body">
+        <h2 class="sheet-title">Open Drive from your home screen</h2>
+        <p class="share-note">${p.auto ? 'The Google Drive app didn’t open from the link. ' : ''}On Huawei phones Google apps run inside GBox, where links from other apps can’t reach them. Open the folder from Drive instead:</p>
+        <ol class="gbx-steps">
+          <li>Open <b>Google Drive</b> from your home screen.</li>
+          <li>Tap <b>Shared</b>, then the Society’s folder.</li>
+          <li>Tap <b>+</b>, then <b>Upload</b>, and choose your file.</li>
+          <li>Come back here and tap <b>Mark as submitted</b>.</li>
+        </ol>
+        <p class="gbx-tip">Star the folder once (<b>⋮</b>, then <b>Add to Starred</b>) and it waits under Starred.</p>
+        <div class="share-btns"><button class="share-btn" onClick=${p.web}>Or open it in ${browserName()}</button></div>
+        <div class="gbx-next" role="group" aria-label="Next time you tap Hand in">
+          <span>Next time Hand in</span>
+          <div class="seg"><button aria-pressed=${pref === 'gbox' ? 'true' : 'false'} onClick=${function () { next('gbox'); }}>Shows these steps</button><button aria-pressed=${pref === 'web' ? 'true' : 'false'} onClick=${function () { next('web'); }}>Opens ${browserName()}</button></div>
+        </div>
       </div>
     </${Sheet}>`;
   }
@@ -3678,6 +3828,41 @@
     function set(patch) { setSt(function (prev) { return Object.assign({}, prev, typeof patch === 'function' ? patch(prev) : patch); }); }
     var loadedAt = useRef(0), toastT = useRef(0), loadRef = useRef(null), sheetRef = useRef(null), ignorePop = useRef(false);
     var tabRef = useRef(st.tab), scrolls = useRef({}), animRef = useRef('from-l'), aRef = useRef(null), learnRef = useRef({}), quizGuard = useRef(null);
+    var ptrRef = useRef(null), updRef = useRef(false);
+    updRef.current = st.updateReady;
+
+    // Pull to refresh, in the installed app on a phone (a home-screen app has no reload button): pull down at the top of
+    // a page to check the dates again; if a new version is waiting, it loads that instead.
+    useEffect(function () {
+      if (!(standalone() || (window.TRS_TEST && window.TRS_TEST.ptr)) || !('ontouchstart' in window || navigator.maxTouchPoints > 0)) return;
+      var y0 = null, dy = 0, busy = false, LIMIT = 80;
+      function el() { return ptrRef.current; }
+      function show(d) {
+        var x = el(); if (!x) return;
+        x.classList.add('drag');
+        x.style.transform = 'translate(-50%,' + Math.round(Math.min(d, 120) * 0.55 - 52) + 'px)';
+        x.style.opacity = String(Math.min(1, d / LIMIT));
+        x.classList.toggle('armed', d >= LIMIT);
+        x.lastChild.textContent = d >= LIMIT ? 'Release to refresh' : 'Pull to refresh';
+      }
+      function hide() { var x = el(); if (!x) return; x.classList.remove('drag', 'armed', 'busy'); x.style.transform = ''; x.style.opacity = ''; }
+      function start(e) { y0 = !busy && !sheetRef.current && window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null; dy = 0; }
+      function move(e) { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (window.scrollY > 0 || dy <= 0) { hide(); return; } show(dy); }
+      function end() {
+        if (y0 == null) return; y0 = null;
+        if (dy < LIMIT) { hide(); return; }
+        if (updRef.current) { location.reload(); return; }
+        var x = el(); busy = true;
+        if (x) { x.classList.remove('drag'); x.classList.add('busy'); x.lastChild.textContent = 'Checking the dates…'; }
+        var done = function () { busy = false; hide(); var online = !(typeof navigator.onLine === 'boolean' && !navigator.onLine); if (aRef.current) aRef.current.say(online ? 'Dates up to date' : 'Offline: showing the saved dates'); };
+        Promise.resolve(loadRef.current ? loadRef.current(false) : null).then(done, done);
+      }
+      window.addEventListener('touchstart', start, { passive: true });
+      window.addEventListener('touchmove', move, { passive: true });
+      window.addEventListener('touchend', end, { passive: true });
+      window.addEventListener('touchcancel', end, { passive: true });
+      return function () { window.removeEventListener('touchstart', start); window.removeEventListener('touchmove', move); window.removeEventListener('touchend', end); window.removeEventListener('touchcancel', end); };
+    }, []);
 
     function load(first) {
       return loadData().then(function (res) {
@@ -3699,7 +3884,13 @@
     }
     loadRef.current = load;
 
+    // back from an Android link the Drive app couldn't take: explain the way in (after the role picker on a first visit)
+    function driveHelpBack() {
+      try { history.replaceState(history.state, '', location.pathname + location.search); } catch (e) { /* not allowed here */ }
+      set(function (prev) { return prev.sheet && prev.sheet.first ? {} : { sheet: { kind: 'gbox', auto: true } }; });
+    }
     useEffect(function () {
+      if (location.hash === '#drive-help') driveHelpBack();
       load(true);
       // the reading programme loads alongside the dates; Learn and the question of the day wait for it, nothing else does
       loadLearn().then(function (raw) { set({ LP: learnPrep(raw), learnErr: '' }); }).catch(function (e) { set({ learnErr: e && e.message ? e.message : 'unknown error' }); });
@@ -3719,6 +3910,7 @@
       function onMq() { set({ phone: isPhone() }); }
       if (phoneQuery) { if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', onMq); else if (phoneQuery.addListener) phoneQuery.addListener(onMq); }
       function onHash() {
+        if (location.hash === '#drive-help') { driveHelpBack(); return; }
         var t = tabFromHash();
         if (t) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* not allowed here */ } if (aRef.current) aRef.current.goTab(t); return; }
         set(function (prev) {
@@ -3937,20 +4129,28 @@
         });
       },
       openSettings: function () { set({ sheet: { kind: 'lset' } }); },
+      openPitch: function (mk, pid) { set({ sheet: { kind: 'pitch', meeting: mk, pres: pid } }); },
+      sendPitch: function (text, to) {
+        if (typeof navigator.share === 'function' && st.phone) { try { navigator.share({ text: text }).catch(function () {}); return; } catch (e) { /* fall through */ } }
+        set({ sheet: { kind: 'share', title: 'Send your pitch feedback', kicker: 'To ' + to, subject: text.split('\n')[0], text: text, rows: 10, note: 'Send it to ' + to + '. Edit it first if you like.' } });
+      },
       // Hand in: on a phone, the Drive app or the browser, as the member chose; "ask" (from You) always shows the choice
       handIn: function (ev, ask) {
         if (!mobileOS() || !P.submit) return;
         if (ev) ev.preventDefault();
         var pref = read('trs-drive-open');
+        if (pref === 'gbox' && !ask) { set({ sheet: { kind: 'gbox', back: st.sheet && st.sheet.kind !== 'gbox' ? st.sheet : null } }); return; }
         if ((pref === 'app' || pref === 'web') && !ask) { openDrive(pref, P.submit, A.driveDidntOpen); return; }
         set({ sheet: { kind: 'drive', back: st.sheet && st.sheet.kind !== 'drive' ? st.sheet : null } });
       },
       chooseDrive: function (how, remember) {
         if (remember) store('trs-drive-open', how); else { try { localStorage.removeItem('trs-drive-open'); } catch (e) { /* storage unavailable */ } }
         var back = st.sheet && st.sheet.back;
+        if (how === 'gbox') { set({ sheet: { kind: 'gbox', back: back || null } }); return; }
         set({ sheet: back || null });
         openDrive(how, P.submit, A.driveDidntOpen);
       },
+      setDrivePref: function (how) { store('trs-drive-open', how); set(function (prev) { return { learnTick: prev.learnTick + 1 }; }); },
       driveDidntOpen: function () {
         clearTimeout(toastT.current); toastT.current = setTimeout(function () { set({ toast: null }); }, 9000);
         set({ toast: { text: 'The Drive app didn’t open.', title: '', key: '', act: { label: 'Open in ' + browserName(), go: function () { set({ toast: null }); openWeb(P.submit); } } } });
@@ -4049,6 +4249,12 @@
       sheet = html`<${MemberSheet} key="member" phone=${st.phone} members=${P.members} mi=${M.mi} first=${!!st.sheet.first} pick=${A.pick} onClose=${st.sheet.first ? function () {} : A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'drive' && P.submit) {
       sheet = html`<${DriveSheet} key="drive" phone=${st.phone} cur=${read('trs-drive-open') || ''} choose=${A.chooseDrive} onClose=${function () { set({ sheet: st.sheet.back || null }); }} />`;
+    } else if (st.sheet && st.sheet.kind === 'gbox' && P.submit) {
+      sheet = html`<${GboxSheet} key="gbox" phone=${st.phone} url=${P.submit} auto=${!!st.sheet.auto} pref=${read('trs-drive-open') || ''} setPref=${A.setDrivePref}
+        web=${function () { openWeb(P.submit); }} onClose=${function () { set({ sheet: st.sheet.back || null }); }} />`;
+    } else if (st.sheet && st.sheet.kind === 'pitch' && M.pitch && M.pitch.key === st.sheet.meeting) {
+      var pp = P.members.filter(function (x) { return x.id === st.sheet.pres; })[0];
+      if (pp) sheet = html`<${PitchSheet} key=${'pitch' + pp.id} phone=${st.phone} T=${M.pitch} pres=${pp} me=${M.m} send=${A.sendPitch} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'lset') {
       sheet = html`<${SettingsSheet} key="lset" phone=${st.phone} A=${A} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'quiz' && LP) {
@@ -4075,6 +4281,7 @@
       if (idx >= 0) {
         var ck = M.checkFor(seq[idx].key);
         sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close} toggleDone=${A.toggleDone} A=${A} submit=${P.submit}
+          decs=${seq[idx].type === 'meeting' ? M.decisions.filter(function (d) { return d.meeting === seq[idx].key; }) : null}
           check=${ck && seq[idx].part === 'lead' ? ck.c : null} checkState=${ck ? ck.state : null} toggleCheck=${A.toggleCheck}
           prev=${function () { if (idx > 0) A.openItem(seq[idx - 1].key); }} next=${function () { if (idx < seq.length - 1) A.openItem(seq[idx + 1].key); }} />`;
       }
@@ -4099,7 +4306,8 @@
     } else if (tab === 'meet') {
       head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow="Sundays · 17:00 to 18:30 · Teams" title="Meetings" text="Three of the four Members make quorum." />`;
       var mh = html`<${MeetHero} key="mh" M=${M} A=${A} />`, ml = html`<${MeetList} key="ml" M=${M} A=${A} st=${st} />`, atc = html`<${AttendCard} key="at" M=${M} A=${A} />`, mw = html`<${MeetHow} key="mw" M=${M} />`;
-      content = phone ? [mh, ml, atc, mw] : cols([mh, atc], [ml, mw]);
+      var pfc = M.pitch ? html`<${PitchCard} key="pf" M=${M} A=${A} />` : null, dcc = M.decisions.length ? html`<${DecisionCard} key="dc" M=${M} />` : null;
+      content = phone ? [mh, pfc, ml, dcc, atc, mw] : cols([mh, atc], [pfc, ml, dcc, mw]);
     } else if (tab === 'learn') {
       head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${LP ? LP.title : 'Required reading'} title="Learn" lvl=${LM ? LM.lv.cur.n : 1} bloom=${bloom} text=${LP && !isNaN(LP.due) ? 'Two books by ' + dMonth(LP.due) + NB + D(LP.due).getUTCFullYear() + '.' : 'The Society’s required reading.'} />`;
       if (!LM) content = [html`<section key="ll" class="card rcard"><span class="card-k">Learn</span><p>${st.learnErr ? 'The reading programme couldn’t load (' + st.learnErr + '). Check your connection, then reopen the app.' : 'Loading the reading programme…'}</p></section>`];
@@ -4128,6 +4336,8 @@
       // meeting time: from 30 minutes before until it ends, the meeting (with Join on Teams) leads Today
       var meetNow = !!(M.nextMeet && M.nextMeet.live && M.nextMeet.live.join);
       var nxc = html`<${NextCard} key="nx" M=${M} A=${A} />`, nmc = html`<${NextMeet} key="nm" M=${M} A=${A} now=${st.now} />`;
+      var pft = M.pitch && M.pitch.recent ? html`<${PitchCard} key="pft" M=${M} A=${A} />` : null;
+      if (pft) nmc = [nmc, pft];
       content = phone
         ? [changes].concat(meetNow ? [nmc, nxc] : [nxc], [st.showInstall && installWay(st) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
           html`<${Queue} key="q" M=${M} />`], meetNow ? [] : [nmc], [dailyToday])
@@ -4153,6 +4363,7 @@
         : html`<button onClick=${A.undo}>Undo</button>`}</div>` : null}
       ${sheet}
       ${st.side ? html`<${TurnScreen} />` : null}
+      <div ref=${ptrRef} class="ptr" aria-hidden="true"><i></i><span>Pull to refresh</span></div>
     </div>`;
   }
 

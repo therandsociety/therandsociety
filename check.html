@@ -136,6 +136,17 @@ a{color:var(--navy)}
       if (!n) warns.push('No meeting has <code>"concept": "' + esc(m.id) + '"</code>, so that Member’s Concept of the Meeting shows as to be confirmed.');
       else if (n > 1) warns.push('<code>' + esc(m.id) + '</code> presents the Concept of the Meeting at ' + n + ' meetings (' + slots[m.id].map(esc).join(', ') + '); the app shows the first.');
     });
+    // the decision register
+    if (D.decisions != null && !Array.isArray(D.decisions)) errs.push('<code>decisions</code> must be a list.');
+    (Array.isArray(D.decisions) ? D.decisions : []).forEach(function (d, i) {
+      var at = 'decision ' + (i + 1) + (d && d.id ? ' (<code>' + esc(d.id) + '</code>)' : '');
+      if (!d || !d.id || !d.title) { errs.push(at + ' needs an <code>id</code> and a <code>title</code>.'); return; }
+      if (isNaN(day(d.date))) errs.push(at + ': <code>date</code> must be a real date written YYYY-MM-DD.');
+      if (['approved', 'rejected', 'deferred', 'noted'].indexOf(d.outcome) < 0) errs.push(at + ': <code>outcome</code> must be approved, rejected, deferred or noted.');
+      if (d.meeting && !keys[d.meeting]) errs.push(at + ': <code>meeting</code> names <code>' + esc(d.meeting) + '</code>, which is not a date key.');
+      if (d.owner && !ids[d.owner]) warns.push(at + ': <code>owner</code> is not a member id.');
+      if (d.review != null && (isNaN(day(d.review)) || day(d.review) <= day(d.date))) errs.push(at + ': <code>review</code> must be a YYYY-MM-DD date after the decision.');
+    });
     if (D.term && D.term.attendance != null && !(typeof D.term.attendance === 'number' && D.term.attendance > 0 && D.term.attendance <= 100)) errs.push('<code>term.attendance</code> must be a percentage, such as 70.');
     // reviewer lists: each row names analyst keys; {cycle} becomes each member's pitch cycle
     var akeys = {}; (D.analyst || []).forEach(function (e) { if (e && e.key) akeys[e.key] = true; });
