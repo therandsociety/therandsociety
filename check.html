@@ -66,6 +66,7 @@ a{color:var(--navy)}
     if (D.notice && D.notice.until && !isNaN(day(D.notice.until)) && day(D.notice.until) < day(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date()))) warns.push('<code>notice</code> has passed its <code>until</code> date, so no one sees it now. Delete the block when you are ready.');
     if (D.site && D.site.url && !/^https:\/\//.test(D.site.url)) errs.push('<code>site.url</code> must start with https://');
     if (D.site && D.site.teams && !/^https:\/\//.test(D.site.teams)) errs.push('<code>site.teams</code> must be a full https:// Teams link.');
+    if (D.site && D.site.submit && !/^https:\/\//.test(D.site.submit)) errs.push('<code>site.submit</code> must be a full https:// link to the folder where Members hand in work.');
     Object.keys(D.photos || {}).forEach(function (k) {
       var v = D.photos[k], src = typeof v === 'string' ? v : v && v.src, okp = /^img\/[\w.\-\/]+\.(webp|jpe?g|png|avif)$/i;
       if (['plan', 'meetings', 'learn', 'you', 'role', 'guide'].indexOf(k) < 0) warns.push('<code>photos.' + esc(k) + '</code> is not a section (use plan, meetings, learn or you).');

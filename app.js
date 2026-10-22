@@ -153,7 +153,9 @@
       notice: raw.notice && raw.notice.id && raw.notice.text ? Object.assign({}, raw.notice, { untilMs: parseDay(raw.notice.until),
         points: (Array.isArray(raw.notice.points) ? raw.notice.points : []).filter(function (t) { return typeof t === 'string' && t.trim(); }) }) : null,
       teams: (raw.site && /^https:\/\//.test(raw.site.teams || '') && raw.site.teams) || '',
-      siteUrl: (raw.site && raw.site.url) || ''
+      siteUrl: (raw.site && raw.site.url) || '',
+      // where Members hand in work (the Society's Google Drive folder); shown on every deadline they lead
+      submit: (raw.site && /^https:\/\//.test(raw.site.submit || '') && raw.site.submit) || ''
     };
   }
 
@@ -502,7 +504,7 @@
         return { c: c, state: stt, done: c.items.filter(function (x, i) { return stt[i]; }).length, total: c.items.length };
       }, minutesDue: minutesDue, badges: badges, rulesAll: rulesAll,
       planLine: phase === 'closed' ? 'The term closed on ' + dMonth(T.close) + '.' : phaseName + ' · ' + stat3.v + ' ' + stat3.l,
-      nextLive: live(next, st.now), teams: P.teams,
+      nextLive: live(next, st.now), teams: P.teams, submit: P.submit,
       today: all.filter(function (it) { return it.current && it !== next && !it.range && it.part === 'lead' && it.type === 'deadline' && !isDone(it); })
         .map(function (it) { return { it: it, live: live(it, st.now) }; }).filter(function (x) { return x.live; }), nextLabel: nextLabel, week: week, weekSummary: weekSummary, other: other, tl: tl, stats: stats, cycle: cycle, path: path, score: score,
       todayLong: wk(asOf) + ' ' + dMonth(asOf) + ' ' + t.getUTCFullYear() + ' · SAST',
@@ -579,10 +581,11 @@
         ${it.band === 'ok' ? html`<div class="mark"><span class="tag ok">Accepted</span><span>Recorded by the Society after quality review.</span></div>`
           : it.band === 'min' ? html`<div class="mark"><span class="tag okm">Minor corrections</span><span>Accepted subject to minor corrections. Correct and file by the stated date.</span></div>`
           : it.part === 'lead' && it.type === 'deadline' ? html`<div class="mark">
+            ${p.submit && it.band !== 'nc' ? html`<a class="link-btn hand-btn" href=${p.submit} target="_blank" rel="noopener">Hand in on Drive<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}
             <button class=${'mark-btn' + (it.submitted ? ' on' : '')} aria-pressed=${it.submitted ? 'true' : 'false'} onClick=${function () { p.toggleDone(it.key, it.title); }}>${it.submitted ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Submitted` : 'Mark as submitted'}</button>
             <span>${it.band === 'rev' ? (it.submitted ? 'You marked the revised version as submitted. It stays here until the Society records the outcome.' : 'The reviewer asked for changes. Mark it once you resubmit.')
               : it.band === 'nc' ? 'Recorded as not completed. It goes to the traffic-light review with a revised date.'
-              : it.submitted ? 'Saved on this device. Tap again to undo.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
+              : it.submitted ? 'Saved on this device. Tap again to undo.' : p.submit ? 'Upload your work to the Society’s Drive folder, then mark it here. Only you see the mark; it turns green once the Society records it as accepted.' : 'Only you see this. It turns green once the Society records it as accepted.'}</span>
           </div>` : null}
         ${p.check ? html`<${Checklist} c=${p.check} state=${p.checkState} toggle=${p.toggleCheck} />` : null}
         <${LinkRow} links=${it.links} />
@@ -656,7 +659,7 @@
         <span class="next-text"><span class="next-title">${n.title}</span><span class="next-meta"><${Tag} text=${n.tag.text} tone=${n.tag.tone} /><span class="tnum">${n.whenShort}</span></span></span>
       </button>` : html`<p class="next-empty">Nothing else is dated for you in this view.</p>`}
       ${n && L && L.join && joinLink(n) ? html`<div class="next-act"><a class="join" href=${joinLink(n)} target="_blank" rel="noopener"><${TeamsIcon} />Join on Teams</a><span>${L.text === 'Live now' ? 'The meeting is on' : 'Opens 30 minutes before'}</span></div>` : null}
-      ${canMark ? html`<div class="next-act"><button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Mark as submitted</button>${ck ? html`<button class="ck-chip" onClick=${function () { A.openItem(n.key); }} aria-label=${'Readiness checklist, ' + ck.done + ' of ' + ck.total + ' ticked'}><span class="ck-ring" style=${'--p:' + Math.round(100 * ck.done / ck.total)} aria-hidden="true"></span>Checklist ${ck.done}/${ck.total}</button>` : html`<span>Only you see this</span>`}</div>` : null}
+      ${canMark ? html`<div class="next-act">${M.submit && n.band !== 'nc' ? html`<a class="link-btn hand-btn" href=${M.submit} target="_blank" rel="noopener" aria-label="Hand in on the Society’s Google Drive (opens Drive)">Hand in<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>` : null}<button class="mark-btn" onClick=${function () { A.toggleDone(n.key, n.title); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Mark as submitted</button>${ck ? html`<button class="ck-chip" onClick=${function () { A.openItem(n.key); }} aria-label=${'Readiness checklist, ' + ck.done + ' of ' + ck.total + ' ticked'}><span class="ck-ring" style=${'--p:' + Math.round(100 * ck.done / ck.total)} aria-hidden="true"></span>Checklist ${ck.done}/${ck.total}</button>` : M.submit ? null : html`<span>Only you see this</span>`}</div>` : null}
       ${M.today.length ? html`<ul class="today" aria-label="Also today">${M.today.map(function (x) {
         var it = x.it, link = joinLink(it);
         return html`<li key=${it.key}>
@@ -1281,6 +1284,7 @@
         ${row('cal', 'bell', 'Calendar reminders', 'Apple, Google, Outlook or Huawei', A.openCal)}
         ${row('sr', 'search', 'Search', 'Any date, meeting or rule', A.openSearch)}
         ${inst ? row('in', 'phone', 'Install the app', inst.v, inst.go) : null}
+        ${M.submit ? html`<li key="dr"><a class="grow" href=${M.submit} target="_blank" rel="noopener"><span class="g-ic" aria-hidden="true"><${Ico} n="file" s=${20} /></span><span class="g-t"><b>Society Drive</b><small>Where you hand in your work</small></span><${Arrow} /></a></li>` : null}
         ${row('up', 'send', 'Send my update', 'Your week in one message, ready for WhatsApp, Teams or email', A.openUpdate)}
         ${row('src', 'file', 'Where the dates come from', M.term.source + (M.updated ? '. Updated ' + M.updated + '.' : '.'), null)}
       </ul>
@@ -3755,7 +3759,7 @@
       seq.forEach(function (it, i) { if (it.key === st.sheet.key) idx = i; });
       if (idx >= 0) {
         var ck = M.checkFor(seq[idx].key);
-        sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close} toggleDone=${A.toggleDone} A=${A}
+        sheet = html`<${ItemSheet} key="item" phone=${st.phone} it=${seq[idx]} idx=${idx} total=${seq.length} onClose=${A.close} toggleDone=${A.toggleDone} A=${A} submit=${P.submit}
           check=${ck && seq[idx].part === 'lead' ? ck.c : null} checkState=${ck ? ck.state : null} toggleCheck=${A.toggleCheck}
           prev=${function () { if (idx > 0) A.openItem(seq[idx - 1].key); }} next=${function () { if (idx < seq.length - 1) A.openItem(seq[idx + 1].key); }} />`;
       }

@@ -110,6 +110,10 @@ Members can subscribe to their own calendar from the app ("Get reminders in your
 
 **Common mistakes:** every item in a list needs a comma after it except the last one; text goes inside straight double quotes `"like this"`; dates are always `YYYY-MM-DD`.
 
+### Where Members hand in work
+
+Put the Society's Google Drive folder in `site.submit`. Every deadline a member leads then shows **Hand in on Drive** next to **Mark as submitted**, on Today and in the deadline's panel, and **Society Drive** appears under You. Keep the folder's General access on **Restricted** and add each Member as an Editor: this file is public, so the link must not open the folder by itself. A date's own `links` (a template, say) still show as well.
+
 ### Teams links and today
 
 On the day of a meeting the app counts down to 17:00, shows "Live now" during it, and offers a **Join on Teams** button from 30 minutes before. Put your standing Teams meeting link in `site.teams`, or give a single meeting its own link with a `link` field on that meeting. With no link, everything works except the button. On a deadline day the top card counts down to the cut-off ("3 h 20 min left").

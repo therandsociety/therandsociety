@@ -352,6 +352,7 @@ button.ch-row:hover{background:var(--card-2)}
 .next.b-soon{box-shadow:inset 0 3px 0 var(--due),var(--shadow)}
 .next.b-week,.next.b-rev{box-shadow:inset 0 3px 0 var(--due-edge),var(--shadow)}
 .next.b-soon .datebox{background:var(--due)}
+.next.b-soon .datebox .m{color:#FFFFFF}
 .next-act{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:0 24px 16px}
 .next-act span{font-size:12.5px;color:var(--muted)}
 .mark{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:14px 0 0;border-top:1px solid var(--line-2)}
