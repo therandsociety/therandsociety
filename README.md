@@ -149,7 +149,7 @@ Members can subscribe to their own calendar from the app ("Get reminders in your
 
 ### Where Members hand in work
 
-Put the Society's Google Drive folder in `site.submit`. Every deadline a member leads then shows **Hand in on Drive** next to **Mark as submitted**, on Today and in the deadline's panel, and **Society Drive** appears under You. Keep the folder's General access on **Restricted** and add each Member as an Editor: this file is public, so the link must not open the folder by itself. A date's own `links` (a template, say) still show as well.
+Put the Society's Google Drive folder in `site.submit`. Every deadline a member leads then shows **Hand in on Drive** next to **Mark as submitted**, on Today and in the deadline's panel, and **Society Drive** appears under You. Keep the folder's General access on **Restricted** and add each Member as an Editor: this file is public, so the link must not open the folder by itself. A date's own `links` (a template, say) still show as well. On a phone, the first tap on **Hand in** asks where to open the folder: the Google Drive app or the browser (Safari, Chrome and so on). The answer is remembered on that phone, and **Society Drive** under You shows it and changes it. The app opens the Drive app directly (on iPhone through the app's own `googledrive://` link, on Android through an intent that falls back to the browser if the app isn't installed); if the Drive app doesn't open on an iPhone, the app offers the browser instead.
 
 ### Teams links and today
 

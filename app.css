@@ -1880,3 +1880,12 @@ button.att-slot:hover{background:var(--card-2)}
 .bkn-t b{color:var(--ink);font-weight:600}
 .bkn-acts{display:flex;align-items:center;gap:16px;margin:14px 24px 0}
 @media (max-width:759px){.bkn-t{margin:8px 16px 0}.bkn-acts{margin:14px 16px 0}}
+
+/* Society Drive: where it opens on a phone */
+.drv-opts{display:flex;flex-direction:column;gap:10px;margin:6px 0 0}
+.drv-opt{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;min-height:68px;padding:10px 14px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--card);text-align:left;color:var(--muted)}
+.drv-opt:hover{background:var(--card-2)}
+.drv-opt.on{border-color:var(--slate);box-shadow:inset 0 0 0 1px var(--slate)}
+.drv-cur{font-size:12px;font-weight:600;color:var(--slate)}
+.drv-rem{display:flex;align-items:flex-start;gap:10px;margin:16px 2px 4px;font-size:13.5px;line-height:1.45;color:var(--muted)}
+.drv-rem input{flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:var(--navy)}
