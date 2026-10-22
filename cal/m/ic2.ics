@@ -9,12 +9,14 @@ DTSTAMP:20261019T000000Z
 SUMMARY:Rand Society · Formal IC 2
 DESCRIPTION:Sector readiness\, theme primer\, watchlist quality\, portfolio
   capacity and corrective actions.\n\nMinutes by Tuesday 19 January\, 17:00
- .\n\nOpen the app: https://therandsociety.github.io/therandsociety/#meetin
- gs
+ .\n\nJoin on Teams: https://teams.microsoft.com/meet/3774135146398752?p=ao
+ opiwXjoWTb3u9fTU\n\nOpen the app: https://therandsociety.github.io/therand
+ society/#meetings
 DTSTART:20270117T150000Z
 DTEND:20270117T163000Z
-LOCATION:Microsoft Teams
-URL:https://therandsociety.github.io/therandsociety/#meetings
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 2

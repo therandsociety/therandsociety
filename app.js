@@ -982,9 +982,9 @@
   function NextMeet(p) {
     var M = p.M, A = p.A, x = M.nextMeet;
     if (!x) return null;
-    var it = x.it, chip = chipFor(x);
-    return html`<section class="card nmeet" aria-labelledby="nm-h">
-      <div class="card-head"><h2 id="nm-h" class="card-k">Next meeting</h2><span class="live-chip" aria-live="polite"><${Tag} text=${chip.text} tone=${chip.tone} /></span></div>
+    var it = x.it, chip = chipFor(x), on = x.live && x.live.join;
+    return html`<section class=${'card nmeet' + (on ? ' on' : '')} aria-labelledby="nm-h">
+      <div class="card-head"><h2 id="nm-h" class="card-k">${on ? (x.live.text === 'Live now' ? 'Meeting now' : 'Starting soon') : 'Next meeting'}</h2><span class="live-chip" aria-live="polite"><${Tag} text=${chip.text} tone=${chip.tone} /></span></div>
       <button class="nm-main" onClick=${function () { A.openAny(it.key); }}>
         <span class="datebox slate tnum" aria-hidden="true"><span class="d">${it.day}</span><span class="m">${it.mon}</span></span>
         <span class="nm-text"><span class="nm-kind">${x.kind}</span><span class="nm-title">${x.title}</span><span class="nm-meta tnum">${it.wk} ${dShort(it.ms)} · 17:00 to 18:30 · Teams</span><${Parts} parts=${x.parts} /></span>
@@ -3770,10 +3770,13 @@
       head = html`<${Mast} M=${M} A=${A} st=${st} />`;
       var changes = hasChanges ? html`<${Changes} key="ch" changes=${st.changes} A=${A} />` : null;
       var dailyToday = LM && LM.daily ? html`<${DailyCard} key="dqt" LM=${LM} LP=${LP} A=${A} compact=${true} />` : null;
+      // meeting time: from 30 minutes before until it ends, the meeting (with Join on Teams) leads Today
+      var meetNow = !!(M.nextMeet && M.nextMeet.live && M.nextMeet.live.join);
+      var nxc = html`<${NextCard} key="nx" M=${M} A=${A} />`, nmc = html`<${NextMeet} key="nm" M=${M} A=${A} />`;
       content = phone
-        ? [changes, html`<${NextCard} key="nx" M=${M} A=${A} />`, st.showInstall && installWay(st) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
-          html`<${Queue} key="q" M=${M} />`, html`<${NextMeet} key="nm" M=${M} A=${A} />`, dailyToday]
-        : cols([html`<${NextCard} key="nx" M=${M} A=${A} />`], [html`<${NextMeet} key="nm" M=${M} A=${A} />`, html`<${Queue} key="q" M=${M} />`, dailyToday], changes ? [html`<div key="chw" class="wide">${changes}</div>`] : []);
+        ? [changes].concat(meetNow ? [nmc, nxc] : [nxc], [st.showInstall && installWay(st) ? html`<${InstallCard} key="in" A=${A} st=${st} />` : null,
+          html`<${Queue} key="q" M=${M} />`], meetNow ? [] : [nmc], [dailyToday])
+        : cols(meetNow ? [nmc, nxc] : [nxc], meetNow ? [html`<${Queue} key="q" M=${M} />`, dailyToday] : [nmc, html`<${Queue} key="q" M=${M} />`, dailyToday], changes ? [html`<div key="chw" class="wide">${changes}</div>`] : []);
     }
 
     var skinPage = tab === 'learn' && SKIN;

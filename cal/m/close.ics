@@ -9,12 +9,14 @@ DTSTAMP:20261019T000000Z
 SUMMARY:Rand Society · Formal IC 6 and H1 close
 DESCRIPTION:Traffic-Light Review 3\, scorecard\, H2 recommendations\, final
   approvals and the closing resolution.\n\nMinutes by Tuesday 2 March\, 17:
- 00.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#meet
- ings
+ 00.\n\nJoin on Teams: https://teams.microsoft.com/meet/3774135146398752?p=
+ aoopiwXjoWTb3u9fTU\n\nOpen the app: https://therandsociety.github.io/thera
+ ndsociety/#meetings
 DTSTART:20270228T150000Z
 DTEND:20270228T163000Z
-LOCATION:Microsoft Teams
-URL:https://therandsociety.github.io/therandsociety/#meetings
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 6 and H1 close

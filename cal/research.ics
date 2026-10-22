@@ -129,15 +129,18 @@ BEGIN:VEVENT
 UID:ic1-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 1
-DESCRIPTION:Operating-pack review\, provisional workflow-test decisions\, c
- orrection owners and deadlines. You lead the research discussion.\n\nAs an
-  analyst: Operating-pack review. Every full IC carries a five-to-ten-minut
- e Concept of the Meeting: present yours at IC 1\, 2\, 3 or 6.\n\nOpen the 
- app: https://therandsociety.github.io/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nOperating-pack review\, provisional workflow-tes
+ t decisions\, correction owners and deadlines. You lead the research discu
+ ssion.\n\nAs an analyst: Operating-pack review. Every full IC carries a fi
+ ve-to-ten-minute Concept of the Meeting: present yours at IC 1\, 2\, 3 or 
+ 6.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#resea
+ rch
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20261206T150000Z
 DTEND:20261206T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 1
@@ -167,14 +170,16 @@ UID:ls1-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 1: How financial services companies make money · 
  You support
-DESCRIPTION:One-page brief\, facilitated discussion and an application exer
- cise: compare a bank\, an insurer and an asset manager\, and how each earn
- s revenue and absorbs risk.\n\nOpen the app: https://therandsociety.github
- .io/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nOne-page brief\, facilitated discussion and an a
+ pplication exercise: compare a bank\, an insurer and an asset manager\, an
+ d how each earns revenue and absorbs risk.\n\nOpen the app: https://theran
+ dsociety.github.io/therandsociety/#research
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20261213T150000Z
 DTEND:20261213T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Learning Session 1: How financial services companies make money
@@ -293,14 +298,16 @@ BEGIN:VEVENT
 UID:ic2-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 2
-DESCRIPTION:Sector readiness\, theme primer\, watchlist quality\, portfolio
-  capacity and corrective actions.\n\nAs an analyst: Sector readiness: your
-  brief\, watchlist quality and portfolio capacity.\n\nOpen the app: https:
- //therandsociety.github.io/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nSector readiness\, theme primer\, watchlist qual
+ ity\, portfolio capacity and corrective actions.\n\nAs an analyst: Sector 
+ readiness: your brief\, watchlist quality and portfolio capacity.\n\nOpen 
+ the app: https://therandsociety.github.io/therandsociety/#research
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20270117T150000Z
 DTEND:20270117T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 2
@@ -334,13 +341,15 @@ BEGIN:VEVENT
 UID:ls2-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 2: Valuing financial companies · You support
-DESCRIPTION:Compare two JSE-listed financial companies and defend the valua
- tion premium or discount.\n\nOpen the app: https://therandsociety.github.i
- o/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nCompare two JSE-listed financial companies and d
+ efend the valuation premium or discount.\n\nOpen the app: https://therands
+ ociety.github.io/therandsociety/#research
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20270124T150000Z
 DTEND:20270124T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Learning Session 2: Valuing financial companies · You support
@@ -373,14 +382,16 @@ BEGIN:VEVENT
 UID:jan31-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 3: Interim Progress Report
-DESCRIPTION:Traffic-Light Review 2\, Interim Progress Report approval\, can
- didate readiness and February sequencing.\n\nAs an analyst: Candidate read
- iness and February sequencing.\n\nOpen the app: https://therandsociety.git
- hub.io/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nTraffic-Light Review 2\, Interim Progress Report
+  approval\, candidate readiness and February sequencing.\n\nAs an analyst:
+  Candidate readiness and February sequencing.\n\nOpen the app: https://the
+ randsociety.github.io/therandsociety/#research
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20270131T150000Z
 DTEND:20270131T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 3: Interim Progress Report
@@ -437,13 +448,15 @@ UID:ls3-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Learning Session 3: Technology\, competition and financial inclusio
  n · You support
-DESCRIPTION:Assess whether a selected strategy improves revenue\, cost\, ri
- sk\, customer value or valuation.\n\nOpen the app: https://therandsociety.
- github.io/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nAssess whether a selected strategy improves reve
+ nue\, cost\, risk\, customer value or valuation.\n\nOpen the app: https://
+ therandsociety.github.io/therandsociety/#research
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20270207T150000Z
 DTEND:20270207T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Learning Session 3: Technology\, competition and financial incl
@@ -521,15 +534,17 @@ BEGIN:VEVENT
 UID:pica-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 4: Pitch IC A · You pitch
-DESCRIPTION:Pitch Cycle A presentations and simulated investment decisions.
-  You lead the research discussion.\n\nAs an analyst: Present your thesis f
- or discussion and a simulated investment decision. Research approval does 
- not compel an investment.\n\nOpen the app: https://therandsociety.github.i
- o/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nPitch Cycle A presentations and simulated invest
+ ment decisions. You lead the research discussion.\n\nAs an analyst: Presen
+ t your thesis for discussion and a simulated investment decision. Research
+  approval does not compel an investment.\n\nOpen the app: https://therands
+ ociety.github.io/therandsociety/#research
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20270214T150000Z
 DTEND:20270214T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 4: Pitch IC A · You pitch
@@ -585,13 +600,16 @@ BEGIN:VEVENT
 UID:picb-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 5: Pitch IC B · You support
-DESCRIPTION:Pitch Cycle B presentations and votes\, the final portfolio rev
- iew and the handover-draft review. You lead the research discussion.\n\nOp
- en the app: https://therandsociety.github.io/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nPitch Cycle B presentations and votes\, the fina
+ l portfolio review and the handover-draft review. You lead the research di
+ scussion.\n\nOpen the app: https://therandsociety.github.io/therandsociety
+ /#research
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20270221T150000Z
 DTEND:20270221T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 5: Pitch IC B · You support
@@ -650,15 +668,17 @@ BEGIN:VEVENT
 UID:close-hor@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Formal IC 6 and H1 close
-DESCRIPTION:Traffic-Light Review 3\, scorecard\, H2 recommendations\, final
-  approvals and the closing resolution.\n\nAs an analyst: Scorecard\, H2 re
- commendations and the closing resolution. Your handover note and peer eval
- uation are filed by today.\n\nOpen the app: https://therandsociety.github.
- io/therandsociety/#research
-URL:https://therandsociety.github.io/therandsociety/#research
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
+ 2?p=aoopiwXjoWTb3u9fTU\n\nTraffic-Light Review 3\, scorecard\, H2 recommen
+ dations\, final approvals and the closing resolution.\n\nAs an analyst: Sc
+ orecard\, H2 recommendations and the closing resolution. Your handover not
+ e and peer evaluation are filed by today.\n\nOpen the app: https://therand
+ society.github.io/therandsociety/#research
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 DTSTART:20270228T150000Z
 DTEND:20270228T163000Z
-LOCATION:Microsoft Teams
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 6 and H1 close

@@ -8,12 +8,15 @@ UID:ls2-meeting@therandsociety
 DTSTAMP:20261019T000000Z
 SUMMARY:Rand Society · Learning Session 2: Valuing financial companies
 DESCRIPTION:Compare two JSE-listed financial companies and defend the valua
- tion premium or discount.\n\nMinutes by Tuesday 26 January\, 17:00.\n\nOpe
- n the app: https://therandsociety.github.io/therandsociety/#meetings
+ tion premium or discount.\n\nMinutes by Tuesday 26 January\, 17:00.\n\nJoi
+ n on Teams: https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoW
+ Tb3u9fTU\n\nOpen the app: https://therandsociety.github.io/therandsociety/
+ #meetings
 DTSTART:20270124T150000Z
 DTEND:20270124T163000Z
-LOCATION:Microsoft Teams
-URL:https://therandsociety.github.io/therandsociety/#meetings
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Learning Session 2: Valuing financial companies

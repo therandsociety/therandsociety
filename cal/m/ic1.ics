@@ -9,12 +9,15 @@ DTSTAMP:20261019T000000Z
 SUMMARY:Rand Society · Formal IC 1
 DESCRIPTION:Operating-pack review\, provisional workflow-test decisions\, c
  orrection owners and deadlines. Proceeds only with quorum.\n\nPre-reads by
-  Friday 4 December\, 17:00.\n\nMinutes by Tuesday 8 December\, 17:00.\n\nO
- pen the app: https://therandsociety.github.io/therandsociety/#meetings
+  Friday 4 December\, 17:00.\n\nMinutes by Tuesday 8 December\, 17:00.\n\nJ
+ oin on Teams: https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXj
+ oWTb3u9fTU\n\nOpen the app: https://therandsociety.github.io/therandsociet
+ y/#meetings
 DTSTART:20261206T150000Z
 DTEND:20261206T163000Z
-LOCATION:Microsoft Teams
-URL:https://therandsociety.github.io/therandsociety/#meetings
+LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
+ 9fTU
+URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Formal IC 1

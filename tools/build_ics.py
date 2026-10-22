@@ -64,7 +64,8 @@ def build(data, member, site_url, stamp):
                     labels = []
                 labels.append(note['label'])
             desc = fill(detail) + ('\n\nAs an analyst: ' + fill(note['detail']) if note and note.get('detail') else '')
-            events.append(dict(key=e['key'], date=e['date'], time='17:00', end_time='18:30', summary=title + (' · ' + ' · '.join(labels) if labels else ''), desc=desc, kind='meeting'))
+            link = e.get('link') or (data.get('site') or {}).get('teams') or ''
+            events.append(dict(key=e['key'], date=e['date'], time='17:00', end_time='18:30', summary=title + (' · ' + ' · '.join(labels) if labels else ''), desc=desc, kind='meeting', link=link))
         elif part == 'lead' or who == 'some':
             if e.get('type') == 'marker' and part != 'lead':
                 continue
@@ -84,10 +85,11 @@ def build(data, member, site_url, stamp):
              'X-WR-TIMEZONE:Africa/Johannesburg', 'REFRESH-INTERVAL;VALUE=DURATION:PT6H', 'X-PUBLISHED-TTL:PT6H']
     for ev in sorted(events, key=lambda x: (x['date'], x.get('time') or '')):
         d0 = day(ev['date'])
+        link = ev.get('link') or ''
         lines += ['BEGIN:VEVENT', 'UID:' + ev['key'] + '-' + mid + '@therandsociety', 'DTSTAMP:' + stamp, 'SUMMARY:' + esc(ev['summary']),
-                  'DESCRIPTION:' + esc(ev['desc'] + '\n\nOpen the app: ' + app), 'URL:' + app]
+                  'DESCRIPTION:' + esc((('Join on Teams: ' + link + '\n\n') if link else '') + ev['desc'] + '\n\nOpen the app: ' + app), 'URL:' + (link or app)]
         if ev['kind'] == 'meeting':
-            lines += ['DTSTART:' + utc(d0, ev['time']), 'DTEND:' + utc(d0, ev['end_time']), 'LOCATION:Microsoft Teams',
+            lines += ['DTSTART:' + utc(d0, ev['time']), 'DTEND:' + utc(d0, ev['end_time']), 'LOCATION:' + esc(link or 'Microsoft Teams'),
                       'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(ev['summary']), 'TRIGGER:-PT1H', 'END:VALARM']
         elif ev.get('end') or not ev.get('time'):
             d1 = day(ev['end']) if ev.get('end') else d0
