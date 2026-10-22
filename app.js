@@ -3025,15 +3025,37 @@
     </${Sheet}>`;
   }
 
+  // Backup reminder: progress lives on one phone, so once a chapter is passed Learn asks for a backup code every month, and
+  // again in the week before the year-end recess. "Not now" waits a week; copying a code resets the month.
+  function readMap(k) { try { return JSON.parse(read(k) || '{}') || {}; } catch (e) { return {}; } }
+  function backupDue(S, id, asOf, T) {
+    var any = S && Object.keys(S.units || {}).some(function (u) { return S.units[u] && S.units[u].passed; });
+    if (!any) return null;
+    var last = readMap('trs-backup')[id] || 0, later = readMap('trs-backup-later')[id] || 0, now = Date.now();
+    var weekStart = atSAST(T.recessStart - 7 * DAY, '00:00');
+    if (asOf >= T.recessStart - 7 * DAY && asOf < T.recessStart && last < weekStart && later < weekStart) return { kind: 'recess', last: last };
+    if (now - later < 7 * DAY) return null;
+    return now - last >= 30 * DAY ? { kind: 'month', last: last } : null;
+  }
+  function BackupNudge(p) {
+    var LM = p.LM, B = p.due, A = p.A, what = 'Level ' + LM.lv.cur.n + ' · ' + num(LM.xp) + ' XP';
+    var lastText = B.last ? 'Last backup: ' + dMonth(B.last + 2 * 3600000 - (B.last + 2 * 3600000) % DAY) + '.' : 'Not backed up yet.';
+    return html`<section class="card bkn-card" aria-labelledby="bkn-h">
+      <div class="card-head"><h2 id="bkn-h" class="card-k">${B.kind === 'recess' ? 'Before the recess on ' + dMonth(p.recess) : 'Back up your progress'}</h2></div>
+      <p class="bkn-t"><b>${what}</b> lives only on this phone. ${B.kind === 'recess' ? 'Make a backup code before the break, in case you change or lose your phone over the holidays.' : 'A backup code takes a few seconds and brings it back on any phone.'} ${lastText}</p>
+      <div class="bkn-acts"><button class="pill" onClick=${A.openBackup}>Make a backup code</button><button class="txt-btn" onClick=${A.backupLater}>Not now</button></div>
+    </section>`;
+  }
   function BackupSheet(p) {
     var s = useState(''), txt = s[0], setTxt = s[1], m = useState(null), msg = m[0], setMsg = m[1], c = useState(false), copied = c[0], setCopied = c[1], ref = useRef(null);
     var k = useState(''), code = k[0], setCode = k[1], b = useState(false), busy = b[0], setBusy = b[1];
     useEffect(function () { var live = true; p.make().then(function (v) { if (live) setCode(v); }); return function () { live = false; }; }, []);
     function copy() {
       function pick() { var el = ref.current; if (el) { el.focus(); el.select(); } }
+      if (p.saved) p.saved();
       try { navigator.clipboard.writeText(code).then(function () { setCopied(true); }, pick); } catch (e) { pick(); }
     }
-    function restore() { setBusy(true); Promise.resolve(p.restore(txt)).then(function (r) { setBusy(false); setMsg(r); }); }
+    function restore() { setBusy(true); Promise.resolve(p.restore(txt)).then(function (r) { setBusy(false); setMsg(r); if (r && r.ok && p.saved) p.saved(); }); }
     return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label="Move your progress">
       <div class="sheet-head"><span class="when">Backup code</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
@@ -3803,6 +3825,8 @@
         });
       },
       openSettings: function () { set({ sheet: { kind: 'lset' } }); },
+      backupSaved: function () { var o = readMap('trs-backup'); o[M.m.id] = Date.now(); store('trs-backup', JSON.stringify(o)); set(function (prev) { return { learnTick: prev.learnTick + 1 }; }); },
+      backupLater: function () { var o = readMap('trs-backup-later'); o[M.m.id] = Date.now(); store('trs-backup-later', JSON.stringify(o)); set(function (prev) { return { learnTick: prev.learnTick + 1 }; }); },
       hideHow: function () { store('trs-learn-how', '1'); set({ howOpen: false }); },
       showHow: function () { set({ sheet: null, howOpen: true }); setTimeout(function () { try { window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }, 80); },
       say: function (text) { clearTimeout(toastT.current); toastT.current = setTimeout(function () { set({ toast: null }); }, 4000); set({ toast: { text: text, title: '', key: '', info: true } }); },
@@ -3911,7 +3935,7 @@
       var fb = getLS(M.m.id).finals[st.sheet.book];
       if (fb && fb.passed) sheet = html`<${CertSheet} key="cert" phone=${st.phone} LP=${LP} book=${bookOf(LP, st.sheet.book)} role=${M.m.role} f=${fb} share=${A.shareProgress} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'backup' && LP) {
-      sheet = html`<${BackupSheet} key="backup" phone=${st.phone} make=${function () { return packCode(M.m.id, getLS(M.m.id)); }} restore=${A.restoreLearn} onClose=${A.close} />`;
+      sheet = html`<${BackupSheet} key="backup" phone=${st.phone} make=${function () { return packCode(M.m.id, getLS(M.m.id)); }} restore=${A.restoreLearn} saved=${A.backupSaved} onClose=${A.close} />`;
     } else if (st.sheet && st.sheet.kind === 'item') {
       var seq = list.some(function (it) { return it.key === st.sheet.key; }) ? list : M.all;
       var idx = -1;
@@ -3935,9 +3959,11 @@
     var head, content, lensTab = tab === 'today' || tab === 'plan' || tab === 'you';
     if (tab === 'plan') {
       head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow=${'Term ' + M.term.name} title="Term plan" text=${M.planLine} lens=${true} />`;
-      var board = html`<${Board} key="bd" B=${boardModel(P, st.asOf, M.m.id)} open=${st.boardOpen == null ? !phone : st.boardOpen} toggle=${A.toggleBoard} />`;
-      content = phone ? [html`<${TermCard} key="tc" M=${M} A=${A} />`, board, html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`]
-        : cols([board, html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`], [html`<${TermCard} key="tc" M=${M} A=${A} />`]);
+      // the Society board appears once the first result is recorded, below the member's own plan
+      var BM = boardModel(P, st.asOf, M.m.id), recorded = BM.tally.ok + BM.tally.rev + BM.tally.nc > 0;
+      var board = recorded ? html`<${Board} key="bd" B=${BM} open=${st.boardOpen == null ? !phone : st.boardOpen} toggle=${A.toggleBoard} />` : null;
+      content = phone ? [html`<${TermCard} key="tc" M=${M} A=${A} />`, html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`, board]
+        : cols([html`<${Agenda} key="ag" M=${M} A=${A} st=${st} sync=${sync} />`, board], [html`<${TermCard} key="tc" M=${M} A=${A} />`]);
     } else if (tab === 'meet') {
       head = html`<${PageHead} tab=${tab} M=${M} A=${A} st=${st} eyebrow="Sundays · 17:00 to 18:30 · Teams" title="Meetings" text="Three of the four Members make quorum." />`;
       var mh = html`<${MeetHero} key="mh" M=${M} A=${A} />`, ml = html`<${MeetList} key="ml" M=${M} A=${A} st=${st} />`, atc = html`<${AttendCard} key="at" M=${M} A=${A} />`, mw = html`<${MeetHow} key="mw" M=${M} />`;
@@ -3953,7 +3979,8 @@
         var ltc = window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null;
         // a new reader (nothing passed yet) sees how Learn works until they close it; Settings brings it back
         var how = st.howOpen || (!read('trs-learn-how') && !LM.passed) ? html`<${LearnHow} key="hw" LP=${LP} A=${A} />` : null;
-        content = phone ? [how, lvc, dqc, prc].concat(bks, [dkc, dlc, pcc, bdc, pgc, ltc]) : cols([how, lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, dlc, pgc, ltc]);
+        var bkd = backupDue(getLS(M.m.id), M.m.id, learnDay, P.term), bkn = bkd ? html`<${BackupNudge} key="bkn" LM=${LM} due=${bkd} A=${A} recess=${P.term.recessStart} />` : null;
+        content = phone ? [how, bkn, lvc, dqc, prc].concat(bks, [dkc, dlc, pcc, bdc, pgc, ltc]) : cols([how, bkn, lvc].concat(bks, [dkc, pcc, bdc]), [dqc, prc, dlc, pgc, ltc]);
       }
     } else if (tab === 'you') {
       var rc = roleCards(M, A);

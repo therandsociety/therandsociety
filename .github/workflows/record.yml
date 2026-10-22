@@ -1,0 +1,68 @@
+# The President's forms: record a result, record attendance, post a notice or change a date from a phone.
+# A form opens as an issue; this checks it against data.json, writes the change, rebuilds the calendar feeds and the
+# forms, replies on the issue and closes it. The closed issues are the dated record of every decision.
+# Only issues opened by the repository's owner are applied; anyone else's are left alone.
+name: Apply a form
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+  issues: write
+  pages: write
+concurrency:
+  group: society-data
+  cancel-in-progress: false
+jobs:
+  apply:
+    if: github.event.issue.author_association == 'OWNER'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE: ${{ github.event.issue.number }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check and apply the form
+        id: apply
+        run: |
+          set +e
+          python3 tools/record.py "$GITHUB_EVENT_PATH" "$RUNNER_TEMP/form"
+          code=$?
+          set -e
+          if [ "$code" = "0" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; elif [ "$code" = "2" ]; then echo "ok=false" >> "$GITHUB_OUTPUT"; else exit "$code"; fi
+      - name: Rebuild the calendar feeds and the forms
+        if: steps.apply.outputs.ok == 'true'
+        run: |
+          python3 tools/build_ics.py
+          python3 tools/forms.py
+      - name: Save the change
+        if: steps.apply.outputs.ok == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json cal .github/ISSUE_TEMPLATE
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -F "$RUNNER_TEMP/form/commit.txt"
+          pushed=no
+          for i in 1 2 3; do if git pull --rebase -q && git push; then pushed=yes; break; fi; sleep 5; done
+          [ "$pushed" = yes ]
+          printf '\nSaved as %s.\n' "$(git log -1 --format=%h)" >> "$RUNNER_TEMP/form/comment.md"
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/pages/builds" || true
+      - name: Reply and close
+        if: steps.apply.outputs.ok == 'true'
+        run: |
+          f="$RUNNER_TEMP/form"
+          gh issue edit "$ISSUE" --repo "$REPO" --title "$(cat "$f/title.txt")"
+          gh issue comment "$ISSUE" --repo "$REPO" --body-file "$f/comment.md"
+          gh issue close "$ISSUE" --repo "$REPO" --reason completed
+      - name: Explain why nothing changed
+        if: steps.apply.outputs.ok == 'false'
+        run: |
+          gh issue comment "$ISSUE" --repo "$REPO" --body-file "$RUNNER_TEMP/form/comment.md"
+          gh issue close "$ISSUE" --repo "$REPO" --reason "not planned"
+      - name: Say it failed
+        if: failure()
+        run: |
+          gh issue comment "$ISSUE" --repo "$REPO" --body "**Not saved.** Something went wrong while saving this form, so nothing in the app changed. The run log: $GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"

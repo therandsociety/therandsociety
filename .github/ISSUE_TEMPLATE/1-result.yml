@@ -1,0 +1,80 @@
+# Built by tools/forms.py from data.json. Edit that script, not this file.
+name: "Record a result"
+description: "A quality-gate result for one or more Members: accepted, minor corrections, revision or not completed."
+title: "Result"
+body:
+  - type: markdown
+    attributes:
+      value: "Records the quality-gate outcome in data.json. Members see it in the app within a few minutes (green when accepted, orange for a revision or not completed) and on the Society board. This page is public and stays as the dated record: use roles, never names."
+  - type: dropdown
+    id: item
+    attributes:
+      label: "Deliverable"
+      options:
+        - "Sun 1 Nov to Sat 7 Nov · LinkedIn founding announcement [linkedin]"
+        - "Mon 2 Nov · November exam notice due [notice]"
+        - "Fri 6 Nov · Outlines and capacity map [nov6]"
+        - "Fri 13 Nov · First drafts and Traffic-Light Review 1 [tl1]"
+        - "Fri 20 Nov · Cross-role consistency review [nov20]"
+        - "Fri 4 Dec · Brand and Publication Manual draft [bm]"
+        - "Fri 4 Dec · Portfolio Framework validated [pf]"
+        - "Fri 4 Dec · Research Standards Manual draft [rm]"
+        - "Mon 7 Dec to Fri 11 Dec · End-to-end workflow test [wft]"
+        - "Fri 18 Dec · Foundation phase closes [fclose]"
+        - "Fri 18 Dec · Analyst: Sector scope and source map filed [a-scope]"
+        - "Fri 15 Jan · Theme primer in, sector briefs to review [jan15]"
+        - "Fri 15 Jan · Analyst: Sector brief and watchlist submitted [a-brief]"
+        - "Fri 22 Jan · Thesis candidates pre-cleared [jan22]"
+        - "Fri 22 Jan · Analyst: Thesis candidate pre-cleared [a-cand]"
+        - "Fri 29 Jan · Interim report inputs [jan29]"
+        - "Fri 5 Feb · Cycle A thesis drafts [feb5]"
+        - "Fri 5 Feb · Analyst: Thesis and model to review, Cycle A [a-thesisA]"
+        - "Tue 9 Feb · Cycle A research feedback [feb9]"
+        - "Wed 10 Feb · Analyst: Thesis and model to review, Cycle B [a-thesisB]"
+        - "Fri 12 Feb · Term-End Report structure locked [feb12]"
+        - "Sat 13 Feb · Pitch A pre-reads circulated [feb13]"
+        - "Sat 13 Feb · Analyst: Final pre-read circulated, Cycle A [a-preA]"
+        - "Mon 15 Feb · Cycle B research feedback [feb15]"
+        - "Fri 19 Feb · Evidence register: secondary work and development [feb19]"
+        - "Fri 19 Feb · Analyst: Secondary contribution and development [a-second]"
+        - "Sat 20 Feb · Pitch B pre-reads circulated [feb20]"
+        - "Sat 20 Feb · Analyst: Final pre-read circulated, Cycle B [a-preB]"
+        - "Tue 23 Feb · Report inputs and draft handovers submitted [feb23]"
+        - "Tue 23 Feb · Analyst: Level 2 report final [a-l2]"
+        - "Wed 24 Feb · Portfolio data and evidence locked [feb24]"
+        - "Fri 26 Feb · Term-End pack circulated [feb26]"
+        - "Sun 28 Feb · Analyst: Handover note and peer evaluation [a-close]"
+    validations:
+      required: true
+  - type: dropdown
+    id: members
+    attributes:
+      label: "Members"
+      description: "Choose every Member with this result."
+      multiple: true
+      options:
+        - "Head of Research [hor]"
+        - "President & IC Chair [pres]"
+        - "Portfolio Manager [pm]"
+        - "COO & External Affairs [coo]"
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: "Result"
+      options:
+        - "Accepted [accepted]"
+        - "Accepted, minor corrections [minor]"
+        - "Revision required [revise]"
+        - "Not completed [incomplete]"
+        - "Clear the record [clear]"
+    validations:
+      required: true
+  - type: textarea
+    id: note
+    attributes:
+      label: "Note"
+      description: "Optional: the reviewer, or what needs correcting."
+    validations:
+      required: false

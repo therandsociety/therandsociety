@@ -1,0 +1,70 @@
+# Built by tools/forms.py from data.json. Edit that script, not this file.
+name: "Post a notice"
+description: "A message to every Member: a note on Today, or a pop-up shown once per phone."
+title: "Notice"
+body:
+  - type: markdown
+    attributes:
+      value: "Posting replaces the current notice. Each Member sees it once, on their next visit. This page is public and stays as the dated record: use roles, never names."
+  - type: dropdown
+    id: action
+    attributes:
+      label: "What to do"
+      options:
+        - "Post a new notice [post]"
+        - "Remove the current notice [remove]"
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: style
+    attributes:
+      label: "Show it as"
+      options:
+        - "A note on Today [note]"
+        - "A pop-up message, once per phone [popup]"
+      default: 0
+    validations:
+      required: true
+  - type: input
+    id: title
+    attributes:
+      label: "Title"
+      placeholder: "Formal IC 1 moved"
+    validations:
+      required: false
+  - type: textarea
+    id: text
+    attributes:
+      label: "Message"
+      description: "A blank line starts a new paragraph."
+    validations:
+      required: false
+  - type: textarea
+    id: points
+    attributes:
+      label: "Short list"
+      description: "Optional, pop-up only: one point per line."
+    validations:
+      required: false
+  - type: dropdown
+    id: sign
+    attributes:
+      label: "Signed by"
+      options:
+        - "Head of Research [hor]"
+        - "President & IC Chair [pres]"
+        - "Portfolio Manager [pm]"
+        - "COO & External Affairs [coo]"
+        - "Unsigned [none]"
+      default: 1
+    validations:
+      required: true
+  - type: input
+    id: until
+    attributes:
+      label: "Show until"
+      description: "Optional, YYYY-MM-DD: no one sees it after that day."
+      placeholder: "2026-11-08"
+    validations:
+      required: false

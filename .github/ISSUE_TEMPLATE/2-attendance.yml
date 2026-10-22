@@ -1,0 +1,75 @@
+# Built by tools/forms.py from data.json. Edit that script, not this file.
+name: "Record attendance"
+description: "Who attended a meeting, from its minutes. Every meeting counts towards the 70% rule."
+title: "Attendance"
+body:
+  - type: markdown
+    attributes:
+      value: "Records attendance in data.json. Every meeting counts towards the 70% rule (Constitution 2.6). An approved absence, including a notified November exam exemption, is Excused and doesn’t count against the Member. This page is public and stays as the dated record: use roles, never names."
+  - type: dropdown
+    id: meeting
+    attributes:
+      label: "Meeting"
+      options:
+        - "Sun 6 Dec · Formal IC 1 [ic1]"
+        - "Sun 13 Dec · Learning Session 1: How financial services companies make money [ls1]"
+        - "Sun 17 Jan · Formal IC 2 [ic2]"
+        - "Sun 24 Jan · Learning Session 2: Valuing financial companies [ls2]"
+        - "Sun 31 Jan · Formal IC 3: Interim Progress Report [jan31]"
+        - "Sun 7 Feb · Learning Session 3: Technology, competition and financial inclusion [ls3]"
+        - "Sun 14 Feb · Formal IC 4: Pitch IC A [pica]"
+        - "Sun 21 Feb · Formal IC 5: Pitch IC B [picb]"
+        - "Sun 28 Feb · Formal IC 6 and H1 close [close]"
+    validations:
+      required: true
+  - type: dropdown
+    id: att-hor
+    attributes:
+      label: "Head of Research"
+      options:
+        - "Present [present]"
+        - "Excused (an approved absence) [excused]"
+        - "Absent [absent]"
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: att-pres
+    attributes:
+      label: "President & IC Chair"
+      options:
+        - "Present [present]"
+        - "Excused (an approved absence) [excused]"
+        - "Absent [absent]"
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: att-pm
+    attributes:
+      label: "Portfolio Manager"
+      options:
+        - "Present [present]"
+        - "Excused (an approved absence) [excused]"
+        - "Absent [absent]"
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: att-coo
+    attributes:
+      label: "COO & External Affairs"
+      options:
+        - "Present [present]"
+        - "Excused (an approved absence) [excused]"
+        - "Absent [absent]"
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: note
+    attributes:
+      label: "Note"
+      description: "Optional: the minutes reference, or the reason for an approved absence."
+    validations:
+      required: false

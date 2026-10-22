@@ -1873,3 +1873,10 @@ button.att-slot:hover{background:var(--card-2)}
 .board.stripes .how li::before{background:var(--cta);color:#FFF6E6}
 @media (max-width:759px){.how{padding:0 16px}.how-foot{margin:14px 16px 0}}
 .set-list{margin:6px -12px 0;padding:0}
+
+/* Learn: the backup reminder */
+.bkn-card{padding-bottom:16px}
+.bkn-t{margin:8px 24px 0;font-size:14px;line-height:1.55;color:var(--muted)}
+.bkn-t b{color:var(--ink);font-weight:600}
+.bkn-acts{display:flex;align-items:center;gap:16px;margin:14px 24px 0}
+@media (max-width:759px){.bkn-t{margin:8px 16px 0}.bkn-acts{margin:14px 16px 0}}

@@ -1,10 +1,11 @@
 # Rebuilds the members' calendar feeds (cal/*.ics) whenever the dates file changes,
-# so subscribed calendars pick up edits on their next refresh.
+# so subscribed calendars pick up edits on their next refresh, and the President's forms (.github/ISSUE_TEMPLATE),
+# whose lists come from the same file.
 name: Update calendar feeds
 on:
   push:
     branches: [main]
-    paths: ['data.json', 'tools/build_ics.py']
+    paths: ['data.json', 'tools/build_ics.py', 'tools/forms.py']
   workflow_dispatch:
 permissions:
   contents: write
@@ -17,16 +18,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build the feeds
-        run: python3 tools/build_ics.py
+      - name: Build the feeds and the forms
+        run: |
+          python3 tools/build_ics.py
+          python3 tools/forms.py
       - name: Save them
         id: save
         run: |
-          if [ -n "$(git status --porcelain cal)" ]; then
+          if [ -n "$(git status --porcelain cal .github/ISSUE_TEMPLATE)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add cal
-            git commit -m "Update calendar feeds from data.json"
+            git add cal .github/ISSUE_TEMPLATE
+            git commit -m "Update calendar feeds and forms from data.json"
             git push
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi

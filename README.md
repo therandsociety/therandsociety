@@ -2,6 +2,21 @@
 
 A small installable web app. Members open the link, pick their role once, and can add it to their home screen. It works offline after the first visit and picks up date changes automatically.
 
+## Recording from your phone
+
+Four forms on GitHub do the common changes without touching `data.json`: open **[the forms](https://github.com/therandsociety/therandsociety/issues/new/choose)** (signed in as the Society's GitHub account) and choose one.
+
+| Form | What it does |
+|---|---|
+| **Record a result** | Accepted, minor corrections, revision required or not completed, for one or more Members on a deliverable; or clears a record |
+| **Record attendance** | Present, excused or absent for each Member at a meeting that has happened |
+| **Post a notice** | A note on Today or a pop-up shown once per phone, signed by a role; or removes the current notice |
+| **Change a date** | Moves a deadline, meeting or milestone, with the decision on record; a meeting's pre-read moves with it, and a date that runs over several days keeps its length |
+
+Submitting a form opens an issue. Within a minute GitHub checks it against the dates file, writes the change, rebuilds the calendar feeds, replies on the issue with what changed, renames it (for example "Accepted: Capacity map completed · President") and closes it, so the closed issues read as a dated log of every decision. If something doesn't fit (a Member who doesn't lead that deliverable, a meeting that hasn't happened, a meeting moved off a Sunday, a date that isn't real) it replies with the reason, changes nothing and closes the issue. Only issues opened by the Society's account are applied. Issues are public, like this file: use roles, never names.
+
+The forms' lists come from `data.json` and are rebuilt with the calendar feeds (`tools/forms.py`); the form is applied by `tools/record.py` (`.github/workflows/record.yml`).
+
 ## Changing a date or a line of text
 
 Everything members see comes from **`data.json`** (dates and wording) and **`learn.json`** (the reading programme; see [Learn](#learn)). Nothing else needs editing.
@@ -58,7 +73,7 @@ The four outcomes follow Term Plan 19.1:
 | `revise` | Orange, "Revision needed", until you change it, even if the member had marked it submitted |
 | `incomplete` | Orange, "Not completed" |
 
-Analyst deadlines live in the `analyst` list; for example, accepted sector briefs go on the `a-brief` item. Every Member sees every recorded result on the **Society board** (Plan section), in keeping with equal standing and the collective traffic-light reviews.
+Analyst deadlines live in the `analyst` list; for example, accepted sector briefs go on the `a-brief` item. Every Member sees every recorded result on the **Society board** (Plan section, below their own plan), in keeping with equal standing and the collective traffic-light reviews. The board appears once the first result is recorded.
 
 ### Concept of the Meeting and attendance
 
@@ -183,7 +198,7 @@ Plan, Meetings, Learn and You open on a plain navy band. To give one a photo, as
 
 ## Learn
 
-The Learn section turns the two required books (The Intelligent Investor and Investment Banking, by 28 February 2027) into chapter checks, levels, badges and, for Investment Banking, banking skills and deal files. Everything it shows comes from **`learn.json`**. Progress stays on each member's phone (localStorage key `trs-learn`); members can move it to a new phone with a backup code, and share a summary with **Share my progress**. The design rests on the research report in the project docs (*Learn: evidence-based question and practice design*).
+The Learn section turns the two required books (The Intelligent Investor and Investment Banking, by 28 February 2027) into chapter checks, levels, badges and, for Investment Banking, banking skills and deal files. Everything it shows comes from **`learn.json`**. Progress stays on each member's phone (localStorage key `trs-learn`); members can move it to a new phone with a backup code, and share a summary with **Share my progress**. Once a member has passed a chapter, Learn reminds them to make a backup code every month, and again in the week before the year-end recess; **Not now** waits a week, and copying a code resets the month. The design rests on the research report in the project docs (*Learn: evidence-based question and practice design*).
 
 ### How a member learns
 
@@ -248,4 +263,5 @@ Each link opens straight to that role. Add `-analyst` to open the analyst view.
 - `manifest.webmanifest`, `icons/`: home-screen install
 - `check.html`: the checker for both files (it loads `app.js` to draw every Learn question with the app's own engine)
 - `cal/`: calendar feeds, one per member, and `cal/m/`, one file per meeting (built automatically; don't edit by hand)
-- `tools/build_ics.py`, `.github/workflows/calendar.yml`: what rebuilds the feeds
+- `tools/build_ics.py`, `.github/workflows/calendar.yml`: what rebuilds the feeds (and the forms)
+- `tools/forms.py`, `tools/record.py`, `.github/workflows/record.yml`, `.github/ISSUE_TEMPLATE/`: the President's forms
