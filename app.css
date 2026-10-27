@@ -599,8 +599,8 @@ button.ch-row:hover{background:var(--card-2)}
 .me-short{display:none}
 .rail-me .chev{color:var(--on-navy-3);flex:none}
 .badge{position:absolute;top:-1px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--due);box-shadow:0 0 0 2px var(--navy-2)}
-.badge.live,.badge.today{background:var(--silver)}
-.badge.live{animation:pulseSoft 1800ms ease-out infinite}
+.badge.bd-live,.badge.bd-today{background:var(--silver)}
+.badge.bd-live{animation:pulseSoft 1800ms ease-out infinite}
 @keyframes pulseSoft{0%{box-shadow:0 0 0 2px var(--navy-2),0 0 0 2px rgba(201,209,220,.6)}70%{box-shadow:0 0 0 2px var(--navy-2),0 0 0 8px rgba(201,209,220,0)}100%{box-shadow:0 0 0 2px var(--navy-2),0 0 0 2px rgba(201,209,220,0)}}
 /* beside the sidebar the masthead drops its own logo and role button */
 .has-rail .topbar{justify-content:flex-end;min-height:44px}
@@ -630,8 +630,8 @@ button.ch-row:hover{background:var(--card-2)}
 .tab[aria-current="page"] .tab-ic{background:var(--mist)}
 .tab:active .tab-ic{transform:scale(.94)}
 .tab .badge{top:3px;right:15px;box-shadow:0 0 0 2px #FFFFFF}
-.tab .badge.live,.tab .badge.today{background:var(--slate)}
-.tab .badge.live{animation:none}
+.tab .badge.bd-live,.tab .badge.bd-today{background:var(--slate)}
+.tab .badge.bd-live{animation:none}
 
 /* page headers: a navy band, no photo */
 .page-head{background:radial-gradient(130% 160% at 88% -10%,#20406A 0%,rgba(32,64,106,0) 55%),var(--navy)}
@@ -791,8 +791,8 @@ html.sideways,html.sideways body{overflow:hidden}
 /* meetings list on phones: your part under the title */
 .row .sub .part{font-weight:600;color:var(--slate)}
 .row .sub .part.lead{color:var(--navy)}
-.badge.news{background:var(--slate)}
-.rail .badge.news{background:var(--silver)}
+.badge.bd-news{background:var(--slate)}
+.rail .badge.bd-news{background:var(--silver)}
 
 /* ---------- Phase 1b: quality-gate outcomes, checklists, links, sharing, Society board ---------- */
 .tag.okm{background:var(--ok-tint);color:var(--ok);border-color:rgba(39,107,78,.25)}
@@ -888,8 +888,8 @@ a.grow:hover{background:var(--card-2)}
 @media (max-width:759px){.bd-full{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.bd-abbr{display:inline}.bd thead th{font-size:11px;letter-spacing:.02em;text-transform:none}}
 
 /* ---------- Learn: required reading ---------- */
-.badge.q{background:var(--slate)}
-.rail .badge.q{background:var(--silver)}
+.badge.bd-q{background:var(--slate)}
+.rail .badge.bd-q{background:var(--silver)}
 .pill{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 16px;border-radius:999px;background:var(--navy);color:#FFFFFF;font-size:13.5px;font-weight:600;white-space:nowrap;transition:background-color 160ms ease,transform 120ms ease}
 .pill:hover{background:var(--slate)}
 .pill:active{transform:scale(.97)}

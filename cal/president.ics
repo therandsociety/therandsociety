@@ -10,6 +10,28 @@ X-WR-TIMEZONE:Africa/Johannesburg
 REFRESH-INTERVAL;VALUE=DURATION:PT6H
 X-PUBLISHED-TTL:PT6H
 BEGIN:VEVENT
+UID:recap-pres@therandsociety
+DTSTAMP:20261027T000000Z
+SUMMARY:Recap meeting · You chair
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/394706839400157
+ 2?p=o4kTMQRTBPllQe7Bk8\n\nYou chair the recap: where the Society stood bef
+ ore Academic Priority\, and the rest of H1 to Formal IC 1 on 6 December. C
+ irculate the agenda by Friday 17:00.\n\nAs an analyst: Where your sector w
+ ork picks up: the sector scope and source map on 18 December\, then the se
+ ctor brief and watchlist on 15 January.\n\nOpen the app: https://therandso
+ ciety.github.io/therandsociety/#president
+URL:https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe7Bk8
+DTSTART:20261031T063000Z
+DTEND:20261031T073000Z
+LOCATION:https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe
+ 7Bk8
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:In 30 minutes: Recap meeting · You chair
+TRIGGER:-PT30M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
 UID:resume-pres@therandsociety
 DTSTAMP:20261027T000000Z
 SUMMARY:President: Active Society work resumes
@@ -25,28 +47,6 @@ BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:President: Active Society work resumes
 TRIGGER:PT8H
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:recap-pres@therandsociety
-DTSTAMP:20261027T000000Z
-SUMMARY:Recap meeting · You chair
-DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/366986246890865
- 8?p=tMcg2nvLC57cRehhxQ\n\nYou chair the recap: where the Society stood bef
- ore Academic Priority\, and the rest of H1 to Formal IC 1 on 6 December. C
- irculate the agenda by Friday 17:00.\n\nAs an analyst: Where your sector w
- ork picks up: the sector scope and source map on 18 December\, then the se
- ctor brief and watchlist on 15 January.\n\nOpen the app: https://therandso
- ciety.github.io/therandsociety/#president
-URL:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRehhxQ
-DTSTART:20261101T150000Z
-DTEND:20261101T163000Z
-LOCATION:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRe
- hhxQ
-BEGIN:VALARM
-ACTION:DISPLAY
-DESCRIPTION:Recap meeting · You chair
-TRIGGER:-PT1H
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -136,8 +136,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 1 · You chair · Your concept
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 1 · You chair · Your concept
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -157,9 +157,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 1: How financial services companies make money
-  · You coordinate
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 1: How financial services compa
+ nies make money · You coordinate
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -241,8 +241,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 2 · You chair
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 2 · You chair
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -283,9 +283,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 2: Valuing financial companies · You coordina
- te
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 2: Valuing financial companies 
+ · You coordinate
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -327,8 +327,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 3: Interim Progress Report · You chair
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 3: Interim Progress Report · You chai
+ r
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -347,9 +348,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 3: Technology\, competition and financial incl
- usion · You coordinate
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 3: Technology\, competition and
+  financial inclusion · You coordinate
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -411,8 +412,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 4: Pitch IC A · You chair
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 4: Pitch IC A · You chair
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -499,8 +500,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 5: Pitch IC B · You chair · You pitch
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 5: Pitch IC B · You chair · You pitc
+ h
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -566,8 +568,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 6 and H1 close · You chair
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 6 and H1 close · You chair
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT

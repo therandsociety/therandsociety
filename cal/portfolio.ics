@@ -13,23 +13,24 @@ BEGIN:VEVENT
 UID:recap-pm@therandsociety
 DTSTAMP:20261027T000000Z
 SUMMARY:Recap meeting
-DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/366986246890865
- 8?p=tMcg2nvLC57cRehhxQ\n\nWhere the Society stood before Academic Priority
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/394706839400157
+ 2?p=o4kTMQRTBPllQe7Bk8\n\nWhere the Society stood before Academic Priority
  \, and the rest of H1: the first deliverables on 6 November\, Traffic-Ligh
  t Review 1 on 13 November and Formal IC 1 on 6 December. A check-in\, not 
- a formal IC. A Member writing November exams is excused.\n\nAs an analyst:
-  Where your sector work picks up: the sector scope and source map on 18 De
- cember\, then the sector brief and watchlist on 15 January.\n\nOpen the ap
- p: https://therandsociety.github.io/therandsociety/#portfolio
-URL:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRehhxQ
-DTSTART:20261101T150000Z
-DTEND:20261101T163000Z
-LOCATION:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRe
- hhxQ
+ a formal IC\, held on Saturday morning as the Members agreed. A Member wri
+ ting November exams is excused.\n\nAs an analyst: Where your sector work p
+ icks up: the sector scope and source map on 18 December\, then the sector 
+ brief and watchlist on 15 January.\n\nOpen the app: https://therandsociety
+ .github.io/therandsociety/#portfolio
+URL:https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe7Bk8
+DTSTART:20261031T063000Z
+DTEND:20261031T073000Z
+LOCATION:https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe
+ 7Bk8
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Recap meeting
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Recap meeting
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -164,8 +165,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 1
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 1
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -202,8 +203,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 1: How financial services companies make money
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 1: How financial services compa
+ nies make money
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -307,8 +309,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 2
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 2
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -372,8 +374,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 2: Valuing financial companies
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 2: Valuing financial companies
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -415,8 +417,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 3: Interim Progress Report
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 3: Interim Progress Report
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -457,9 +459,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 3: Technology\, competition and financial incl
- usion
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 3: Technology\, competition and
+  financial inclusion
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -523,8 +525,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 4: Pitch IC A · You pitch
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 4: Pitch IC A · You pitch
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -566,8 +568,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 5: Pitch IC B · You support
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 5: Pitch IC B · You support
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -635,8 +637,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 6 and H1 close · Your concept
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 6 and H1 close · Your concept
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT

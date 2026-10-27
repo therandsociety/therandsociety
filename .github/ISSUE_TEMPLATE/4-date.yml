@@ -12,9 +12,9 @@ body:
       label: "Date to change"
       options:
         - "Sat 31 Oct · Academic Priority ends [apend]"
+        - "Sat 31 Oct · Recap meeting [recap]"
         - "Sun 1 Nov to Sat 7 Nov · LinkedIn founding announcement [linkedin]"
         - "Sun 1 Nov · Active Society work resumes [resume]"
-        - "Sun 1 Nov · Recap meeting [recap]"
         - "Mon 2 Nov · November exam notice due [notice]"
         - "Fri 6 Nov · Outlines and capacity map [nov6]"
         - "Fri 13 Nov · First drafts and Traffic-Light Review 1 [tl1]"
@@ -84,6 +84,14 @@ body:
       label: "New cut-off time"
       description: "Optional, HH:MM, for a deadline that closes at a different time."
       placeholder: "17:00"
+    validations:
+      required: false
+  - type: input
+    id: meettime
+    attributes:
+      label: "New meeting time"
+      description: "Optional, for a meeting: its start and end, such as 08:30-09:30. To change only the time, give the meeting’s own date as the new date."
+      placeholder: "17:00-18:30"
     validations:
       required: false
   - type: textarea

@@ -151,6 +151,8 @@ def build(D):
          dict(type='input', id='end', label='New last day', description='Optional, YYYY-MM-DD: only for something that runs over several days.'),
          dict(type='input', id='time', label='New cut-off time', description='Optional, HH:MM, for a deadline that closes at a different time.',
               placeholder='17:00'),
+         dict(type='input', id='meettime', label='New meeting time', description='Optional, for a meeting: its start and end, such as 08:30-09:30. '
+              'To change only the time, give the meeting\u2019s own date as the new date.', placeholder='17:00-18:30'),
          dict(type='textarea', id='decision', label='Decision on record', description='The minutes or written resolution behind the change.',
               required=True)])
     files['5-link.yml'] = form(

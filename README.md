@@ -11,12 +11,12 @@ Seven forms on GitHub do the common changes without touching `data.json`: open *
 | **Record a result** | Accepted, minor corrections, revision required or not completed, for one or more Members on a deliverable; or clears a record |
 | **Record attendance** | Present, excused or absent for each Member at a meeting that has happened |
 | **Post a notice** | A note on Today or a pop-up shown once per phone, signed by a role; or removes the current notice |
-| **Change a date** | Moves a deadline, meeting or milestone, with the decision on record; a meeting's pre-read and the thesis path move with it, a date that runs over several days keeps its length, and the reply lists any wording that still names the old date |
+| **Change a date** | Moves a deadline, meeting or milestone, with the decision on record; a meeting's pre-read and the thesis path move with it, a date that runs over several days keeps its length, a meeting can be given a new time (such as 08:30-09:30), and the reply lists any wording that still names the old date |
 | **Add a link** | Puts a template, agenda, pre-read or minutes on a date as a button in its panel (up to four per date); or removes one |
 | **Record a decision** | Adds an IC decision or written resolution to the decision register: outcome, vote, rationale, owner and a review date (a month later unless you say otherwise) |
 | **Review a decision** | Records how a decision played out, which closes its review prompt, and sets the next review if there is one |
 
-Submitting a form opens an issue. Within a minute GitHub checks it against the dates file, writes the change, rebuilds the calendar feeds, replies on the issue with what changed, renames it (for example "Accepted: Capacity map completed · President") and closes it, so the closed issues read as a dated log of every decision. If something doesn't fit (a Member who doesn't lead that deliverable, a meeting that hasn't happened, a meeting moved off a Sunday, a date that isn't real) it replies with the reason, changes nothing and closes the issue. Only issues opened by the Society's account are applied. Issues are public, like this file: use roles, never names.
+Submitting a form opens an issue. Within a minute GitHub checks it against the dates file, writes the change, rebuilds the calendar feeds, replies on the issue with what changed, renames it (for example "Accepted: Capacity map completed · President") and closes it, so the closed issues read as a dated log of every decision. If something doesn't fit (a Member who doesn't lead that deliverable, a meeting that hasn't happened, a meeting moved off a weekend, a date that isn't real) it replies with the reason, changes nothing and closes the issue. Only issues opened by the Society's account are applied. Issues are public, like this file: use roles, never names.
 
 The forms' lists come from `data.json` and are rebuilt with the calendar feeds (`tools/forms.py`); the form is applied by `tools/record.py` (`.github/workflows/record.yml`).
 
@@ -40,8 +40,9 @@ Each date is one block in the `society` list (Society-role work) or the `analyst
 | `key` | A unique short name. Never reuse one. | `"nov6"` |
 | `date` | The day, written year-month-day. | `"2026-11-06"` |
 | `end` | Last day, for something that runs over several days. Members see "Starts tomorrow", "Runs to Sat 7 Nov" and "Ends today", and it turns solid orange only in its last two days. Its last day closes at `term.defaultTime` (17:00), like any deadline without a time. | `"2026-11-07"` |
-| `type` | `deadline`, `meeting` (Sunday 17:00 Teams meeting) or `marker` (a term milestone). | `"deadline"` |
-| `time` | A same-day cut-off. | `"17:00"` |
+| `type` | `deadline`, `meeting` (a Teams meeting, Sundays 17:00 to 18:30 unless it sets `time` and `endTime`) or `marker` (a term milestone). | `"deadline"` |
+| `time` | A deadline's same-day cut-off, or a meeting's start. | `"17:00"` |
+| `endTime` | Meetings only: when it ends. A meeting with neither runs 17:00 to 18:30; one with only `time` is shown as 90 minutes. | `"09:30"` |
 | `title` | The line members see in the list. | `"Outlines and capacity map"` |
 | `detail` | The paragraph shown when they tap it. | |
 | `who` | `all` (every member sees it) or `some` (only applies to some, such as exam writers). Leave it out to show it only to the roles listed. | `"all"` |
@@ -88,7 +89,7 @@ After each meeting, record attendance from the minutes:
 "attendance": { "pres": "present", "hor": "present", "pm": "excused", "coo": "present" }
 ```
 
-Every meeting counts: the six ICs, the three learning sessions and any other Society meeting, such as the recap on 1 November 2026. `excused` is an approved absence, including a notified November exam exemption, and leaves the count; `absent` counts against it. Members see "3 of 4 meetings (75%) · 70% required", green "On track" at or above the line and orange "Below 70%" under it, with how many of the meetings still to come bring them back. The requirement is 70% (Constitution 2.6); `term.attendance` changes it. A meeting that has ended without a record shows as "awaiting record" and doesn't count either way. Scorecard rows with `"live": "concept"` or `"live": "attendance"` show each Member's own slot and count instead of their `when` text.
+Every meeting counts: the six ICs, the three learning sessions and any other Society meeting, such as the recap on 31 October 2026. `excused` is an approved absence, including a notified November exam exemption, and leaves the count; `absent` counts against it. Members see "3 of 4 meetings (75%) · 70% required", green "On track" at or above the line and orange "Below 70%" under it, with how many of the meetings still to come bring them back. The requirement is 70% (Constitution 2.6); `term.attendance` changes it. A meeting that has ended without a record shows as "awaiting record" and doesn't count either way. Scorecard rows with `"live": "concept"` or `"live": "attendance"` show each Member's own slot and count instead of their `when` text.
 
 ### Decision register
 
@@ -164,7 +165,7 @@ Put the Society's Google Drive folder in `site.submit`. Every deadline a member 
 
 ### Teams links and today
 
-On the day of a meeting the app counts down to 17:00, shows "Live now" during it, and offers a **Join on Teams** button from 30 minutes before. Put your standing Teams meeting link in `site.teams`, or give a single meeting its own link with a `link` field on that meeting. With no link, everything works except the button. On a deadline day the top card counts down to the cut-off ("3 h 20 min left").
+On the day of a meeting the app counts down to its start (17:00 unless the meeting sets its own `time`), shows "Live now" during it, and offers a **Join on Teams** button from 30 minutes before; calendar feeds remind Members 30 minutes before too. A meeting can fall on a Saturday when the Members agree (the recap on 31 October 2026, 08:30 to 09:30): its agenda is still due the Friday before at 17:00 and its minutes the Tuesday after. Put your standing Teams meeting link in `site.teams`, or give a single meeting its own link with a `link` field on that meeting. With no link, everything works except the button. On a deadline day the top card counts down to the cut-off ("3 h 20 min left").
 
 ### Previewing another day
 
@@ -192,7 +193,7 @@ A bar along the bottom on phones, and a sidebar on computers, switches between f
 | **Learn** | The required reading: level, question of the day, both books chapter by chapter, checks, review deck and badges. A new reader sees **How Learn works** first; sound, vibration and the look are under **Settings** |
 | **You** | What the role owns and its safeguard (or the analyst's coverage, thesis path and scorecard), Send my update, Suggest an improvement, Report a problem, the Library, rules, calendar reminders and installing the app |
 
-Meetings come from the `meeting` items in `society` (with `analystMeetings` for the analyst notes). Around each Sunday meeting the app shows the agenda (Friday 17:00) and minutes (Tuesday 17:00), as the Master Calendar's meeting protocol sets. A pre-read step appears only where a meeting has a `preread` date: the calendar sets one on Friday 4 December for IC 1 and on the Saturday before each Pitch IC. Each meeting has **Add to calendar** (a calendar file built with the feeds, in `cal/m/`) and **Can't attend** (a ready apology for an official channel). An orange dot on Today means something you lead is due within two days; a dot on Meetings means a meeting is today.
+Meetings come from the `meeting` items in `society` (with `analystMeetings` for the analyst notes). Around each meeting the app shows the agenda (the Friday before, 17:00) and minutes (the Tuesday after, 17:00), as the Master Calendar's meeting protocol sets. A pre-read step appears only where a meeting has a `preread` date: the calendar sets one on Friday 4 December for IC 1 and on the Saturday before each Pitch IC. Each meeting has **Add to calendar** (a calendar file built with the feeds, in `cal/m/`) and **Can't attend** (a ready apology for an official channel). An orange dot on Today means something you lead is due within two days; a dot on Meetings means a meeting is today.
 
 Link straight to a section with `/#plan`, `/#meetings`, `/#learn` or `/#you` (old `/#role` and `/#guide` links open You). On Android and computers, pressing and holding the installed app's icon offers shortcuts.
 

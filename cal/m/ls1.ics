@@ -21,8 +21,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
 URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 1: How financial services companies make money
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 1: How financial services compa
+ nies make money
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 END:VCALENDAR

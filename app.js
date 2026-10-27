@@ -52,6 +52,9 @@
     var t = Date.now(), sod = (t + 2 * 3600000) % DAY;
     return asOf + sod - 2 * 3600000;
   }
+  // Meetings run 17:00 to 18:30 SAST (the Master Calendar's protocol) unless a meeting names its own times in data.json.
+  var MEET_START = '17:00', MEET_END = '18:30', HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+  function addMins(hhmm, n) { var t = hhmm.split(':'), v = Math.min(23 * 60 + 59, +t[0] * 60 + +t[1] + n); return ('0' + Math.floor(v / 60)).slice(-2) + ':' + ('0' + v % 60).slice(-2); }
   function atSAST(dayMs, hhmm) { var t = String(hhmm || '00:00').split(':'); return dayMs + ((+t[0] - 2) * 60 + +t[1]) * 60000; }
   function span(ms) { var mins = Math.max(1, Math.round(ms / 60000)), h = Math.floor(mins / 60), m = mins % 60; return h ? h + ' h' + (m ? ' ' + m + ' min' : '') : m + ' min'; }
   // Live state of something happening today: a countdown to a deadline, or where a meeting stands.
@@ -64,7 +67,7 @@
       return now < e ? { text: span(e - now) + ' left', tone: e - now <= 2 * 3600000 ? 'u-soon' : 'u-week' } : { text: 'Closed at ' + DEFAULT_TIME, tone: 'quiet' };
     }
     if (it.type === 'meeting') {
-      var a = atSAST(it.ms, '17:00'), b = atSAST(it.ms, '18:30');
+      var a = atSAST(it.ms, it.start || MEET_START), b = atSAST(it.ms, it.finish || MEET_END);
       if (now < a) return { text: 'Starts in ' + span(a - now), tone: a - now <= 3600000 ? 'u-week' : 'when', join: a - now <= 30 * 60000 };
       if (now < b) return { text: 'Live now', tone: 'now', join: true };
       return { text: 'Ended', tone: 'quiet', join: false };
@@ -139,8 +142,10 @@
         if (!e || !e.key || isNaN(ms)) { try { console.warn('Skipped ' + track + ' item ' + (i + 1) + ': it needs a key and a YYYY-MM-DD date.'); } catch (x) { /* no console */ } return; }
         var end = e.end ? parseDay(e.end) : NaN;
         var range = !isNaN(end) && end !== ms;
-        out.push(Object.assign({}, e, { ms: ms, endMs: isNaN(end) ? ms : end, range: range, roles: e.roles || {}, timeSet: e.time || '',
-          time: e.time || (e.type === 'deadline' && !range ? term.defaultTime : '') }));
+        // a meeting runs 17:00 to 18:30 unless it names its own "time" and "endTime"
+        var meet = e.type === 'meeting', st0 = meet && HHMM.test(e.time || '') ? e.time : MEET_START, fin = meet && HHMM.test(e.endTime || '') && e.endTime > st0 ? e.endTime : st0 === MEET_START ? MEET_END : addMins(st0, 90);
+        out.push(Object.assign({}, e, { ms: ms, endMs: isNaN(end) ? ms : end, range: range, roles: e.roles || {}, timeSet: e.time ? e.time + (meet && e.endTime ? '–' + e.endTime : '') : '',
+          time: e.time || (e.type === 'deadline' && !range ? term.defaultTime : ''), start: meet ? st0 : '', finish: meet ? fin : '' }));
       });
       out.sort(function (a, b) { return a.ms - b.ms || order(a) - order(b); });
       return out;
@@ -182,7 +187,7 @@
     return { key: e.key, ms: e.ms, endMs: e.endMs, range: e.range, type: e.type, time: e.time || '', ic: e.ic || 0,
       title: fill(title, m), detail: fill(detail, m), part: part, label: label, tone: tone, isKey: isKey, people: [],
       timeSet: e.timeSet || '', status: (e.status && e.status[m.id]) || '', link: /^https:\/\//.test(e.link || '') ? e.link : '', links: links(e.links), preread: e.preread || '',
-      concept: e.concept || '', attendance: e.attendance || null };
+      concept: e.concept || '', attendance: e.attendance || null, start: e.start || '', finish: e.finish || '' };
   }
   // Who leads and supports, in Society-role names, for the detail panel.
   function people(P, e, everyone, me) {
@@ -259,11 +264,11 @@
     it.day = s.getUTCDate(); it.wk = wk(it.ms).slice(0, 3); it.mon = mon(it.ms);
     it.monthKey = s.getUTCFullYear() * 12 + s.getUTCMonth(); it.monthName = MONTHS[s.getUTCMonth()] + ' ' + s.getUTCFullYear();
     var meet = it.type === 'meeting';
-    it.sub = meet ? '17:00 to 18:30 · Teams' : it.range ? (it.type === 'marker' ? 'Until ' + dShort(it.endMs) : rangeText(it.ms, it.endMs)) : (it.time && it.time !== DEFAULT_TIME) ? 'By ' + it.time : '';
-    it.whenShort = it.range ? rangeText(it.ms, it.endMs) : wk(it.ms) + ' ' + dShort(it.ms) + (meet ? ', 17:00' : it.time ? ', by ' + it.time : '');
+    it.sub = meet ? it.start + ' to ' + it.finish + ' · Teams' : it.range ? (it.type === 'marker' ? 'Until ' + dShort(it.endMs) : rangeText(it.ms, it.endMs)) : (it.time && it.time !== DEFAULT_TIME) ? 'By ' + it.time : '';
+    it.whenShort = it.range ? rangeText(it.ms, it.endMs) : wk(it.ms) + ' ' + dShort(it.ms) + (meet ? ', ' + it.start : it.time ? ', by ' + it.time : '');
     it.whenLong = it.range
       ? wk(it.ms) + ' ' + dMonth(it.ms) + ' to ' + wk(it.endMs) + ' ' + dMonth(it.endMs)
-      : dLong(it.ms) + (meet ? ' · 17:00 to 18:30 SAST' : it.time ? ' · by ' + it.time + ' SAST' : '');
+      : dLong(it.ms) + (meet ? ' · ' + it.start + ' to ' + it.finish + ' SAST' : it.time ? ' · by ' + it.time + ' SAST' : '');
     return it;
   }
 
@@ -313,7 +318,7 @@
       // a deadline over several days closes at the usual cut-off on its last day, like any deadline without a time
       if (it.range && !(it.type === 'deadline' && it.nEnd === 0 && DEFAULT_TIME)) return;
       var cut = it.range ? DEFAULT_TIME : it.time;
-      var end = it.type === 'meeting' ? atSAST(it.ms, '18:30') : (it.type === 'deadline' && cut ? atSAST(it.endMs, cut) : 0);
+      var end = it.type === 'meeting' ? atSAST(it.ms, it.finish || MEET_END) : (it.type === 'deadline' && cut ? atSAST(it.endMs, cut) : 0);
       if (end && now >= end) { it.past = true; it.current = false; it.closed = true; it.soon = it.type === 'meeting' ? 'Ended' : 'Closed at ' + cut; }
     });
     return items;
@@ -425,19 +430,19 @@
     var progress = own.length ? { segs: own.map(function (it) { return { key: it.key, s: segOf[it.band] || 'todo', title: it.title + ': ' + it.tag.text }; }), cap: capBits.join(' · ') } : null;
 
     var ics = P.society.filter(function (e) { return e.ic; });
-    // the next formal IC that hasn't finished (one that ended at 18:30 today no longer counts as next)
-    var nextIC = ics.filter(function (e) { return atSAST(e.endMs, '18:30') > now; })[0] || null;
+    // the next formal IC that hasn't finished (one that ended earlier today no longer counts as next)
+    var nextIC = ics.filter(function (e) { return atSAST(e.ms, e.finish) > now; })[0] || null;
     var hero = {};
-    if (phase === 'pre' || phase === 'protected') { hero.h = 'Studies first.'; hero.p = 'Academic Priority runs to ' + dMonth(T.protectedEnd) + '. Society work resumes on ' + dMonth(T.resume) + '.'; }
+    // a meeting today (an IC, a learning session or another Society meeting) leads the line until it ends
+    var meetNow = P.society.filter(function (e) { return e.type === 'meeting' && e.ms === asOf && now < atSAST(asOf, e.finish); })[0];
+    var meetLine = !meetNow ? '' : (meetNow.ic ? 'Formal IC ' + meetNow.ic : String(meetNow.title).split(':')[0]) + (now >= atSAST(asOf, meetNow.start) ? ' is on now, until ' + meetNow.finish + '.' : ' is today at ' + meetNow.start + '.');
+    if (phase === 'pre' || phase === 'protected') { hero.h = 'Studies first.'; hero.p = (meetLine ? meetLine + ' ' : 'Academic Priority runs to ' + dMonth(T.protectedEnd) + '. ') + 'Society work resumes on ' + dMonth(T.resume) + '.'; }
     else if (phase === 'recess') { hero.h = 'Year-end recess.'; hero.p = 'Urgent matters only until ' + dMonth(T.recessEnd) + '. Full production resumes on ' + dMonth(T.fullProduction) + '.'; }
     else if (phase === 'closed') { hero.h = 'H1 is closed.'; hero.p = 'The term closed on ' + dMonth(T.close) + ' ' + D(T.close).getUTCFullYear() + '.'; }
     else {
-      // a meeting today (an IC, a learning session or another Society meeting) leads the line until it ends at 18:30
-      var meetNow = P.society.filter(function (e) { return e.type === 'meeting' && e.ms === asOf && now < atSAST(asOf, '18:30'); })[0];
-      var meetName = meetNow ? (meetNow.ic ? 'Formal IC ' + meetNow.ic : String(meetNow.title).split(':')[0]) : '';
       hero.h = 'The programme is open.';
-      hero.p = meetNow ? meetName + (now >= atSAST(asOf, '17:00') ? ' is on now, until 18:30.' : ' is today at 17:00.')
-        : nextIC ? 'Next formal IC: ' + wk(nextIC.ms) + ' ' + dMonth(nextIC.ms) + ', 17:00.' : asOf < T.close ? 'The controlled close is ' + dMonth(T.close) + '.' : 'The term closes today.';
+      hero.p = meetLine ? meetLine
+        : nextIC ? 'Next formal IC: ' + wk(nextIC.ms) + ' ' + dMonth(nextIC.ms) + ', ' + nextIC.start + '.' : asOf < T.close ? 'The controlled close is ' + dMonth(T.close) + '.' : 'The term closes today.';
     }
     var phaseTag = { pre: ['Starts ' + dShort(T.start), 'quiet'], protected: ['Academic Priority', 'lead'], open: ['Programme open', 'now'], recess: ['Year-end recess', 'support'], closed: ['H1 closed', 'quiet'] }[phase];
 
@@ -471,7 +476,7 @@
       : phase === 'closed' ? { v: 0, l: 'days left in H1' }
       : { v: Math.max(0, Math.round((T.close - asOf) / DAY)), l: 'days to the close, ' + dShort(T.close) };
     var stats = [
-      { v: nextIC ? dShort(nextIC.ms) : '–', l: nextIC ? 'Formal IC ' + nextIC.ic + ', Sunday 17:00' : 'No formal IC left' },
+      { v: nextIC ? dShort(nextIC.ms) : '–', l: nextIC ? 'Formal IC ' + nextIC.ic + ', ' + wk(nextIC.ms) + ' ' + nextIC.start : 'No formal IC left' },
       { v: String(deadlinesLeft), l: lens === 'society' ? plural(deadlinesLeft, 'role deadline', 'role deadlines') + ' ahead' : plural(deadlinesLeft, 'analyst deadline', 'analyst deadlines') + ' ahead' },
       { v: String(stat3.v), l: stat3.l }
     ];
@@ -481,14 +486,14 @@
     var req = T.attendance, att = { present: 0, absent: 0, excused: 0, wait: 0, up: 0, dots: [], slot: null };
     P.society.forEach(function (e) {
       if (e.type !== 'meeting') return;
-      var a = e.attendance && e.attendance[m.id], ended = atSAST(e.ms, '18:30') <= now;
+      var a = e.attendance && e.attendance[m.id], ended = atSAST(e.ms, e.finish) <= now;
       var s = a === 'present' || a === 'absent' || a === 'excused' ? a : ended ? 'wait' : 'up';
       att[s]++;
       att.dots.push({ key: e.key, s: s, d: D(e.ms).getUTCDate(), mon: mon(e.ms), label: e.title + ', ' + wk(e.ms) + ' ' + dMonth(e.ms) + ': ' + ATT_WORD[s] });
       if (e.concept === m.id && !att.slot) {
         var n = Math.round((e.ms - asOf) / DAY);
         att.slot = { key: e.key, ic: e.ic || 0, title: e.title, short: (e.ic ? 'IC ' + e.ic : e.title) + ' · ' + wk(e.ms).slice(0, 3) + ' ' + dShort(e.ms),
-          when: wk(e.ms) + ' ' + dMonth(e.ms) + ', 17:00',
+          when: wk(e.ms) + ' ' + dMonth(e.ms) + ', ' + e.start,
           tag: !ended ? { text: n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : 'In ' + n + ' days', tone: n <= 0 ? 'now' : n <= 7 ? 'u-week' : 'when' }
             : s === 'present' ? { text: 'Presented', tone: 'ok' } : s === 'wait' ? { text: 'Awaiting record', tone: 'quiet' } : { text: 'To rearrange', tone: 'u-week' } };
       }
@@ -534,18 +539,20 @@
     var socAll = lens === 'society' ? all : oAll, anaBy = {};
     (lens === 'analyst' ? all : oAll).forEach(function (it) { if (it.type === 'meeting') anaBy[it.key] = it; });
     var meetings = socAll.filter(function (it) { return it.type === 'meeting'; }).map(function (it) {
-      var a = anaBy[it.key], start = atSAST(it.ms, '17:00'), end = atSAST(it.ms, '18:30'), parts = [];
+      var a = anaBy[it.key], start = atSAST(it.ms, it.start), end = atSAST(it.ms, it.finish), parts = [];
       if (it.part) parts.push({ text: it.label, tone: it.tone });
       if (a && a.part) parts.push({ text: a.label, tone: a.tone });
       var minutesMine = parts.some(function (x) { return /minute/i.test(x.text); });
       var pr = parseDay(it.preread);
-      var chain = D(it.ms).getUTCDay() !== 0 ? [] : [{ k: 'Agenda', day: it.ms - 2 * DAY, at: atSAST(it.ms - 2 * DAY, '17:00') }]
+      // the agenda by the Friday before and the minutes by the Tuesday after, whichever day the meeting is on
+      var dow = D(it.ms).getUTCDay(), agendaDay = it.ms - ((dow + 2) % 7 || 7) * DAY, minutesDay = it.ms + ((9 - dow) % 7 || 7) * DAY;
+      var chain = [{ k: 'Agenda', day: agendaDay, at: atSAST(agendaDay, '17:00') }]
         .concat(isNaN(pr) || pr >= it.ms ? [] : [{ k: 'Pre-reads', day: pr, at: atSAST(pr, '17:00') }])
-        .concat([{ k: 'Meeting', day: it.ms, at: end, meet: true }, { k: 'Minutes', day: it.ms + 2 * DAY, at: atSAST(it.ms + 2 * DAY, '17:00'), mine: minutesMine }]);
+        .concat([{ k: 'Meeting', day: it.ms, at: end, meet: true }, { k: 'Minutes', day: minutesDay, at: atSAST(minutesDay, '17:00'), mine: minutesMine }]);
       var nextSet = false;
       chain.forEach(function (c) {
         c.short = wk(c.day).slice(0, 3) + ' ' + D(c.day).getUTCDate();
-        c.when = wk(c.day).slice(0, 3) + ' ' + dShort(c.day) + (c.meet ? ', 17:00 to 18:30' : ', 17:00');
+        c.when = wk(c.day).slice(0, 3) + ' ' + dShort(c.day) + (c.meet ? ', ' + it.start + ' to ' + it.finish : ', 17:00');
         c.state = now >= c.at ? 'done' : c.meet && now >= start ? 'live' : nextSet ? 'todo' : 'next';
         if (c.state !== 'done') nextSet = true;
       });
@@ -574,10 +581,10 @@
     P.society.forEach(function (e) {
       var note = e.type === 'meeting' && P.analystMeetings[e.key];
       if (!note || !note.cycle) return;
-      var pr = parseDay(e.preread), from = isNaN(pr) ? e.ms - DAY : pr, start = atSAST(e.ms, '17:00');
+      var pr = parseDay(e.preread), from = isNaN(pr) ? e.ms - DAY : pr, start = atSAST(e.ms, e.start);
       if (asOf < from || asOf > e.ms + 7 * DAY) return;
       pitch = { key: e.key, title: e.title, ms: e.ms, cycle: note.cycle, started: now >= start, today: asOf === e.ms,
-        when: wk(e.ms) + ' ' + dMonth(e.ms) + ', 17:00', recent: now >= start && asOf <= e.ms + 3 * DAY,
+        when: wk(e.ms) + ' ' + dMonth(e.ms) + ', ' + e.start, recent: now >= start && asOf <= e.ms + 3 * DAY,
         presenters: P.members.filter(function (x) { return (x.cycle || 'A') === note.cycle; }), me: (m.cycle || 'A') === note.cycle };
     });
 
@@ -1062,7 +1069,8 @@
     var I = ICONS[p.n];
     return html`<svg class="ico" width=${p.s || 22} height=${p.s || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=${p.w || 1.6} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I ? [p.on ? I.f : null, I.o] : GLYPHS[p.n]}</svg>`;
   }
-  function Badge(p) { return p.b ? html`<i class=${'badge ' + p.b} aria-hidden="true"></i>` : null; }
+  // the dot's state is prefixed (bd-today, bd-live…) so it never picks up another component's styles, as .today once did
+  function Badge(p) { return p.b ? html`<i class=${'badge bd-' + p.b} aria-hidden="true"></i>` : null; }
 
   function Rail(p) {
     var M = p.M, A = p.A;
@@ -1157,7 +1165,7 @@
       <div class="card-head"><h2 id="nm-h" class="card-k">${on ? (x.live.text === 'Live now' ? 'Meeting now' : 'Starting soon') : 'Next meeting'}</h2><span class="live-chip" aria-live="polite"><${Tag} text=${chip.text} tone=${chip.tone} /></span></div>
       <button class="nm-main" onClick=${function () { A.openAny(it.key); }}>
         <span class="datebox slate tnum" aria-hidden="true"><span class="d">${it.day}</span><span class="m">${it.mon}</span></span>
-        <span class="nm-text"><span class="nm-kind">${x.kind}</span><span class="nm-title">${x.title}</span><span class="nm-meta tnum">${it.wk} ${dShort(it.ms)} · 17:00 to 18:30 · Teams</span><${Parts} parts=${x.parts} /></span>
+        <span class="nm-text"><span class="nm-kind">${x.kind}</span><span class="nm-title">${x.title}</span><span class="nm-meta tnum">${it.wk} ${dShort(it.ms)} · ${it.start} to ${it.finish} · Teams</span><${Parts} parts=${x.parts} /></span>
       </button>
       <${JoinRow} x=${x} />
       ${x.chain.length ? html`<${Chain} chain=${x.chain} />` : null}
@@ -1173,7 +1181,7 @@
       <div class="mh-body">
         <span class="nm-kind">${x.kind}</span>
         <h2 id="mh-h" class="mh-title">${x.title}</h2>
-        <p class="mh-when tnum">${wk(it.ms)} ${dMonth(it.ms)} · 17:00 to 18:30 · Teams</p>
+        <p class="mh-when tnum">${wk(it.ms)} ${dMonth(it.ms)} · ${it.start} to ${it.finish} · Teams</p>
         <${Parts} parts=${x.parts} />
       </div>
       <${JoinRow} x=${x} />
@@ -1430,7 +1438,7 @@
   // "Formal IC 1" and "Learning Session 2: …" read as names; any other meeting takes "the" ("the recap meeting")
   function meetingName(it) { var t = String(it.title || ''); return /^(Formal IC|Learning Session)/.test(t) ? t : 'the ' + t.charAt(0).toLowerCase() + t.slice(1); }
   function apologyText(it, m) {
-    return plain('Apologies: I can’t attend ' + meetingName(it) + ' on ' + wk(it.ms) + ' ' + dMonth(it.ms) + ' ' + D(it.ms).getUTCFullYear() + ' (17:00 to 18:30 on Teams).\n\n' + m.role);
+    return plain('Apologies: I can’t attend ' + meetingName(it) + ' on ' + wk(it.ms) + ' ' + dMonth(it.ms) + ' ' + D(it.ms).getUTCFullYear() + ' (' + it.start + ' to ' + it.finish + ' on Teams).\n\n' + m.role);
   }
   // Your week in one message: what is accepted, submitted or being revised, and what is next in each role.
   function updateText(M) {
@@ -3677,7 +3685,7 @@
   function snapshotFor(P, m) {
     var map = {};
     ['society', 'analyst'].forEach(function (l) {
-      lensItems(P, m, l).forEach(function (it) { if (!map[it.key] && (it.isKey || it.type === 'marker')) map[it.key] = [it.ms, it.endMs, it.timeSet, it.title]; });
+      lensItems(P, m, l).forEach(function (it) { if (!map[it.key] && (it.isKey || it.type === 'marker')) map[it.key] = [it.ms, it.endMs, it.timeSet, it.title, it.type]; });
     });
     return { t: DEFAULT_TIME, map: map };
   }
@@ -3689,7 +3697,12 @@
     Object.keys(b).forEach(function (k) {
       var x = a[k], y = b[k];
       if (!x) out.push({ kind: 'new', key: k, title: y[3], ms: y[0], when: when(y[0], y[2]) });
-      else if (x[0] !== y[0] || x[1] !== y[1] || x[2] !== y[2]) out.push({ kind: 'moved', key: k, title: y[3], ms: y[0], when: 'now ' + when(y[0], y[2]) + ', was ' + dShort(x[0]) + (x[2] && x[2] !== y[2] ? ' ' + x[2] : '') });
+      else if (x[0] === y[0] && x[1] === y[1] && x[2] !== y[2]) {
+        // same day, new time: "Sun 1 Nov, now 08:30–09:30, was 17:00–18:30"
+        var usual = y[4] === 'meeting' ? MEET_START + '–' + MEET_END : DEFAULT_TIME;
+        out.push({ kind: 'moved', key: k, title: y[3], ms: y[0], when: wk(y[0]).slice(0, 3) + ' ' + dShort(y[0]) + ', now ' + (y[2] || usual) + ', was ' + (x[2] || usual) });
+      }
+      else if (x[0] !== y[0] || x[1] !== y[1]) out.push({ kind: 'moved', key: k, title: y[3], ms: y[0], when: 'now ' + when(y[0], y[2]) + ', was ' + dShort(x[0]) + (x[2] && x[2] !== y[2] ? ' ' + x[2] : '') });
     });
     Object.keys(a).forEach(function (k) { if (!b[k]) out.push({ kind: 'removed', key: k, title: a[k][3], ms: a[k][0], when: 'was ' + dShort(a[k][0]) }); });
     out = out.filter(function (c) { return c.ms >= asOf - 7 * DAY; }).sort(function (x, y) { return x.ms - y.ms; });

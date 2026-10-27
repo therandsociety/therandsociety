@@ -75,7 +75,8 @@ def build(data, member, site_url, stamp):
             elif e.get('concept'):
                 desc += '\n\nConcept of the Meeting: ' + role_of(data, e['concept']) + '.'
             link = e.get('link') or (data.get('site') or {}).get('teams') or ''
-            events.append(dict(key=e['key'], date=e['date'], time='17:00', end_time='18:30', summary=title + (' · ' + ' · '.join(labels) if labels else ''), desc=desc, kind='meeting', link=link))
+            t0, t1 = meeting_times(e)
+            events.append(dict(key=e['key'], date=e['date'], time=t0, end_time=t1, summary=title + (' · ' + ' · '.join(labels) if labels else ''), desc=desc, kind='meeting', link=link))
         elif part == 'lead' or who == 'some':
             if e.get('type') == 'marker' and part != 'lead':
                 continue
@@ -100,7 +101,7 @@ def build(data, member, site_url, stamp):
                   'DESCRIPTION:' + esc((('Join on Teams: ' + link + '\n\n') if link else '') + ev['desc'] + '\n\nOpen the app: ' + app), 'URL:' + (link or app)]
         if ev['kind'] == 'meeting':
             lines += ['DTSTART:' + utc(d0, ev['time']), 'DTEND:' + utc(d0, ev['end_time']), 'LOCATION:' + esc(link or 'Microsoft Teams'),
-                      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(ev['summary']), 'TRIGGER:-PT1H', 'END:VALARM']
+                      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc('In 30 minutes: ' + ev['summary']), 'TRIGGER:-PT30M', 'END:VALARM']
         elif ev.get('end') or not ev.get('time'):
             d1 = day(ev['end']) if ev.get('end') else d0
             lines += ['DTSTART;VALUE=DATE:' + d0.strftime('%Y%m%d'), 'DTEND;VALUE=DATE:' + (d1 + dt.timedelta(days=1)).strftime('%Y%m%d'), 'TRANSP:TRANSPARENT',
@@ -117,6 +118,19 @@ def build(data, member, site_url, stamp):
 def longday(d):
     return d.strftime('%A ') + str(d.day) + d.strftime(' %B')
 
+def meeting_times(e):
+    """A meeting's start and end (SAST): 17:00 to 18:30 unless it names its own "time" and "endTime"."""
+    ok = lambda t: bool(re.fullmatch(r'([01]\d|2[0-3]):[0-5]\d', t or ''))
+    start = e['time'] if ok(e.get('time')) else '17:00'
+    end = e['endTime'] if ok(e.get('endTime')) and e['endTime'] > start else ('18:30' if start == '17:00' else (dt.datetime.strptime(start, '%H:%M') + dt.timedelta(minutes=90)).strftime('%H:%M'))
+    return start, end
+
+
+def minutes_day(d0):
+    """Minutes are filed by the first Tuesday after a meeting (two days after a Sunday meeting, three after a Saturday)."""
+    return d0 + dt.timedelta(days=(1 - d0.weekday()) % 7 or 7)
+
+
 def build_meeting(data, e, site_url, stamp):
     """One meeting on its own (cal/m/<key>.ics), for the app's Add to calendar button."""
     d0 = day(e['date'])
@@ -127,14 +141,14 @@ def build_meeting(data, e, site_url, stamp):
         desc += '\n\nConcept of the Meeting: ' + role_of(data, e['concept']) + '.'
     if e.get('preread'):
         desc += '\n\nPre-reads by ' + longday(day(e['preread'])) + ', 17:00.'
-    desc += '\n\nMinutes by ' + longday(d0 + dt.timedelta(days=2)) + ', 17:00.'
+    desc += '\n\nMinutes by ' + longday(minutes_day(d0)) + ', 17:00.'
     if link:
         desc += '\n\nJoin on Teams: ' + link
     lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//The Rand Society//Members app//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
              'BEGIN:VEVENT', 'UID:' + e['key'] + '-meeting@therandsociety', 'DTSTAMP:' + stamp,
              'SUMMARY:' + esc('Rand Society · ' + e.get('title', 'Meeting')), 'DESCRIPTION:' + esc(desc + '\n\nOpen the app: ' + app),
-             'DTSTART:' + utc(d0, '17:00'), 'DTEND:' + utc(d0, '18:30'), 'LOCATION:' + esc(link or 'Microsoft Teams'), 'URL:' + (link or app),
-             'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(e.get('title', 'Meeting')), 'TRIGGER:-PT1H', 'END:VALARM',
+             'DTSTART:' + utc(d0, meeting_times(e)[0]), 'DTEND:' + utc(d0, meeting_times(e)[1]), 'LOCATION:' + esc(link or 'Microsoft Teams'), 'URL:' + (link or app),
+             'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc('In 30 minutes: ' + e.get('title', 'Meeting')), 'TRIGGER:-PT30M', 'END:VALARM',
              'END:VEVENT', 'END:VCALENDAR']
     return '\r\n'.join(fold(l) for l in lines) + '\r\n'
 

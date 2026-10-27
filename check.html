@@ -86,6 +86,13 @@ a{color:var(--navy)}
         if (e.end != null && (isNaN(day(e.end)) || day(e.end) < s)) errs.push(at + ': <code>end</code> must be a YYYY-MM-DD date on or after <code>date</code>.');
         if (['deadline', 'meeting', 'marker'].indexOf(e.type) < 0) errs.push(at + ': <code>type</code> must be deadline, meeting or marker.');
         if (e.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(e.time)) errs.push(at + ': <code>time</code> must look like 17:00.');
+        // a meeting may name its own start and end; without them it runs 17:00 to 18:30
+        if (e.endTime != null) {
+          if (e.type !== 'meeting') warns.push(at + ': <code>endTime</code> only counts on meetings.');
+          else if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(e.endTime)) errs.push(at + ': <code>endTime</code> must look like 18:30.');
+          else if (e.endTime <= (e.time || '17:00')) errs.push(at + ': <code>endTime</code> must be after the start (' + esc(e.time || '17:00') + ').');
+        }
+        if (e.type === 'meeting' && e.time && !e.endTime) warns.push(at + ': this meeting starts at ' + esc(e.time) + ' but has no <code>endTime</code>, so it is shown as 90 minutes.');
         if (!e.title) errs.push(at + ' has no <code>title</code>.');
         if (e.who && ['all', 'some'].indexOf(e.who) < 0) errs.push(at + ': <code>who</code> must be all or some.');
         if (e.cycle && !(D.cycles || {})[e.cycle]) errs.push(at + ': cycle <code>' + esc(e.cycle) + '</code> is not defined.');

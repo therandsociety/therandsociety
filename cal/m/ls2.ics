@@ -19,8 +19,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
 URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 2: Valuing financial companies
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 2: Valuing financial companies
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 END:VCALENDAR

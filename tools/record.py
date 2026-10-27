@@ -214,8 +214,8 @@ def move(D, f):
     decision = f.get('Decision on record', '').strip()
     if not decision:
         raise Stop('Record the decision behind the change: the minutes or the written resolution.')
-    if e.get('type') == 'meeting' and new.weekday() != 6:
-        raise Stop('Meetings are on Sundays, and ' + nice(new) + ' is a ' + new.strftime('%A') + '.')
+    if e.get('type') == 'meeting' and new.weekday() not in (5, 6):
+        raise Stop('Meetings are on a Sunday (or a Saturday the Members agree), and ' + nice(new) + ' is a ' + new.strftime('%A') + '.')
     delta = new - old
     notes = []
     e['date'] = new.isoformat()
@@ -238,6 +238,20 @@ def move(D, f):
         if e.get('type') != 'deadline':
             raise Stop('Only a deadline has a cut-off time.')
         e['time'] = t
+    mt = f.get('New meeting time', '').strip()
+    if mt:
+        if e.get('type') != 'meeting':
+            raise Stop('Only a meeting has a meeting time; use New cut-off time for a deadline.')
+        m2 = re.fullmatch(r'(([01]\d|2[0-3]):[0-5]\d)\s*(?:-|–|—|to)\s*(([01]\d|2[0-3]):[0-5]\d)', mt)
+        if not m2:
+            raise Stop('The meeting time must look like 08:30-09:30: its start and end.')
+        if m2[3] <= m2[1]:
+            raise Stop('The meeting must end after it starts (' + m2[1] + ').')
+        if (m2[1], m2[3]) == ('17:00', '18:30'):
+            e.pop('time', None); e.pop('endTime', None)   # back to the standard time
+        else:
+            e['time'], e['endTime'] = m2[1], m2[3]
+        notes.append('It now runs ' + m2[1] + ' to ' + m2[3] + '.')
     if e.get('preread'):
         e['preread'] = (day(e['preread'], 'The pre-read date') + delta).isoformat()
         notes.append('Pre-reads move with it, to ' + nice(day(e['preread'], 'pre-read')) + '.')
@@ -286,8 +300,8 @@ def move(D, f):
     T = D.get('term', {})
     if T.get('start') and T.get('close') and not (day(T['start'], 'term.start') <= new <= day(T['close'], 'term.close')):
         notes.append('The new date is outside the term (' + T['start'] + ' to ' + T['close'] + ').')
-    title = 'Moved: ' + e['title'] + ' · now ' + new.strftime('%a ') + str(new.day) + new.strftime(' %b')
-    comment = ('**' + e['title'] + '** moves from ' + nice(old) + ' to ' + nice(new) + (', closing at ' + t if t else '') + '.\n\n'
+    title = 'Moved: ' + e['title'] + ' · now ' + new.strftime('%a ') + str(new.day) + new.strftime(' %b') + (', ' + e.get('time', '17:00') + ' to ' + e.get('endTime', '18:30') if mt else '')
+    comment = ('**' + e['title'] + '** ' + ('stays on ' + nice(new) if new == old else 'moves from ' + nice(old) + ' to ' + nice(new)) + (', closing at ' + t if t else '') + '.\n\n'
                + (' '.join(notes) + '\n\n' if notes else '')
                + 'Decision on record: ' + decision + '\n\nMembers see “Dates changed since your last visit” on their next visit, and calendars catch up on their next refresh. Dates that depend on this one are unchanged: move them with their own forms if the decision says so.'
                + ('\n\nThese lines in data.json still mention ' + olds[0] + '; edit them if they mean this date:\n' + '\n'.join('- ' + h for h in hits[:8]) if hits else ''))
@@ -444,6 +458,8 @@ def check(D):
             for r, v in (e.get('attendance') or {}).items():
                 if r not in ids or v not in ATTEND_WORD:
                     raise Stop(e['key'] + ': an attendance entry is not valid.')
+            if e.get('endTime') and not (re.fullmatch(r'([01]\d|2[0-3]):[0-5]\d', e['endTime']) and e['endTime'] > e.get('time', '17:00')):
+                raise Stop(e['key'] + ': the meeting must end after it starts.')
             if e.get('preread') and day(e['preread'], 'pre-read') >= day(e['date'], 'date'):
                 raise Stop(e['key'] + ': the pre-read date must be before the meeting.')
 

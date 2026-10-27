@@ -10,6 +10,28 @@ X-WR-TIMEZONE:Africa/Johannesburg
 REFRESH-INTERVAL;VALUE=DURATION:PT6H
 X-PUBLISHED-TTL:PT6H
 BEGIN:VEVENT
+UID:recap-coo@therandsociety
+DTSTAMP:20261027T000000Z
+SUMMARY:Recap meeting · You minute
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/394706839400157
+ 2?p=o4kTMQRTBPllQe7Bk8\n\nWhere the Society stood before Academic Priority
+ \, and the rest of H1 to Formal IC 1 on 6 December. You file the minutes b
+ y Tuesday 17:00.\n\nAs an analyst: Where your sector work picks up: the se
+ ctor scope and source map on 18 December\, then the sector brief and watch
+ list on 15 January.\n\nOpen the app: https://therandsociety.github.io/ther
+ andsociety/#coo
+URL:https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe7Bk8
+DTSTART:20261031T063000Z
+DTEND:20261031T073000Z
+LOCATION:https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe
+ 7Bk8
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:In 30 minutes: Recap meeting · You minute
+TRIGGER:-PT30M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
 UID:linkedin-coo@therandsociety
 DTSTAMP:20261027T000000Z
 SUMMARY:COO: LinkedIn founding announcement
@@ -24,28 +46,6 @@ BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:COO: LinkedIn founding announcement
 TRIGGER:PT8H
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:recap-coo@therandsociety
-DTSTAMP:20261027T000000Z
-SUMMARY:Recap meeting · You minute
-DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/366986246890865
- 8?p=tMcg2nvLC57cRehhxQ\n\nWhere the Society stood before Academic Priority
- \, and the rest of H1 to Formal IC 1 on 6 December. You file the minutes b
- y Tuesday 17:00.\n\nAs an analyst: Where your sector work picks up: the se
- ctor scope and source map on 18 December\, then the sector brief and watch
- list on 15 January.\n\nOpen the app: https://therandsociety.github.io/ther
- andsociety/#coo
-URL:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRehhxQ
-DTSTART:20261101T150000Z
-DTEND:20261101T163000Z
-LOCATION:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRe
- hhxQ
-BEGIN:VALARM
-ACTION:DISPLAY
-DESCRIPTION:Recap meeting · You minute
-TRIGGER:-PT1H
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -176,8 +176,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 1 · You minute
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 1 · You minute
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -214,8 +214,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 1: How financial services companies make money
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 1: How financial services compa
+ nies make money
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -302,8 +303,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 2 · You minute
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 2 · You minute
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -343,8 +344,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 2: Valuing financial companies
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 2: Valuing financial companies
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -387,9 +388,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 3: Interim Progress Report · You minute · Your conc
- ept
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 3: Interim Progress Report · You minu
+ te · Your concept
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -408,9 +409,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Learning Session 3: Technology\, competition and financial incl
- usion
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Learning Session 3: Technology\, competition and
+  financial inclusion
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -472,8 +473,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 4: Pitch IC A · You minute
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 4: Pitch IC A · You minute
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -608,8 +609,9 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 5: Pitch IC B · You minute · You pitch
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 5: Pitch IC B · You minute · You pit
+ ch
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -696,8 +698,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
  9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 6 and H1 close · You minute
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 6 and H1 close · You minute
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT

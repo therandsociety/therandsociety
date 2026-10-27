@@ -9,20 +9,20 @@ DTSTAMP:20261027T000000Z
 SUMMARY:Rand Society · Recap meeting
 DESCRIPTION:Where the Society stood before Academic Priority\, and the rest
   of H1: the first deliverables on 6 November\, Traffic-Light Review 1 on 1
- 3 November and Formal IC 1 on 6 December. A check-in\, not a formal IC. A 
- Member writing November exams is excused.\n\nMinutes by Tuesday 3 November
- \, 17:00.\n\nJoin on Teams: https://teams.microsoft.com/meet/3669862468908
- 658?p=tMcg2nvLC57cRehhxQ\n\nOpen the app: https://therandsociety.github.io
- /therandsociety/#meetings
-DTSTART:20261101T150000Z
-DTEND:20261101T163000Z
-LOCATION:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRe
- hhxQ
-URL:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRehhxQ
+ 3 November and Formal IC 1 on 6 December. A check-in\, not a formal IC\, h
+ eld on Saturday morning as the Members agreed. A Member writing November e
+ xams is excused.\n\nMinutes by Tuesday 3 November\, 17:00.\n\nJoin on Team
+ s: https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe7Bk8\
+ n\nOpen the app: https://therandsociety.github.io/therandsociety/#meetings
+DTSTART:20261031T063000Z
+DTEND:20261031T073000Z
+LOCATION:https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe
+ 7Bk8
+URL:https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe7Bk8
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Recap meeting
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Recap meeting
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 END:VCALENDAR

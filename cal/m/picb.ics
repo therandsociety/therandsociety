@@ -19,8 +19,8 @@ LOCATION:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u
 URL:https://teams.microsoft.com/meet/3774135146398752?p=aoopiwXjoWTb3u9fTU
 BEGIN:VALARM
 ACTION:DISPLAY
-DESCRIPTION:Formal IC 5: Pitch IC B
-TRIGGER:-PT1H
+DESCRIPTION:In 30 minutes: Formal IC 5: Pitch IC B
+TRIGGER:-PT30M
 END:VALARM
 END:VEVENT
 END:VCALENDAR
