@@ -88,7 +88,7 @@ After each meeting, record attendance from the minutes:
 "attendance": { "pres": "present", "hor": "present", "pm": "excused", "coo": "present" }
 ```
 
-Every meeting counts: the six ICs and the three learning sessions. `excused` is an approved absence, including a notified November exam exemption, and leaves the count; `absent` counts against it. Members see "3 of 4 meetings (75%) · 70% required", green "On track" at or above the line and orange "Below 70%" under it, with how many of the meetings still to come bring them back. The requirement is 70% (Constitution 2.6); `term.attendance` changes it. A meeting that has ended without a record shows as "awaiting record" and doesn't count either way. Scorecard rows with `"live": "concept"` or `"live": "attendance"` show each Member's own slot and count instead of their `when` text.
+Every meeting counts: the six ICs, the three learning sessions and any other Society meeting, such as the recap on 1 November 2026. `excused` is an approved absence, including a notified November exam exemption, and leaves the count; `absent` counts against it. Members see "3 of 4 meetings (75%) · 70% required", green "On track" at or above the line and orange "Below 70%" under it, with how many of the meetings still to come bring them back. The requirement is 70% (Constitution 2.6); `term.attendance` changes it. A meeting that has ended without a record shows as "awaiting record" and doesn't count either way. Scorecard rows with `"live": "concept"` or `"live": "attendance"` show each Member's own slot and count instead of their `when` text.
 
 ### Decision register
 

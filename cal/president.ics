@@ -11,7 +11,7 @@ REFRESH-INTERVAL;VALUE=DURATION:PT6H
 X-PUBLISHED-TTL:PT6H
 BEGIN:VEVENT
 UID:resume-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: Active Society work resumes
 DESCRIPTION:You update the capacity map and administer November exam exempt
  ions. Until 30 November\, no new full thesis\, Level 2 report or major eve
@@ -28,8 +28,30 @@ TRIGGER:PT8H
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
+UID:recap-pres@therandsociety
+DTSTAMP:20261027T000000Z
+SUMMARY:Recap meeting · You chair
+DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/366986246890865
+ 8?p=tMcg2nvLC57cRehhxQ\n\nYou chair the recap: where the Society stood bef
+ ore Academic Priority\, and the rest of H1 to Formal IC 1 on 6 December. C
+ irculate the agenda by Friday 17:00.\n\nAs an analyst: Where your sector w
+ ork picks up: the sector scope and source map on 18 December\, then the se
+ ctor brief and watchlist on 15 January.\n\nOpen the app: https://therandso
+ ciety.github.io/therandsociety/#president
+URL:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRehhxQ
+DTSTART:20261101T150000Z
+DTEND:20261101T163000Z
+LOCATION:https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRe
+ hhxQ
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Recap meeting · You chair
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
 UID:notice-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: November exam notice due
 DESCRIPTION:Members writing November exams notify the Society by 17:00 thro
  ugh the official channel\, with their final-exam dates. Record each one on
@@ -52,7 +74,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:nov6-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: Capacity map completed
 DESCRIPTION:Complete the capacity map\, so dependent work follows each Memb
  er’s resumption.\n\nOpen the app: https://therandsociety.github.io/thera
@@ -74,7 +96,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:tl1-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: First drafts and Traffic-Light Review 1
 DESCRIPTION:You lead Traffic-Light Review 1. Every amber or red Foundation 
  item gets an owner\, support and a revised date.\n\nOpen the app: https://
@@ -97,7 +119,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ic1-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Formal IC 1 · You chair · Your concept
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
  2?p=aoopiwXjoWTb3u9fTU\n\nYou chair: operating-pack review\, provisional w
@@ -120,7 +142,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls1-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Learning Session 1: How financial services companies make money · 
  You coordinate
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
@@ -142,7 +164,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-scope-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Analyst: Sector scope and source map filed
 DESCRIPTION:File your initial Consumer Services scope and source map\, read
  y for January sector work.\n\nOpen the app: https://therandsociety.github.
@@ -164,7 +186,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan5-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: Full production resumes
 DESCRIPTION:Research queue\, owners\, review slots and January workload con
  firmed.\n\nOpen the app: https://therandsociety.github.io/therandsociety/#
@@ -181,7 +203,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-brief-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Analyst: Sector brief and watchlist submitted
 DESCRIPTION:Submit your Consumer Services initiation brief (value chain\, l
  isted universe\, profit drivers\, risks\, legislation and indicators) and 
@@ -204,7 +226,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ic2-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Formal IC 2 · You chair
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
  2?p=aoopiwXjoWTb3u9fTU\n\nYou chair: sector readiness\, theme primer\, wat
@@ -225,7 +247,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-cand-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Analyst: Thesis candidate pre-cleared
 DESCRIPTION:Your brief and watchlist are accepted. Register your preferred 
  candidate with a primary source pack and get Portfolio Manager pre-clearan
@@ -248,7 +270,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls2-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Learning Session 2: Valuing financial companies · You coordinate
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
  2?p=aoopiwXjoWTb3u9fTU\n\nCompare two JSE-listed financial companies and d
@@ -268,7 +290,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan29-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: Interim report inputs
 DESCRIPTION:Role owners submit their Interim Progress Report inputs and cor
  rective-action proposals to you.\n\nOpen the app: https://therandsociety.g
@@ -290,7 +312,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:jan31-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Formal IC 3: Interim Progress Report · You chair
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
  2?p=aoopiwXjoWTb3u9fTU\n\nYou chair Traffic-Light Review 2 and present the
@@ -311,7 +333,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:ls3-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Learning Session 3: Technology\, competition and financial inclusio
  n · You coordinate
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
@@ -332,7 +354,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-thesisB-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Analyst: Thesis and model to review
 DESCRIPTION:Submit your complete thesis and model to the Head of Research f
  or Pitch IC B.\n\nOpen the app: https://therandsociety.github.io/therandso
@@ -354,7 +376,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb12-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: Term-End Report structure locked
 DESCRIPTION:Lock the Term-End Report structure\, section owners and seconda
  ry-output evidence requirements.\n\nOpen the app: https://therandsociety.g
@@ -376,7 +398,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:pica-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Formal IC 4: Pitch IC A · You chair
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
  2?p=aoopiwXjoWTb3u9fTU\n\nPitch Cycle A presentations and simulated invest
@@ -395,7 +417,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-fbB-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Analyst: Review comments back
 DESCRIPTION:Comments come back with written reasons. Address each one or gi
  ve reasoned written disagreement.\n\nOpen the app: https://therandsociety.
@@ -417,7 +439,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-second-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Analyst: Secondary contribution and development
 DESCRIPTION:Your secondary output (a company update\, valuation comparison\
  , catalyst or monitoring note) and your professional-development evidence\
@@ -440,7 +462,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-preB-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Analyst: Final pre-read circulated
 DESCRIPTION:Your final version passes COO format control and goes out as th
  e controlled pre-read by 17:00.\n\nOpen the app: https://therandsociety.gi
@@ -462,7 +484,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:picb-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Formal IC 5: Pitch IC B · You chair · You pitch
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
  2?p=aoopiwXjoWTb3u9fTU\n\nYou chair Pitch Cycle B\, the final portfolio re
@@ -483,7 +505,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb23-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: Report inputs and draft handovers submitted
 DESCRIPTION:Submit your Term-End Report inputs and your draft handover.\n\n
  Open the app: https://therandsociety.github.io/therandsociety/#president
@@ -506,7 +528,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:feb26-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:President: Term-End pack circulated
 DESCRIPTION:Term-End Report\, final handovers and the peer-evaluation pack 
  circulated for approval.\n\nOpen the app: https://therandsociety.github.io
@@ -528,7 +550,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:close-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Formal IC 6 and H1 close · You chair
 DESCRIPTION:Join on Teams: https://teams.microsoft.com/meet/377413514639875
  2?p=aoopiwXjoWTb3u9fTU\n\nYou chair Traffic-Light Review 3\, the scorecard
@@ -550,7 +572,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:a-close-pres@therandsociety
-DTSTAMP:20261022T000000Z
+DTSTAMP:20261027T000000Z
 SUMMARY:Analyst: Handover note and peer evaluation
 DESCRIPTION:Both are filed by the H1 close. The peer-evaluation pack goes o
  ut with the Term-End pack on 26 February.\n\nOpen the app: https://therand

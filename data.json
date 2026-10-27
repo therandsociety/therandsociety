@@ -1,6 +1,6 @@
 {
   "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD and times HH:MM (SAST). After saving, open check.html on the site to confirm the file is valid. README.md explains every field.",
-  "updated": "2026-10-22",
+  "updated": "2026-10-27",
   "notice": {
     "id": "2026-10-22-exams-done",
     "popup": true,
@@ -324,6 +324,27 @@
       "roles": {
         "coo": "lead"
       }
+    },
+    {
+      "key": "recap",
+      "date": "2026-11-01",
+      "type": "meeting",
+      "title": "Recap meeting",
+      "detail": "Where the Society stood before Academic Priority, and the rest of H1: the first deliverables on 6 November, Traffic-Light Review 1 on 13 November and Formal IC 1 on 6 December. A check-in, not a formal IC. A Member writing November exams is excused.",
+      "who": "all",
+      "roles": {
+        "pres": "lead",
+        "coo": "support"
+      },
+      "leadLabel": "You chair",
+      "labelBy": {
+        "coo": "You minute"
+      },
+      "detailBy": {
+        "pres": "You chair the recap: where the Society stood before Academic Priority, and the rest of H1 to Formal IC 1 on 6 December. Circulate the agenda by Friday 17:00.",
+        "coo": "Where the Society stood before Academic Priority, and the rest of H1 to Formal IC 1 on 6 December. You file the minutes by Tuesday 17:00."
+      },
+      "link": "https://teams.microsoft.com/meet/3669862468908658?p=tMcg2nvLC57cRehhxQ"
     },
     {
       "key": "notice",
@@ -1023,6 +1044,9 @@
     }
   ],
   "analystMeetings": {
+    "recap": {
+      "detail": "Where your sector work picks up: the sector scope and source map on 18 December, then the sector brief and watchlist on 15 January."
+    },
     "ic1": {
       "detail": "Operating-pack review and provisional workflow-test decisions."
     },

@@ -11,6 +11,7 @@ body:
     attributes:
       label: "Meeting"
       options:
+        - "Sun 1 Nov · Recap meeting [recap]"
         - "Sun 6 Dec · Formal IC 1 [ic1]"
         - "Sun 13 Dec · Learning Session 1: How financial services companies make money [ls1]"
         - "Sun 17 Jan · Formal IC 2 [ic2]"
