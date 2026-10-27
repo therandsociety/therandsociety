@@ -6,11 +6,12 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Data Check</title>
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 :root{--navy:#0F2340;--ink:#13203A;--muted:#56667C;--line:#DCE2E9;--page:#EEF1F5;--ok:#1E6B4A;--bad:#A3262A;--warn:#8A5A00}
 body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
 main{max-width:760px;margin:0 auto;padding:32px 16px 48px}
-h1{margin:0 0 4px;font:400 32px/1.15 Georgia,'Times New Roman',serif;color:var(--navy)}
+h1{margin:0 0 4px;font:500 32px/1.15 'Newsreader',Georgia,'Times New Roman',serif;color:var(--navy)}
 p{margin:0}
 .lead{color:var(--muted);margin-bottom:20px}
 .box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-top:16px}
@@ -28,7 +29,7 @@ a{color:var(--navy)}
   <button id="run" type="button">Check again</button>
   <div id="out" class="box" aria-live="polite">Checking…</div>
   <div id="learn" class="box" aria-live="polite">Checking the reading programme…</div>
-  <p class="lead" style="margin-top:20px">GitHub can take a few minutes to publish an edit. If a fix doesn't show yet, wait a minute and check again. <a href="./">Open the dashboard</a></p>
+  <p class="lead" style="margin-top:20px">GitHub can take a few minutes to publish an edit. If a fix doesn’t show yet, wait a minute and check again. <a href="./">Open the dashboard</a></p>
 </main>
 <div id="app" hidden></div>
 <script>window.TRS_CHECK = true;</script>

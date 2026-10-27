@@ -176,7 +176,7 @@ In the installed app on a phone, pulling down at the top of a page checks the da
 
 The full launch screen plays on the first open of each day; after that the app opens in about a second with a slimmer header. After you publish a change to the app itself, open copies show **A new version is ready · Refresh**. Under the term plan, members see when the dates were last checked, or that they are offline and seeing the saved copy, with a **Refresh** button. Press `/` on a computer (or tap the magnifier beside "Term plan") to search dates, meetings and rules.
 
-On phones the app stays upright unless the member has auto-rotate switched on: `manifest.webmanifest` deliberately sets no `orientation`, because `"any"` makes installed Android apps turn sideways even with the phone's rotation lock on. (Android picks up a manifest change for installed apps within a few days; iPhones always follow their own rotation lock.)
+On phones the app stays upright: `manifest.webmanifest` asks for `"portrait"`, which installed Android apps follow, and a phone turned on its side anyway (an iPhone, or any phone in the browser) shows a "turn your phone upright" screen; nothing behind it is lost. Tablets and computers are unaffected. (Android picks up a manifest change for installed apps within a few days.)
 
 ## Sections
 

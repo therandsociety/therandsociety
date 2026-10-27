@@ -397,7 +397,7 @@
       var on = all.filter(function (it) { return it.isKey && !(it.type === 'marker' && !it.part) && (it.ms === dayMs || (it.range && it.endMs === dayMs)); });
       on.forEach(function (it) { if (seen[it.key]) return; seen[it.key] = 1; if (it.type === 'meeting') wMeet++; else if (it.part === 'lead' && !isDone(it)) wDue++; });
       week.push({ ms: dayMs, wk: wk(dayMs).slice(0, 3), d: D(dayMs).getUTCDate(), today: wi === 0, items: on,
-        marks: on.slice(0, 3).map(function (it) { return it.type === 'meeting' ? 'meet' : it.part === 'lead' ? (isDone(it) ? 'due done' : 'due ' + (it.band || '')) : 'other'; }),
+        marks: on.slice(0, 3).map(function (it) { return it.type === 'meeting' ? 'meet' : it.part === 'lead' ? (isDone(it) ? 'due done' : 'due ' + (it.band || '')) : 'fyi'; }),
         label: wk(dayMs) + ' ' + dMonth(dayMs) + (on.length ? ': ' + on.map(function (it) { return it.title; }).join('; ') : ': nothing scheduled') });
     }
     var weekBits = [];
@@ -431,18 +431,25 @@
     if (phase === 'pre' || phase === 'protected') { hero.h = 'Studies first.'; hero.p = 'Academic Priority runs to ' + dMonth(T.protectedEnd) + '. Society work resumes on ' + dMonth(T.resume) + '.'; }
     else if (phase === 'recess') { hero.h = 'Year-end recess.'; hero.p = 'Urgent matters only until ' + dMonth(T.recessEnd) + '. Full production resumes on ' + dMonth(T.fullProduction) + '.'; }
     else if (phase === 'closed') { hero.h = 'H1 is closed.'; hero.p = 'The term closed on ' + dMonth(T.close) + ' ' + D(T.close).getUTCFullYear() + '.'; }
-    else { hero.h = 'The programme is open.'; hero.p = nextIC ? (nextIC.ms === asOf ? 'Formal IC ' + nextIC.ic + (now >= atSAST(asOf, '17:00') ? ' is on now, until 18:30.' : ' is today at 17:00.') : 'Next formal IC: ' + wk(nextIC.ms) + ' ' + dMonth(nextIC.ms) + ', 17:00.') : asOf < T.close ? 'The controlled close is ' + dMonth(T.close) + '.' : 'The term closes today.'; }
+    else {
+      // a meeting today (an IC, a learning session or another Society meeting) leads the line until it ends at 18:30
+      var meetNow = P.society.filter(function (e) { return e.type === 'meeting' && e.ms === asOf && now < atSAST(asOf, '18:30'); })[0];
+      var meetName = meetNow ? (meetNow.ic ? 'Formal IC ' + meetNow.ic : String(meetNow.title).split(':')[0]) : '';
+      hero.h = 'The programme is open.';
+      hero.p = meetNow ? meetName + (now >= atSAST(asOf, '17:00') ? ' is on now, until 18:30.' : ' is today at 17:00.')
+        : nextIC ? 'Next formal IC: ' + wk(nextIC.ms) + ' ' + dMonth(nextIC.ms) + ', 17:00.' : asOf < T.close ? 'The controlled close is ' + dMonth(T.close) + '.' : 'The term closes today.';
+    }
     var phaseTag = { pre: ['Starts ' + dShort(T.start), 'quiet'], protected: ['Academic Priority', 'lead'], open: ['Programme open', 'now'], recess: ['Year-end recess', 'support'], closed: ['H1 closed', 'quiet'] }[phase];
 
     // timeline
     var span = T.close - T.start;
     function pos(ms) { return clamp((ms - T.start) / span, 0, 1) * 100; }
     function pct(v) { return v.toFixed(2) + '%'; }
-    var months = [];
+    var tlMonths = [];
     for (var y = D(T.start).getUTCFullYear(), mo = D(T.start).getUTCMonth(); Date.UTC(y, mo, 1) <= T.close; mo++) {
       if (mo > 11) { mo = 0; y++; }
       var first = Date.UTC(y, mo, 1);
-      if (first >= T.start) months.push({ label: MONTHS[mo].slice(0, 3), left: pct(pos(first)) });
+      if (first >= T.start) tlMonths.push({ label: MONTHS[mo].slice(0, 3), left: pct(pos(first)) });
     }
     var todayP = pos(asOf);
     var tl = {
@@ -451,12 +458,12 @@
         { label: 'Academic Priority', a: T.start, b: T.resume, now: phase === 'protected' || phase === 'pre' },
         { label: 'Foundation', a: T.resume, b: T.recessStart, now: phase === 'open' && asOf < T.recessStart },
         { label: 'Recess', a: T.recessStart, b: T.fullProduction, now: phase === 'recess', rec: true },
-        { label: st.phone ? 'Research' : 'Research and pitches', a: T.fullProduction, b: T.close + DAY, now: phase === 'open' && asOf >= T.fullProduction }
+        { label: 'Research', a: T.fullProduction, b: T.close + DAY, now: phase === 'open' && asOf >= T.fullProduction }
       ].map(function (x) { return { label: x.label, left: pct(pos(x.a)), width: pct(pos(x.b) - pos(x.a)), now: x.now, rec: !!x.rec }; }),
       today: pct(todayP), showToday: asOf >= T.start && asOf <= T.close, flip: todayP > 78,
       ics: ics.map(function (e) { return { key: e.key, left: pct(pos(e.ms)), past: e.endMs < asOf }; }),
       dots: all.filter(function (it) { return it.part === 'lead' && it.type !== 'meeting'; }).map(function (it) { return { key: it.key, left: pct(pos(it.ms)), past: it.past, band: it.band || '', title: it.title + ', ' + dShort(it.ms) }; }),
-      months: months
+      months: tlMonths
     };
     var deadlinesLeft = mine.filter(function (it) { return it.type !== 'meeting'; }).length;
     var stat3 = phase === 'pre' || phase === 'protected' ? { v: Math.max(0, Math.round((T.resume - asOf) / DAY)), l: 'days until work resumes, ' + dShort(T.resume) }
@@ -1307,7 +1314,7 @@
         <div class="att-top"><span class="att-k">Attendance</span>${T.tag ? html`<${Tag} text=${T.tag.text} tone=${T.tag.tone} />` : null}</div>
         <p class="att-big tnum">${T.held ? html`<b>${T.present} of ${T.held}</b> ${plural(T.held, 'meeting')} (${T.pct}%) · ${T.req}% required` : html`<b>${T.req}%</b> required · ${T.wait ? 'none recorded yet' : 'none held yet'}`}</p>
         <div class="att-bar" role="img" aria-label=${T.text}><i class=${'att-fill' + (T.held && T.pct < T.req ? ' low' : '')} style=${'width:' + fill + '%'}></i><i class="att-req" style=${'left:' + T.req + '%'}></i></div>
-        <ol class="att-dots" aria-label="Meetings this term">${T.dots.map(function (d) {
+        <ol class="att-dots" style=${'--n:' + Math.max(1, Math.min(T.dots.length, 12))} aria-label="Meetings this term">${T.dots.map(function (d) {
           return html`<li key=${d.key} class=${'ad ' + d.s} title=${d.label}><i aria-hidden="true"></i><span class="tnum" aria-hidden="true"><b>${d.d}</b>${d.mon}</span><span class="vh">${d.label}</span></li>`;
         })}</ol>
         <p class="att-note">${T.need ? 'Attend the next ' + (T.need === 1 ? 'meeting' : T.need + ' meetings') + ' to be back at ' + T.req + '%. ' : T.best != null ? (T.up ? 'Attending every meeting still to come brings you to ' + T.best + '%. ' : '') : ''}Approved absences, including a notified November exam exemption, don’t count against you. Recorded from the minutes after each meeting.</p>
@@ -1420,8 +1427,10 @@
       </div>
     </${Sheet}>`;
   }
+  // "Formal IC 1" and "Learning Session 2: …" read as names; any other meeting takes "the" ("the recap meeting")
+  function meetingName(it) { var t = String(it.title || ''); return /^(Formal IC|Learning Session)/.test(t) ? t : 'the ' + t.charAt(0).toLowerCase() + t.slice(1); }
   function apologyText(it, m) {
-    return plain('Apologies: I can’t attend ' + it.title + ' on ' + wk(it.ms) + ' ' + dMonth(it.ms) + ' ' + D(it.ms).getUTCFullYear() + ' (17:00 to 18:30 on Teams).\n\n' + m.role);
+    return plain('Apologies: I can’t attend ' + meetingName(it) + ' on ' + wk(it.ms) + ' ' + dMonth(it.ms) + ' ' + D(it.ms).getUTCFullYear() + ' (17:00 to 18:30 on Teams).\n\n' + m.role);
   }
   // Your week in one message: what is accepted, submitted or being revised, and what is next in each role.
   function updateText(M) {

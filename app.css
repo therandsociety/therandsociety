@@ -122,6 +122,7 @@ a{color:inherit;-webkit-tap-highlight-color:transparent}
 .tl-ph{position:absolute;top:80px;height:22px;box-sizing:border-box;padding:0 6px;border-left:2px solid var(--card);overflow:hidden;white-space:nowrap;font-size:11.5px;line-height:22px;color:var(--muted);background:var(--card-2)}
 .tl-ph.now{background:var(--mist);color:var(--navy);font-weight:600}
 .tl-ph.rec{background:repeating-linear-gradient(135deg,var(--silver) 0 3px,var(--card) 3px 6px);color:transparent}
+@media (max-width:380px){.tl-ph{padding:0 4px;font-size:11px}}
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:8px 24px 0;font-size:12px;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .lg-ic{width:8px;height:8px;background:var(--slate);transform:rotate(45deg);border-radius:1px}
@@ -268,7 +269,7 @@ a{color:inherit;-webkit-tap-highlight-color:transparent}
 .wm i{display:block;width:7px;height:7px;box-sizing:border-box;border-radius:50%}
 .wm i.due{background:var(--navy)}
 .wm i.meet{border:1.5px solid var(--slate);background:transparent}
-.wm i.other{background:var(--silver-2)}
+.wm i.fyi{background:var(--silver-2)}
 .wday.today{background:var(--navy)}
 .wday.today .wd{color:var(--on-navy-2)}
 .wday.today .wn{color:var(--on-navy)}
@@ -594,7 +595,7 @@ button.ch-row:hover{background:var(--card-2)}
 .me-ic{width:34px;height:34px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);color:var(--on-navy-2)}
 .me-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
 .me-txt b{font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.me-txt small{font-size:12px;color:var(--on-navy-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me-txt small{font-size:12px;color:var(--on-navy-3)}
 .me-short{display:none}
 .rail-me .chev{color:var(--on-navy-3);flex:none}
 .badge{position:absolute;top:-1px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--due);box-shadow:0 0 0 2px var(--navy-2)}
@@ -694,6 +695,8 @@ button.ch-row:hover{background:var(--card-2)}
 .mh-sec p{margin:0;font-size:14.5px;line-height:1.55;color:var(--ink)}
 .mh-who{margin:0 24px 16px}
 .mlist{padding-bottom:10px}
+/* two parts at one meeting (You minute, Your concept) stack, so the title keeps the room */
+.mlist .row .tags{flex-direction:column;align-items:flex-end;gap:4px}
 .rcard{display:flex;flex-direction:column;gap:6px;padding:20px 24px 22px}
 .rcard h2:not(.card-k){margin:2px 0 0;font-family:var(--serif);font-weight:500;font-size:22px;line-height:1.2;color:var(--navy)}
 .rcard p{margin:0;font-size:14.5px;line-height:1.55;color:var(--ink)}
@@ -1838,7 +1841,7 @@ button.att-slot:hover{background:var(--card-2)}
 .att-fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--navy);transition:width 500ms var(--ease)}
 .att-fill.low{background:var(--due)}
 .att-req{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:1px;background:var(--slate)}
-.att-dots{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:2px}
+.att-dots{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(var(--n,9),minmax(0,1fr));gap:2px 0}
 .ad{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
 .ad i{width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:1.5px solid var(--silver-2);background:var(--card)}
 .ad.present i{background:var(--navy);border-color:var(--navy)}
