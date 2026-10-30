@@ -5,7 +5,7 @@ CALSCALE:GREGORIAN
 METHOD:PUBLISH
 BEGIN:VEVENT
 UID:ic1-meeting@therandsociety
-DTSTAMP:20261027T000000Z
+DTSTAMP:20261030T000000Z
 SUMMARY:Rand Society · Formal IC 1
 DESCRIPTION:Operating-pack review\, provisional workflow-test decisions\, c
  orrection owners and deadlines. Proceeds only with quorum.\n\nConcept of t

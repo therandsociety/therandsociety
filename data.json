@@ -1,6 +1,6 @@
 {
   "_readme": "Edit dates and wording here. Dates are YYYY-MM-DD and times HH:MM (SAST). After saving, open check.html on the site to confirm the file is valid. README.md explains every field.",
-  "updated": "2026-10-27",
+  "updated": "2026-10-30",
   "notice": {
     "id": "2026-10-22-exams-done",
     "popup": true,
@@ -312,7 +312,13 @@
         "pres": "You chair the recap: where the Society stood before Academic Priority, and the rest of H1 to Formal IC 1 on 6 December. Circulate the agenda by Friday 17:00.",
         "coo": "Where the Society stood before Academic Priority, and the rest of H1 to Formal IC 1 on 6 December. You file the minutes by Tuesday 17:00."
       },
-      "link": "https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe7Bk8"
+      "link": "https://teams.microsoft.com/meet/3947068394001572?p=o4kTMQRTBPllQe7Bk8",
+      "links": [
+        {
+          "label": "Agenda",
+          "url": "https://drive.google.com/file/d/1cOFbcpQPxB47dA789jyIZcv_Si7RgP0Z/view?usp=sharing"
+        }
+      ]
     },
     {
       "key": "apend",
