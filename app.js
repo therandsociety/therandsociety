@@ -1491,7 +1491,7 @@
   var TAB_NAME = { today: 'Today', plan: 'Plan', meet: 'Meetings', learn: 'Learn', you: 'You' };
   function feedbackText(kind, m, version, tab, now) {
     var foot = '— ' + (m.roleShort || m.role) + ' · app ' + (version || 'not saved for offline yet') + ' · ' + deviceLine()
-      + (kind === 'bug' ? ' · ' + window.innerWidth + '×' + window.innerHeight : '') + ' · ' + stampSAST(now);
+      + (kind === 'bug' ? ' · ' + window.innerWidth + '×' + window.innerHeight + ' · storage ' + (kept ? 'kept' : kept === false ? 'can be cleared' : 'unknown') : '') + ' · ' + stampSAST(now);
     var body = kind === 'bug'
       ? ['Problem in the members’ app', '', 'What happened:', '', 'What I expected:', '', 'Where: ' + (TAB_NAME[tab] || 'Today')]
       : ['Suggestion for the members’ app', '', 'What would help:', '', 'Why it matters:'];
@@ -1612,12 +1612,42 @@
     }
     return fetch('learn.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).catch(fromCache);
   }
+  // Two copies of the app can be open at once (the installed app and a browser tab, say), each holding a record in memory.
+  // `seen` is the stored text this copy last read or wrote; when the stored text differs, another copy has saved since and
+  // this copy re-reads before it acts (syncLearn in App). Each save also counts up `rev`, and a record built on an older
+  // `rev` is never written over a newer one, so a copy left open for days can't wipe the progress made elsewhere.
+  // `at` is when the record was last saved; the shared store will need both to merge copies from different phones.
   var LearnStore = {
     kind: 'device',
-    all: function () { try { return JSON.parse(read('trs-learn') || '{}') || {}; } catch (e) { return {}; } },
+    seen: null,
+    all: function () { var t = read('trs-learn'); LearnStore.seen = t; try { return JSON.parse(t || '{}') || {}; } catch (e) { return {}; } },
+    changed: function () { return read('trs-learn') !== LearnStore.seen; },
     load: function (id) { var s = LearnStore.all()[id]; return s && s.v === 1 ? fillLearn(s) : null; },
-    save: function (id, s) { var all = LearnStore.all(); all[id] = s; store('trs-learn', JSON.stringify(all)); }
+    // `replace` is for a restore or the preview's demo states, which overwrite on purpose
+    save: function (id, s, replace) {
+      var all = LearnStore.all(), old = all[id];
+      if (!replace && old && (old.rev || 0) > (s.rev || 0)) return false;
+      s.rev = (old && old.rev || 0) + 1; s.at = Date.now();
+      all[id] = s; store('trs-learn', JSON.stringify(all)); LearnStore.seen = read('trs-learn');
+      keepStorage(true);
+      return true;
+    }
   };
+
+  // Ask the browser to keep this site's data. Without that, a phone short of space may clear the data of sites it thinks
+  // are little used, Learn progress included. Chrome, Huawei's browser and Safari decide quietly (an installed or
+  // often-used app is kept); asked once per open, and only once there is something to keep. `kept` goes into problem reports.
+  var keepAsked = false, kept = null;
+  function keepStorage(ask) {
+    try {
+      var S = navigator.storage;
+      if (!S || !S.persisted) return;
+      S.persisted().then(function (y) {
+        if (y || !ask || keepAsked || !S.persist) return y;
+        keepAsked = true; return S.persist();
+      }).then(function (y) { kept = !!y; }, function () { /* not allowed here */ });
+    } catch (e) { /* no storage API */ }
+  }
 
   function freshLearn() {
     return { v: 1, xp: 0, level: 1, units: {}, paid: {}, review: {}, daily: null, streak: { n: 0, last: 0, best: 0 }, badges: {}, promos: {}, finals: {}, flags: {},
@@ -2793,7 +2823,7 @@
         <li><b>Keep it fresh.</b> The question of the day and Practice bring back what you missed until it sticks.</li>
         <li><b>Level up.</b> Checks earn XP and badges. Pass a book’s final, ${R.finalPass} of ${R.finalSize}, for its certificate.</li>
       </ol>
-      <p class="how-foot">Your progress stays on this phone; a backup code moves it to a new one.</p>
+      <p class="how-foot">Your progress stays on this phone; a backup code moves it to a new one. Had progress before? <button class="how-link" onClick=${A.openBackup}>Restore it from a backup code</button>.</p>
     </section>`;
   }
 
@@ -3098,7 +3128,8 @@
       <div class="card-head"><h2 id="lp-h" class="card-k">Progress and settings</h2></div>
       <ul class="glist">
         ${gRow('sh', 'send', 'Share my progress', 'Your level, chapters and badges in one message', A.shareProgress)}
-        ${gRow('bk', 'phone', 'Moving to a new phone', 'Your progress stays on this phone. A backup code moves it.', A.openBackup)}
+        ${p.fresh ? gRow('bk', 'phone', 'Restore your progress', 'Had progress before, here or on another phone? A backup code brings it back.', A.openBackup)
+          : gRow('bk', 'phone', 'Moving to a new phone', 'Your progress stays on this phone. A backup code moves it.', A.openBackup)}
         ${gRow('st', 'sliders', 'Settings', fxSummary(), A.openSettings)}
       </ul>
     </section>`;
@@ -3220,8 +3251,9 @@
     </${Sheet}>`;
   }
 
-  // Backup reminder: progress lives on one phone, so once a chapter is passed Learn asks for a backup code every month, and
-  // again in the week before the year-end recess. "Not now" waits a week; copying a code resets the month.
+  // Backup reminder: progress lives on one phone, so once a chapter is passed Learn asks for a backup code every month (every
+  // two weeks if the browser may clear the app's data), and again in the week before the year-end recess. "Not now" waits a
+  // week; saving or copying a code resets the count.
   function readMap(k) { try { return JSON.parse(read(k) || '{}') || {}; } catch (e) { return {}; } }
   function backupDue(S, id, asOf, T) {
     var any = S && Object.keys(S.units || {}).some(function (u) { return S.units[u] && S.units[u].passed; });
@@ -3230,7 +3262,8 @@
     var weekStart = atSAST(T.recessStart - 7 * DAY, '00:00');
     if (asOf >= T.recessStart - 7 * DAY && asOf < T.recessStart && last < weekStart && later < weekStart) return { kind: 'recess', last: last };
     if (now - later < 7 * DAY) return null;
-    return now - last >= 30 * DAY ? { kind: 'month', last: last } : null;
+    // every month; every two weeks where the browser hasn't agreed to keep the app's data (see keepStorage)
+    return now - last >= (kept === false ? 14 : 30) * DAY ? { kind: 'month', last: last } : null;
   }
   function BackupNudge(p) {
     var LM = p.LM, B = p.due, A = p.A, what = 'Level ' + LM.lv.cur.n + ' · ' + num(LM.xp) + ' XP';
@@ -3243,21 +3276,31 @@
   }
   function BackupSheet(p) {
     var s = useState(''), txt = s[0], setTxt = s[1], m = useState(null), msg = m[0], setMsg = m[1], c = useState(false), copied = c[0], setCopied = c[1], ref = useRef(null);
-    var k = useState(''), code = k[0], setCode = k[1], b = useState(false), busy = b[0], setBusy = b[1];
+    var k = useState(''), code = k[0], setCode = k[1], b = useState(false), busy = b[0], setBusy = b[1], sn = useState(false), sent = sn[0], setSent = sn[1];
     useEffect(function () { var live = true; p.make().then(function (v) { if (live) setCode(v); }); return function () { live = false; }; }, []);
     function copy() {
       function pick() { var el = ref.current; if (el) { el.focus(); el.select(); } }
       if (p.saved) p.saved();
       try { navigator.clipboard.writeText(code).then(function () { setCopied(true); }, pick); } catch (e) { pick(); }
     }
+    // A copied code only sits on the clipboard until something else is copied. On a phone, the share sheet puts it somewhere
+    // that outlives the browser's data: a message to yourself, your notes or an email. Counts as a backup only once sent.
+    var canShare = p.phone && typeof navigator.share === 'function';
+    function keep() {
+      try { navigator.share({ title: 'Rand Society backup code', text: code }).then(function () { setSent(true); if (p.saved) p.saved(); }, function () { /* closed without sending */ }); }
+      catch (e) { copy(); }
+    }
     function restore() { setBusy(true); Promise.resolve(p.restore(txt)).then(function (r) { setBusy(false); setMsg(r); if (r && r.ok && p.saved) p.saved(); }); }
     return html`<${Sheet} phone=${p.phone} skin=${true} onClose=${p.onClose} label="Move your progress">
       <div class="sheet-head"><span class="when">Backup code</span><${CloseBtn} onClose=${p.onClose} /></div>
       <div class="sheet-body">
         <h2 class="sheet-title">Move your progress</h2>
-        <p class="share-note">Your progress is saved on this device only. Copy this code and paste it into the app on your new phone or computer.</p>
+        <p class="share-note">Your progress is saved on this device only. Keep this code somewhere else, such as a message to yourself or your notes. Paste it into the app on any phone or computer to bring your progress back.</p>
         <textarea ref=${ref} class="share-text bk-code" rows="3" readonly value=${code || 'Preparing your code…'} aria-label="Your backup code"></textarea>
-        <div class="share-btns"><button class="share-btn primary" disabled=${!code} onClick=${copy}>${copied ? 'Copied' : 'Copy code'}</button></div>
+        <div class="share-btns">
+          ${canShare ? html`<button class="share-btn primary" disabled=${!code} onClick=${keep}>${sent ? 'Saved' : 'Save the code'}</button>` : null}
+          <button class=${'share-btn' + (canShare ? '' : ' primary')} disabled=${!code} onClick=${copy}>${copied ? 'Copied' : 'Copy code'}</button>
+        </div>
         <div class="bk-restore">
           <span class="card-k">Restore from a code</span>
           <textarea class="share-text" rows="3" value=${txt} placeholder="Paste a code that starts with TRS" onInput=${function (e) { setTxt(e.currentTarget.value); setMsg(null); }} aria-label="Paste a backup code"></textarea>
@@ -3769,6 +3812,9 @@
     var tabRef = useRef(st.tab), scrolls = useRef({}), animRef = useRef('from-l'), aRef = useRef(null), learnRef = useRef({}), quizGuard = useRef(null);
     var ptrRef = useRef(null), updRef = useRef(false);
     updRef.current = st.updateReady;
+    // Learn records are held in memory (learnRef) between saves. If another copy of the app has saved since this one last
+    // read, forget the held records so the next read takes what is saved now. True when something changed.
+    function syncLearn() { if (!LearnStore.changed()) return false; learnRef.current = {}; return true; }
 
     // Pull to refresh, in the installed app on a phone (a home-screen app has no reload button): pull down at the top of
     // a page to check the dates again; if a new version is waiting, it loads that instead.
@@ -3839,7 +3885,19 @@
       }
       function tick() { var day = todaySAST(); set(function (prev) { return { asOf: day, now: nowMs(day) }; }); }
       var clock = setInterval(tick, 30000);
-      function onVis() { if (document.visibilityState !== 'visible') return; tick(); if (!window.TRS_DATA && Date.now() - loadedAt.current > 30 * 60000) load(false); }
+      // Another copy of the app (the installed app and a browser tab, say) may have saved since this one last looked. Show
+      // what is saved now: Learn, the submitted marks and the checklists. Runs when the app comes back to the front, when it
+      // is restored from the back-forward cache, and when another open copy saves.
+      function resync() {
+        var learn = syncLearn();
+        set(function (prev) { return { done: readDone(), checks: readChecks(), since: readSince(), learnTick: prev.learnTick + (learn ? 1 : 0) }; });
+      }
+      function onStorage(e) { if (!e.key || /^trs-(learn|done|check|mark-since)$/.test(e.key)) resync(); }
+      function onShow(e) { if (e.persisted) { resync(); tick(); } }
+      window.addEventListener('storage', onStorage);
+      window.addEventListener('pageshow', onShow);
+      keepStorage(!!(read('trs-learn') || read('trs-done') || read('trs-check')));
+      function onVis() { if (document.visibilityState !== 'visible') return; resync(); tick(); if (!window.TRS_DATA && Date.now() - loadedAt.current > 30 * 60000) load(false); }
       document.addEventListener('visibilitychange', onVis);
       function onMq() { set({ phone: isPhone() }); }
       if (phoneQuery) { if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', onMq); else if (phoneQuery.addListener) phoneQuery.addListener(onMq); }
@@ -3893,6 +3951,7 @@
         if (so && so.removeEventListener) so.removeEventListener('change', onTurn);
         window.removeEventListener('orientationchange', onTurn); window.removeEventListener('resize', onTurn);
         clearInterval(clock); document.removeEventListener('visibilitychange', onVis);
+        window.removeEventListener('storage', onStorage); window.removeEventListener('pageshow', onShow);
         window.removeEventListener('hashchange', onHash); window.removeEventListener('keydown', onKey); window.removeEventListener('popstate', onPop);
         window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOnline); window.removeEventListener('trs-update', onUpdate);
         installListeners = installListeners.filter(function (f) { return f !== onInstall; });
@@ -3999,8 +4058,10 @@
       toggleBoard: function () { set(function (prev) { return { boardOpen: !(prev.boardOpen == null ? !prev.phone : prev.boardOpen) }; }); },
       toggleCheck: function (cid, i) {
         set(function (prev) {
-          var all = JSON.parse(JSON.stringify(prev.checks || {})), mine = all[M.m.id] = all[M.m.id] || {}, c = mine[cid] = mine[cid] || {};
-          if (c[i]) delete c[i]; else c[i] = 1;
+          // the box the member saw decides the tick; the rest comes from what is saved now (another copy may have saved)
+          var was = !!(((prev.checks || {})[M.m.id] || {})[cid] || {})[i];
+          var all = readChecks(), mine = all[M.m.id] = all[M.m.id] || {}, c = mine[cid] = mine[cid] || {};
+          if (was) delete c[i]; else c[i] = 1;
           store('trs-check', JSON.stringify(all));
           return { checks: all };
         });
@@ -4030,9 +4091,10 @@
       toggleRule: function (id) { set(function (prev) { var o = Object.assign({}, prev.open); o[id] = !o[id]; return { open: o }; }); },
       openItem: function (k) { set({ sheet: { kind: 'item', key: k } }); },
       toggleDone: function (k, title) {
+        // the tap changes this one mark on top of what is saved now, so marks made in another open copy of the app are kept
         var id = M.m.id + ':' + k, on = !st.done[id];
-        if (on && !st.since[M.m.id]) { var sn = Object.assign({}, st.since); sn[M.m.id] = st.asOf; store('trs-mark-since', JSON.stringify(sn)); set({ since: sn }); }
-        var o = Object.assign({}, st.done);
+        if (on && !st.since[M.m.id]) { var sn = readSince(); if (!sn[M.m.id]) { sn[M.m.id] = st.asOf; store('trs-mark-since', JSON.stringify(sn)); } set({ since: sn }); }
+        var o = readDone();
         if (on) o[id] = Date.now(); else delete o[id];
         store('trs-done', JSON.stringify(o));
         clearTimeout(toastT.current);
@@ -4088,8 +4150,10 @@
       dismissInstall: function () { store('trs-install-later', String(Date.now())); set({ showInstall: false }); },
       // ---- learn ----
       learnDo: function (act) {
+        // build on what is saved now, not on what this copy read when it opened (see LearnStore)
+        syncLearn();
         var id = M.m.id, res = learnApply(LP, getLS(id), act, learnDay, lctx);
-        learnRef.current[id] = res.S; LearnStore.save(id, res.S);
+        if (LearnStore.save(id, res.S)) learnRef.current[id] = res.S; else learnRef.current = {};
         set(function (prev) { return { learnTick: prev.learnTick + 1 }; });
         return res.ev;
       },
@@ -4125,7 +4189,7 @@
         if (!o) return { ok: false, text: 'That code isn’t valid. Copy the whole code, starting with TRS.' };
         P.members.forEach(function (x, j) { if (x.id === o.id) mi = j; });
         if (mi < 0) return { ok: false, text: 'That code is for a role this app doesn’t have.' };
-        learnRef.current[o.id] = o.s; LearnStore.save(o.id, o.s);
+        learnRef.current[o.id] = o.s; LearnStore.save(o.id, o.s, true);
         if (mi !== M.mi) store('trs-member', o.id);
         set(function (prev) { return { learnTick: prev.learnTick + 1, mi: mi }; });
         return { ok: true, text: 'Restored: Level ' + o.s.level + ', ' + num(o.s.xp) + ' XP' + (mi !== M.mi ? ', for the ' + P.members[mi].role : '') + '.' };
@@ -4134,7 +4198,7 @@
       learnDemo: function (kind) {
         if (kind === 'day') { set(function (prev) { return { learnShift: (prev.learnShift || 0) + 1 }; }); return; }
         var S = learnDemo(LP, kind, learnDay, lctx), id = M.m.id;
-        learnRef.current[id] = S; LearnStore.save(id, S);
+        learnRef.current[id] = S; LearnStore.save(id, S, true);
         set(function (prev) { return { learnTick: prev.learnTick + 1, bookOpen: {} }; });
       },
       close: function () { set({ sheet: null }); },
@@ -4222,7 +4286,7 @@
         var lvc = html`<${LevelCard} key="lv" LM=${LM} LP=${LP} A=${A} role=${m.role} />`, dqc = html`<${DailyCard} key="dq" LM=${LM} LP=${LP} A=${A} />`;
         var bks = LM.books.map(function (x) { return html`<${BookCard} key=${'bk' + x.b.id} bk=${x} LP=${LP} A=${A} open=${!!st.bookOpen[x.b.id]} />`; });
         var prc = html`<${PracticeCard} key="pr" LM=${LM} A=${A} />`, dkc = html`<${DeskCard} key="dk" LM=${LM} A=${A} />`, dlc = html`<${DealsCard} key="dl" LM=${LM} LP=${LP} A=${A} role=${m.role} />`;
-        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} />`;
+        var pcc = html`<${PaceCard} key="pc" LM=${LM} LP=${LP} />`, bdc = html`<${BadgesCard} key="bd" LM=${LM} A=${A} />`, pgc = html`<${ProgressCard} key="pg" A=${A} fresh=${!LM.xp} />`;
         var ltc = window.TRS_LEARN ? html`<${LearnTools} key="lt" A=${A} dayText=${wk(learnDay) + ' ' + dMonth(learnDay)} />` : null;
         // a new reader (nothing passed yet) sees how Learn works until they close it; Settings brings it back
         var how = st.howOpen || (!read('trs-learn-how') && !LM.passed) ? html`<${LearnHow} key="hw" LP=${LP} A=${A} />` : null;
